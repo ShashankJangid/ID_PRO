@@ -1,9 +1,23 @@
 import React from 'react';
 import { X, Building2, Palette, Database, PenTool, Eye, Lightbulb } from 'lucide-react';
 import { useAppStore } from '@/store';
+import { useShallow } from 'zustand/react/shallow';
 
 const HelpDialog: React.FC = () => {
-  const { showHelp, setShowHelp } = useAppStore();
+  const { showHelp, setShowHelp } = useAppStore(
+    useShallow((s) => ({ showHelp: s.showHelp, setShowHelp: s.setShowHelp }))
+  );
+
+  React.useEffect(() => {
+    if (!showHelp) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowHelp(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showHelp, setShowHelp]);
 
   if (!showHelp) return null;
 
@@ -14,6 +28,9 @@ const HelpDialog: React.FC = () => {
     >
       <div
         className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-guide-title"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -22,10 +39,11 @@ const HelpDialog: React.FC = () => {
             <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
               <Lightbulb className="w-5 h-5 text-emerald-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">Help & Guide</h2>
+            <h2 id="help-guide-title" className="text-lg font-bold text-gray-900">Help & Guide</h2>
           </div>
           <button
             onClick={() => setShowHelp(false)}
+            aria-label="Close help guide"
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />

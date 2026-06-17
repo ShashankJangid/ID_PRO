@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Eye,
@@ -51,20 +51,30 @@ const PreviewExport: React.FC = () => {
     async (card: CardData, cardSide: 'front' | 'back'): Promise<HTMLCanvasElement> => {
       if (!template) throw new Error('No template');
 
-      // Create off-screen container at exact card dimensions
+      // Create a hidden wrapper at top-left to avoid coordinate precision/offscreen layout issues
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'absolute';
+      wrapper.style.left = '0';
+      wrapper.style.top = '0';
+      wrapper.style.width = '0';
+      wrapper.style.height = '0';
+      wrapper.style.overflow = 'hidden';
+      wrapper.style.zIndex = '-9999';
+      wrapper.style.pointerEvents = 'none';
+      document.body.appendChild(wrapper);
+
+      // Create container inside the wrapper at exact card size
       const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-99999px';
-      container.style.top = '0';
       container.style.width = `${template.cardWidth}px`;
       container.style.height = `${template.cardHeight}px`;
       container.style.overflow = 'hidden';
-      container.style.zIndex = '-1';
-      document.body.appendChild(container);
+      wrapper.appendChild(container);
 
+      const cardStyle = { boxShadow: 'none', borderRadius: 0 };
+      let root: any = null;
       // Render the real CardRenderer React component into the container
       await new Promise<void>((resolve) => {
-        const root = createRoot(container);
+        root = createRoot(container);
         root.render(
           React.createElement(CardRenderer, {
             template,
@@ -72,12 +82,17 @@ const PreviewExport: React.FC = () => {
             organization,
             side: cardSide,
             scale: 1,
-            style: { boxShadow: 'none', borderRadius: 0 },
+            style: cardStyle,
           })
         );
         // Give React + images time to fully render
         setTimeout(resolve, 700);
       });
+
+      // Wait for all custom fonts in the document to be fully loaded
+      if (document.fonts) {
+        await document.fonts.ready;
+      }
 
       // Wait for all images inside to fully load
       const imgs = Array.from(container.querySelectorAll('img'));
@@ -104,9 +119,16 @@ const PreviewExport: React.FC = () => {
         logging: false,
         windowWidth: template.cardWidth,
         windowHeight: template.cardHeight,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
       });
 
-      document.body.removeChild(container);
+      if (root) {
+        root.unmount();
+      }
+      document.body.removeChild(wrapper);
       return canvas;
     },
     [template, organization]

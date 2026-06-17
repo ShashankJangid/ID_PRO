@@ -1586,6 +1586,338 @@ export const modernGradientTemplate: CardTemplate = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// TEMPLATE 7: HORIZONTAL CORPORATE (Landscape ID card)
+// ═══════════════════════════════════════════════════════════
+export const horizontalCorporateTemplate: CardTemplate = {
+  id: 'builtin_horizontal_corporate',
+  name: 'Horizontal Corporate',
+  description: 'Professional landscape ID card with side-by-side photo and info layout.',
+  category: 'corporate',
+  cardWidth: 1010,
+  cardHeight: 638,
+  isBuiltIn: true,
+  frontElements: [
+    // Full background
+    shape('BG', 'rectangle', 0, 0, 1010, 638, {
+      backgroundColor: '#ffffff',
+    }),
+    // Left accent panel
+    shape('Left Panel', 'rectangle', 0, 0, 360, 638, {
+      gradient: 'linear-gradient(180deg, #1e3a5f 0%, #0f2439 100%)',
+    }),
+    // Accent stripe
+    shape('Accent Stripe', 'rectangle', 360, 0, 6, 638, {
+      backgroundColor: '#2ecc71',
+    }),
+    // Logo on left panel
+    img('Company Logo', 'logo', 80, 30, 200, 70, {
+      objectFit: 'contain',
+    }),
+    // Org name on left panel
+    txt('Org Name', 'orgName', 20, 105, 320, 30, {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.8)',
+      fontWeight: '600',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+    }),
+    // Photo on left panel
+    shape('Photo BG', 'circle', 95, 160, 170, 170, {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderRadius: 85,
+    }),
+    img('Employee Photo', 'photo', 105, 170, 150, 150, {
+      borderRadius: 75,
+      objectFit: 'cover',
+      borderWidth: 3,
+      borderColor: '#2ecc71',
+    }),
+    // Name on left panel
+    txt('Full Name', 'name', 20, 355, 320, 40, {
+      fontSize: 22,
+      color: '#ffffff',
+      fontWeight: '800',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    }),
+    // Role on left panel
+    txt('Designation', 'role', 20, 400, 320, 30, {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.7)',
+      fontWeight: '500',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+    }),
+    // Employee Code on left panel
+    shape('Code Badge', 'rounded-rect', 100, 450, 160, 36, {
+      backgroundColor: 'rgba(46,204,113,0.2)',
+      borderRadius: 18,
+    }),
+    txt('Employee Code', 'code', 100, 456, 160, 24, {
+      fontSize: 14,
+      color: '#2ecc71',
+      fontWeight: '700',
+      textAlign: 'center',
+      letterSpacing: 2,
+    }),
+    // Issued / Valid on left panel
+    txt('Issued Label', undefined, 20, 520, 160, 20, {
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.5)',
+      fontWeight: '500',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'ISSUED',
+    }),
+    txt('Issued Date', 'issued', 20, 540, 160, 22, {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
+      fontWeight: '600',
+      textAlign: 'center',
+    }),
+    txt('Valid Label', undefined, 180, 520, 160, 20, {
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.5)',
+      fontWeight: '500',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'VALID UNTIL',
+    }),
+    txt('Valid Date', 'valid', 180, 540, 160, 22, {
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.85)',
+      fontWeight: '600',
+      textAlign: 'center',
+    }),
+    // Right side — Info section
+    txt('Identity Card Label', undefined, 400, 30, 580, 28, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 4,
+      staticText: 'EMPLOYEE IDENTITY CARD',
+    }),
+    // Divider
+    shape('Top Divider', 'rectangle', 400, 65, 580, 1, {
+      backgroundColor: '#e2e8f0',
+    }),
+    // DOB
+    txt('DOB Label', undefined, 400, 90, 140, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'Date of Birth',
+    }),
+    txt('DOB', 'dob', 550, 90, 420, 22, {
+      fontSize: 14,
+      color: '#1e293b',
+      fontWeight: '600',
+    }),
+    shape('Line1', 'rectangle', 400, 120, 580, 1, { backgroundColor: '#f1f5f9' }),
+    // Blood
+    txt('Blood Label', undefined, 400, 135, 140, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'Blood Group',
+    }),
+    txt('Blood', 'blood', 550, 135, 420, 22, {
+      fontSize: 14,
+      color: '#1e293b',
+      fontWeight: '600',
+    }),
+    shape('Line2', 'rectangle', 400, 165, 580, 1, { backgroundColor: '#f1f5f9' }),
+    // Contact
+    txt('Contact Label', undefined, 400, 180, 140, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'Contact No.',
+    }),
+    txt('Contact', 'contact', 550, 180, 420, 22, {
+      fontSize: 14,
+      color: '#1e293b',
+      fontWeight: '600',
+    }),
+    shape('Line3', 'rectangle', 400, 210, 580, 1, { backgroundColor: '#f1f5f9' }),
+    // Address
+    txt('Address Label', undefined, 400, 225, 140, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'Address',
+    }),
+    txt('Address', 'address', 550, 225, 420, 50, {
+      fontSize: 13,
+      color: '#1e293b',
+      fontWeight: '500',
+      lineHeight: 1.4,
+    }),
+    shape('Line4', 'rectangle', 400, 285, 580, 1, { backgroundColor: '#f1f5f9' }),
+    // Emergency
+    shape('Emergency BG', 'rounded-rect', 400, 305, 580, 65, {
+      backgroundColor: '#fef2f2',
+      borderRadius: 10,
+    }),
+    txt('Emergency Title', undefined, 420, 315, 540, 20, {
+      fontSize: 10,
+      color: '#991b1b',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'Emergency Contact',
+    }),
+    txt('Emergency', 'emergency', 420, 338, 540, 24, {
+      fontSize: 18,
+      color: '#dc2626',
+      fontWeight: '800',
+      letterSpacing: 1,
+    }),
+    // QR Code
+    qr('QR Code', 'code', 420, 400, 120),
+    // Signatures
+    img('Signature 1', 'signature1', 600, 420, 160, 60, {
+      objectFit: 'contain',
+    }),
+    shape('Sig Line 1', 'rectangle', 600, 490, 160, 1, {
+      backgroundColor: '#cbd5e1',
+    }),
+    txt('Sig Label 1', undefined, 600, 496, 160, 20, {
+      fontSize: 10,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textAlign: 'center',
+      staticText: 'Authorized Signatory',
+    }),
+    img('Signature 2', 'signature2', 800, 420, 160, 60, {
+      objectFit: 'contain',
+    }),
+    shape('Sig Line 2', 'rectangle', 800, 490, 160, 1, {
+      backgroundColor: '#cbd5e1',
+    }),
+    txt('Sig Label 2', undefined, 800, 496, 160, 20, {
+      fontSize: 10,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textAlign: 'center',
+      staticText: 'Director',
+    }),
+    // Bottom bar
+    shape('Bottom Bar', 'rectangle', 366, 580, 644, 58, {
+      backgroundColor: '#f8fafc',
+    }),
+    txt('Footer Org', 'orgName', 400, 593, 580, 25, {
+      fontSize: 12,
+      color: '#94a3b8',
+      fontWeight: '500',
+      textAlign: 'center',
+    }),
+  ],
+  backElements: [
+    shape('Back BG', 'rectangle', 0, 0, 1010, 638, {
+      backgroundColor: '#f8fafc',
+    }),
+    // Header
+    shape('Back Header', 'rectangle', 0, 0, 1010, 80, {
+      gradient: 'linear-gradient(90deg, #1e3a5f 0%, #0f2439 100%)',
+    }),
+    shape('Back Accent', 'rectangle', 0, 80, 1010, 4, {
+      backgroundColor: '#2ecc71',
+    }),
+    txt('Back Title', undefined, 20, 25, 970, 35, {
+      fontSize: 18,
+      color: '#ffffff',
+      fontWeight: '700',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 3,
+      staticText: 'Terms & Conditions',
+    }),
+    // Terms text
+    txt('Terms 1', undefined, 40, 110, 930, 30, {
+      fontSize: 13,
+      color: '#475569',
+      fontWeight: '400',
+      staticText: '1. This card is the property of the organization and must be returned upon request.',
+    }),
+    txt('Terms 2', undefined, 40, 150, 930, 30, {
+      fontSize: 13,
+      color: '#475569',
+      fontWeight: '400',
+      staticText: '2. If found, please return to the address mentioned below.',
+    }),
+    txt('Terms 3', undefined, 40, 190, 930, 30, {
+      fontSize: 13,
+      color: '#475569',
+      fontWeight: '400',
+      staticText: '3. This card is non-transferable and must be carried at all times.',
+    }),
+    txt('Terms 4', undefined, 40, 230, 930, 30, {
+      fontSize: 13,
+      color: '#475569',
+      fontWeight: '400',
+      staticText: '4. Any misuse of this card will result in disciplinary action.',
+    }),
+    // Org info block
+    shape('Org Info BG', 'rounded-rect', 40, 300, 930, 120, {
+      backgroundColor: '#ffffff',
+      borderRadius: 12,
+      shadow: '0 2px 8px rgba(0,0,0,0.06)',
+    }),
+    txt('Org Name Back', 'orgName', 60, 315, 890, 30, {
+      fontSize: 16,
+      color: '#1e293b',
+      fontWeight: '700',
+      textAlign: 'center',
+    }),
+    txt('Org Address', 'orgAddress', 60, 350, 890, 25, {
+      fontSize: 12,
+      color: '#64748b',
+      fontWeight: '400',
+      textAlign: 'center',
+    }),
+    txt('Org Contact', 'orgPhone', 60, 380, 445, 25, {
+      fontSize: 12,
+      color: '#64748b',
+      fontWeight: '400',
+      textAlign: 'center',
+    }),
+    txt('Org Email', 'orgEmail', 505, 380, 445, 25, {
+      fontSize: 12,
+      color: '#64748b',
+      fontWeight: '400',
+      textAlign: 'center',
+    }),
+    // QR on back
+    qr('Back QR', 'code', 430, 460, 150),
+    // Footer
+    shape('Back Footer', 'rectangle', 0, 590, 1010, 48, {
+      gradient: 'linear-gradient(90deg, #1e3a5f 0%, #0f2439 100%)',
+    }),
+    txt('Footer Text', 'orgWebsite', 20, 602, 970, 25, {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.7)',
+      fontWeight: '500',
+      textAlign: 'center',
+    }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
 // Export all built-in templates
 // ═══════════════════════════════════════════════════════════
 export const builtInTemplates: CardTemplate[] = [
@@ -1595,6 +1927,7 @@ export const builtInTemplates: CardTemplate[] = [
   medicalTemplate,
   eventBadgeTemplate,
   modernGradientTemplate,
+  horizontalCorporateTemplate,
 ];
 
 export function getBuiltInTemplates(): CardTemplate[] {
