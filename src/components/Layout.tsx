@@ -7,13 +7,14 @@ import {
   Database,
   Eye,
   HelpCircle,
-  IdCard,
   ChevronRight,
   LogOut,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
+import { useShallow } from 'zustand/react/shallow';
 import type { AppTab } from '@/types';
 import type { User } from '@/lib/firebase';
+import sidebarLogo from '@/assets/sidebar_logo.png';
 
 const navItems: {
   id: AppTab;
@@ -38,7 +39,16 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast } =
-    useAppStore();
+    useAppStore(
+      useShallow((s) => ({
+        activeTab: s.activeTab,
+        setActiveTab: s.setActiveTab,
+        hasSetup: s.hasSetup,
+        activeTemplateId: s.activeTemplateId,
+        organization: s.organization,
+        showToast: s.showToast,
+      }))
+    );
 
   const handleNavClick = (item: (typeof navItems)[0]) => {
     if (item.requiresSetup && !hasSetup) {
@@ -59,20 +69,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10">
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md">
-              <IdCard className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm p-1.5 border border-gray-100">
+              <img src={sidebarLogo} alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">ID Pro</h1>
-              <p className="text-[11px] text-gray-400 font-medium">Card Generator</p>
+              <h1 className="text-sm font-bold text-gray-900 leading-tight">Card Gen</h1>
+              <p className="text-[10px] text-gray-400 font-medium">Card Generator</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Sidebar navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -84,6 +94,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item)}
+                aria-current={isActive ? 'page' : undefined}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
                   ${isActive
@@ -132,6 +143,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         <div className="px-3 py-3 border-t border-gray-100 space-y-1">
           <button
             onClick={() => useAppStore.getState().setShowHelp(true)}
+            aria-label="Open Help & Guide"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
           >
             <HelpCircle className="w-4.5 h-4.5" />
@@ -160,6 +172,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
             <button
               onClick={onSignOut}
               title="Sign out"
+              aria-label="Sign out"
               className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />

@@ -1,9 +1,12 @@
 import React, { useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useAppStore } from '@/store';
+import { useShallow } from 'zustand/react/shallow';
 
 const Toast: React.FC = () => {
-  const { toast, clearToast } = useAppStore();
+  const { toast, clearToast } = useAppStore(
+    useShallow((s) => ({ toast: s.toast, clearToast: s.clearToast }))
+  );
 
   useEffect(() => {
     if (toast) {

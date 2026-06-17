@@ -1,22 +1,33 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '@/store';
-import { getBuiltInTemplates } from '@/templates/built-in';
 import { onAuthChange, signOutUser, type User } from '@/lib/firebase';
 import Layout from '@/components/Layout';
-import Dashboard from '@/components/Dashboard';
-import OrganizationSetup from '@/components/OrganizationSetup';
-import TemplateGallery from '@/components/TemplateGallery';
-import CardDesigner from '@/components/CardDesigner';
-import DataImport from '@/components/DataImport';
-import PreviewExport from '@/components/PreviewExport';
-import HelpDialog from '@/components/HelpDialog';
 import Toast from '@/components/Toast';
-import LoginPage from '@/components/LoginPage';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import './App.css';
 
+// Lazy-loaded components:
+const Dashboard = lazy(() => import('@/components/Dashboard'));
+const OrganizationSetup = lazy(() => import('@/components/OrganizationSetup'));
+const TemplateGallery = lazy(() => import('@/components/TemplateGallery'));
+const CardDesigner = lazy(() => import('@/components/CardDesigner'));
+const DataImport = lazy(() => import('@/components/DataImport'));
+const PreviewExport = lazy(() => import('@/components/PreviewExport'));
+const HelpDialog = lazy(() => import('@/components/HelpDialog'));
+const LoginPage = lazy(() => import('@/components/LoginPage'));
+
+const LoadingFallback = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+  </div>
+);
+
 function App() {
-  const { activeTab, showToast, hasSetup } = useAppStore();
+  const { activeTab, showToast, hasSetup } = useAppStore(
+    useShallow((s) => ({ activeTab: s.activeTab, showToast: s.showToast, hasSetup: s.hasSetup }))
+  );
 
   // ─── Auth State ───
   const [user, setUser] = useState<User | null>(null);
@@ -34,8 +45,10 @@ function App() {
   useEffect(() => {
     const { templates: existingTemplates } = useAppStore.getState();
     if (existingTemplates.length === 0) {
-      const builtIns = getBuiltInTemplates();
-      builtIns.forEach((t) => useAppStore.getState().addTemplate(t));
+      import('@/templates/built-in').then(({ getBuiltInTemplates }) => {
+        const builtIns = getBuiltInTemplates();
+        builtIns.forEach((t) => useAppStore.getState().addTemplate(t));
+      });
     }
   }, []);
 
@@ -63,7 +76,13 @@ function App() {
 
   // ─── Not signed in ───
   if (!user) {
-    return <LoginPage onLogin={() => {}} />;
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-white"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>}>
+          <LoginPage onLogin={() => {}} />
+        </Suspense>
+      </ErrorBoundary>
+    );
   }
 
   const renderContent = () => {
@@ -81,9 +100,17 @@ function App() {
   return (
     <>
       <Layout user={user} onSignOut={signOutUser}>
-        {renderContent()}
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingFallback />}>
+            {renderContent()}
+          </Suspense>
+        </ErrorBoundary>
       </Layout>
-      <HelpDialog />
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          <HelpDialog />
+        </Suspense>
+      </ErrorBoundary>
       <Toast />
     </>
   );

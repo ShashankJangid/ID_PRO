@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Database,
   Upload,
@@ -8,9 +9,33 @@ import {
   Trash2,
   X,
   UserCircle2,
+  Images,
+  FolderOpen,
+  CheckCircle2,
 } from 'lucide-react';
-declare const XLSX: any;
 import { useAppStore, suggestMappings } from '@/store';
+import { readFileAsBase64 } from '@/lib/file-utils';
+
+let xlsxLib: any = null;
+
+async function loadXLSX(): Promise<any> {
+  if (xlsxLib) return xlsxLib;
+  return new Promise((resolve, reject) => {
+    if ((window as any).XLSX) {
+      xlsxLib = (window as any).XLSX;
+      resolve(xlsxLib);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
+    script.onload = () => {
+      xlsxLib = (window as any).XLSX;
+      resolve(xlsxLib);
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
 import type { CardData, DataField } from '@/types';
 
 const fieldLabels: Record<DataField, string> = {
@@ -28,6 +53,9 @@ const fieldLabels: Record<DataField, string> = {
   orgAddress: 'Org Address',
   orgPhone: 'Org Phone',
   orgEmail: 'Org Email',
+  orgWebsite: 'Org Website',
+  orgTagline: 'Org Tagline',
+  orgEmergency: 'Org Emergency Contact',
   custom1: 'Custom Field 1',
   custom2: 'Custom Field 2',
   custom3: 'Custom Field 3',
@@ -42,7 +70,16 @@ const DataImport: React.FC = () => {
     setActiveCardIndex,
     updateActiveCard,
     showToast,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow((s) => ({
+      cardDataList: s.cardDataList,
+      setCardDataList: s.setCardDataList,
+      activeCardIndex: s.activeCardIndex,
+      setActiveCardIndex: s.setActiveCardIndex,
+      updateActiveCard: s.updateActiveCard,
+      showToast: s.showToast,
+    }))
+  );
   const [columnMappings, setColumnMappings] = useState<{ excelColumn: string; field: DataField }[]>([]);
 
   const [step, setStep] = useState<'upload' | 'map' | 'preview'>('upload');
@@ -55,22 +92,26 @@ const DataImport: React.FC = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const editPhotoRef = useRef<HTMLInputElement>(null);
-
-  const readAsBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  const bulkPhotoRef = useRef<HTMLInputElement>(null);
+  const [bulkPhotoStats, setBulkPhotoStats] = useState<{ matched: number; unmatched: string[] } | null>(null);
+  const [bulkPhotoLoading, setBulkPhotoLoading] = useState(false);
 
   const activeCard = cardDataList[activeCardIndex] || cardDataList[0];
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
+
+    let XLSX: any;
+    try {
+      XLSX = await loadXLSX();
+    } catch {
+      showToast('Failed to load XLSX library', 'error');
+      return;
+    }
+
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -218,6 +259,71 @@ const DataImport: React.FC = () => {
     showToast('Record deleted', 'info');
   };
 
+  // ── Bulk Photo Auto-Match ────────────────────────────────
+  const handleBulkPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (cardDataList.length === 0) {
+      showToast('Import card data first before uploading photos.', 'error');
+      return;
+    }
+
+    setBulkPhotoLoading(true);
+    setBulkPhotoStats(null);
+
+    // Build a lookup map: normalised filename (no extension) → index in cardDataList
+    const codeMap = new Map<string, number>();
+    cardDataList.forEach((card, idx) => {
+      if (card.code) codeMap.set(card.code.trim().toLowerCase(), idx);
+    });
+
+    let matched = 0;
+    const unmatched: string[] = [];
+    const updatedList = [...cardDataList];
+
+    const toBase64 = (file: File): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+    for (const file of Array.from(files)) {
+      // Strip extension from filename
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '').trim().toLowerCase();
+      const idx = codeMap.get(nameWithoutExt);
+      if (idx !== undefined) {
+        try {
+          const b64 = await toBase64(file);
+          updatedList[idx] = { ...updatedList[idx], photo: b64 };
+          matched++;
+        } catch {
+          unmatched.push(file.name);
+        }
+      } else {
+        unmatched.push(file.name);
+      }
+    }
+
+    setCardDataList(updatedList);
+    setBulkPhotoStats({ matched, unmatched });
+    setBulkPhotoLoading(false);
+    showToast(`${matched} photo(s) matched & assigned automatically!`, matched > 0 ? 'success' : 'info');
+    e.target.value = '';
+  };
+
+  React.useEffect(() => {
+    if (editingIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setEditingIndex(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingIndex]);
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center gap-3 mb-2">
@@ -310,10 +416,10 @@ const DataImport: React.FC = () => {
                       showToast('Image must be under 5MB', 'error');
                       return;
                     }
-                    const base64 = await readAsBase64(file);
-                    updateActiveCard({ photo: base64 });
-                    showToast('Photo updated!', 'success');
-                    e.target.value = '';
+                     const base64 = await readFileAsBase64(file);
+                     updateActiveCard({ photo: base64 });
+                     showToast('Photo updated!', 'success');
+                     e.target.value = '';
                   }}
                 />
                 {activeCard?.photo && (
@@ -348,6 +454,71 @@ const DataImport: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* ── Bulk Photo Upload ── */}
+          {cardDataList.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Images className="w-4 h-4 text-emerald-600" />
+                  <h3 className="text-sm font-bold text-gray-900">Bulk Photo Auto-Match</h3>
+                </div>
+                <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">Smart</span>
+              </div>
+              <div className="px-5 py-4">
+                <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                  Name your photo files exactly as the <strong className="text-gray-700">Employee ID / Roll No. / Admission No.</strong> of each person (e.g. <code className="bg-gray-100 px-1 rounded">EMP001.jpg</code>, <code className="bg-gray-100 px-1 rounded">ROLL42.png</code>). Upload them all at once and photos will be assigned automatically.
+                </p>
+                <div
+                  onClick={() => bulkPhotoRef.current?.click()}
+                  className="border-2 border-dashed border-emerald-200 rounded-xl p-5 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all"
+                >
+                  {bulkPhotoLoading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-xs text-emerald-600 font-medium">Matching photos…</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <FolderOpen className="w-8 h-8 text-emerald-400" />
+                      <p className="text-sm font-semibold text-gray-700">Click to select photos folder</p>
+                      <p className="text-[10px] text-gray-400">Supports JPG, PNG, WEBP — multiple files</p>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={bulkPhotoRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleBulkPhotoUpload}
+                />
+
+                {/* Match results */}
+                {bulkPhotoStats && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                      {bulkPhotoStats.matched} photo(s) matched &amp; assigned
+                    </div>
+                    {bulkPhotoStats.unmatched.length > 0 && (
+                      <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                        <p className="text-xs font-semibold text-amber-700 mb-1">
+                          {bulkPhotoStats.unmatched.length} file(s) had no matching ID:
+                        </p>
+                        <ul className="text-[10px] text-amber-600 space-y-0.5 max-h-24 overflow-y-auto">
+                          {bulkPhotoStats.unmatched.map((name) => (
+                            <li key={name} className="font-mono">• {name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Existing records */}
           {cardDataList.length > 0 && (
@@ -520,10 +691,13 @@ const DataImport: React.FC = () => {
         >
           <div
             className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-record-title"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900">Edit Record</h3>
+              <h3 id="edit-record-title" className="text-base font-bold text-gray-900">Edit Record</h3>
               <button
                 onClick={() => setEditingIndex(null)}
                 className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
@@ -577,9 +751,9 @@ const DataImport: React.FC = () => {
                         showToast('Image must be under 5MB', 'error');
                         return;
                       }
-                      const base64 = await readAsBase64(file);
-                      setEditForm((prev) => ({ ...prev, photo: base64 }));
-                      e.target.value = '';
+                       const base64 = await readFileAsBase64(file);
+                       setEditForm((prev) => ({ ...prev, photo: base64 }));
+                       e.target.value = '';
                     }}
                   />
                 </div>

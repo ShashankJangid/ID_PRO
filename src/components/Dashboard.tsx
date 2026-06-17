@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Building2,
   Palette,
@@ -11,13 +11,24 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { getBuiltInTemplates } from '@/templates/built-in';
+import { useShallow } from 'zustand/react/shallow';
 
 const Dashboard: React.FC = () => {
-  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates } = useAppStore();
+  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates } = useAppStore(
+    useShallow((s) => ({
+      hasSetup: s.hasSetup,
+      organization: s.organization,
+      activeTemplateId: s.activeTemplateId,
+      cardDataList: s.cardDataList,
+      setActiveTab: s.setActiveTab,
+      templates: s.templates,
+    }))
+  );
 
-  const allTemplates = [...getBuiltInTemplates(), ...templates];
-  const activeTemplate = allTemplates.find((t) => t.id === activeTemplateId);
+  const activeTemplate = useMemo(
+    () => templates.find((t) => t.id === activeTemplateId),
+    [templates, activeTemplateId]
+  );
 
   const steps = [
     {
@@ -60,7 +71,7 @@ const Dashboard: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Sparkles className="w-6 h-6 text-emerald-500" />
-          <h1 className="text-2xl font-bold text-gray-900">Welcome to ID Pro</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome to Card Gen</h1>
         </div>
         <p className="text-gray-500 text-sm">
           Create professional ID cards for any organization — schools, offices, hospitals, events, and more.
@@ -75,7 +86,7 @@ const Dashboard: React.FC = () => {
               <Palette className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-xl font-bold text-gray-900">{allTemplates.length}</p>
+              <p className="text-xl font-bold text-gray-900">{templates.length}</p>
               <p className="text-xs text-gray-500">Templates</p>
             </div>
           </div>

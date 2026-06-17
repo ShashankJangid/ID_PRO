@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Palette,
   Search,
@@ -22,6 +23,7 @@ import { useAppStore } from '@/store';
 import { getBuiltInTemplates } from '@/templates/built-in';
 import CardRenderer from './CardRenderer';
 import type { CardTemplate, CardElement } from '@/types';
+import { readFileAsBase64, readFileAsText, getImageDimensions } from '@/lib/file-utils';
 
 const categoryIcons: Record<string, React.ElementType> = {
   corporate: Building2,
@@ -85,6 +87,8 @@ const JSON_EXAMPLE = `{
   "backElements": []
 }`;
 
+
+
 const TemplateGallery: React.FC = () => {
   const {
     templates: userTemplates,
@@ -95,8 +99,18 @@ const TemplateGallery: React.FC = () => {
     organization,
     cardDataList,
     showToast,
-    setActiveTab,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow((s) => ({
+      templates: s.templates,
+      activeTemplateId: s.activeTemplateId,
+      setActiveTemplate: s.setActiveTemplate,
+      addTemplate: s.addTemplate,
+      deleteTemplate: s.deleteTemplate,
+      organization: s.organization,
+      cardDataList: s.cardDataList,
+      showToast: s.showToast,
+    }))
+  );
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -113,11 +127,24 @@ const TemplateGallery: React.FC = () => {
   const bgBackRef = useRef<HTMLInputElement>(null);
   const jsonRef = useRef<HTMLInputElement>(null);
 
+  // ── Canva Import Modal State ──
+  const [showCanvaImport, setShowCanvaImport] = useState(false);
+  const [canvaEmbedCode, setCanvaEmbedCode] = useState('');
+  const [canvaError, setCanvaError] = useState('');
+
   const builtInTemplates = useMemo(() => getBuiltInTemplates(), []);
-  const allTemplates = useMemo(
-    () => [...builtInTemplates, ...userTemplates],
-    [builtInTemplates, userTemplates]
-  );
+  // Merge built-ins with user/store templates, deduplicating by ID
+  const allTemplates = useMemo(() => {
+    const seen = new Set<string>();
+    const result: CardTemplate[] = [];
+    for (const t of builtInTemplates) {
+      if (!seen.has(t.id)) { seen.add(t.id); result.push(t); }
+    }
+    for (const t of userTemplates) {
+      if (!seen.has(t.id)) { seen.add(t.id); result.push(t); }
+    }
+    return result;
+  }, [builtInTemplates, userTemplates]);
 
   const filtered = useMemo(() => {
     return allTemplates.filter((t) => {
@@ -143,6 +170,12 @@ const TemplateGallery: React.FC = () => {
   };
 
   const handleSelect = (template: CardTemplate) => {
+    // Built-in templates only exist in getBuiltInTemplates(), not the persisted
+    // store, so getActiveTemplate() returns undefined unless we upsert first.
+    const alreadyInStore = useAppStore.getState().templates.some((t) => t.id === template.id);
+    if (!alreadyInStore) {
+      addTemplate(template);
+    }
     setActiveTemplate(template.id);
     showToast(`Template "${template.name}" selected!`, 'success');
   };
@@ -159,24 +192,6 @@ const TemplateGallery: React.FC = () => {
     addTemplate(newTemplate);
     showToast('Template duplicated! You can now customize it.', 'success');
   };
-
-  // ─── Read image as base64 ───────────────────────────────────────
-  const readBase64 = (file: File): Promise<string> =>
-    new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = (e) => res(e.target!.result as string);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-
-  // ─── Read JSON file ─────────────────────────────────────────────
-  const readText = (file: File): Promise<string> =>
-    new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = (e) => res(e.target!.result as string);
-      r.onerror = rej;
-      r.readAsText(file);
-    });
 
   // ─── Validate the JSON layout ───────────────────────────────────
   const validateLayout = (json: string): string => {
@@ -196,7 +211,7 @@ const TemplateGallery: React.FC = () => {
   };
 
   // ─── Import custom template ─────────────────────────────────────
-  const handleImportTemplate = () => {
+  const handleImportTemplate = async () => {
     if (!uploadJson.trim()) {
       setUploadJsonError('Please paste your JSON layout or upload a .json file');
       return;
@@ -207,13 +222,22 @@ const TemplateGallery: React.FC = () => {
     let parsed: Partial<CardTemplate>;
     try { parsed = JSON.parse(uploadJson); } catch { return; }
 
+    // If JSON doesn't specify dimensions, derive from the uploaded background image
+    let cardWidth = parsed.cardWidth || 340;
+    let cardHeight = parsed.cardHeight || 214;
+    if (uploadBg && !parsed.cardWidth) {
+      const dims = await getImageDimensions(uploadBg);
+      cardWidth = dims.w;
+      cardHeight = dims.h;
+    }
+
     const newTemplate: CardTemplate = {
       id: `custom_${Date.now()}`,
       name: uploadName || parsed.name || 'Custom Template',
       description: parsed.description || 'User-uploaded template',
       category: 'custom',
-      cardWidth: parsed.cardWidth || 340,
-      cardHeight: parsed.cardHeight || 214,
+      cardWidth,
+      cardHeight,
       frontElements: (parsed.frontElements || []) as CardElement[],
       backElements: (parsed.backElements || []) as CardElement[],
       isBuiltIn: false,
@@ -236,16 +260,19 @@ const TemplateGallery: React.FC = () => {
   };
 
   // ─── Blank template (image-only, no elements) ───────────────────
-  const handleCreateBlank = () => {
+  const handleCreateBlank = async () => {
     if (!uploadBg) { showToast('Please upload a front background image first', 'error'); return; }
+
+    // Detect real image dimensions so elements placed later align correctly
+    const { w, h } = await getImageDimensions(uploadBg);
 
     const newTemplate: CardTemplate = {
       id: `custom_${Date.now()}`,
       name: uploadName || 'Image Template',
       description: 'Image background — add fields in the Designer',
       category: 'custom',
-      cardWidth: 340,
-      cardHeight: 214,
+      cardWidth: w,
+      cardHeight: h,
       frontElements: [],
       backElements: [],
       isBuiltIn: false,
@@ -264,6 +291,90 @@ const TemplateGallery: React.FC = () => {
     setUploadName('');
   };
 
+  const handleCanvaImport = () => {
+    setCanvaError('');
+    if (!canvaEmbedCode.trim()) {
+      setCanvaError('Please paste the Canva embed HTML code.');
+      return;
+    }
+
+    // Extract iframe src
+    const srcRegex = /src="([^"]+)"/;
+    const srcMatch = canvaEmbedCode.match(srcRegex);
+    let embedUrl = srcMatch ? srcMatch[1] : '';
+
+    if (!embedUrl) {
+      // Fallback: try to see if they just pasted a plain Canva URL
+      const urlRegex = /(https?:\/\/[^\s]+canva\.com[^\s]+)/;
+      const urlMatch = canvaEmbedCode.match(urlRegex);
+      if (urlMatch) {
+        embedUrl = urlMatch[1].split('?')[0] + '/watch?embed';
+      } else {
+        setCanvaError('Could not find any iframe or Canva design URL in the pasted code.');
+        return;
+      }
+    }
+
+    // Standardize URL to embed/watch
+    if (embedUrl.includes('/design/') && !embedUrl.endsWith('embed')) {
+      try {
+        const parsedUrl = new URL(embedUrl);
+        if (!parsedUrl.searchParams.has('embed')) {
+          parsedUrl.search = '?embed';
+          embedUrl = parsedUrl.toString();
+        }
+      } catch (err) {
+        // ignore url parsing error and keep raw embedUrl
+      }
+    }
+
+    // Extract title/design name
+    const titleRegex = /alt="([^"]+)"|title="([^"]+)"/;
+    const titleMatch = canvaEmbedCode.match(titleRegex);
+    let name = (titleMatch ? (titleMatch[1] || titleMatch[2]) : '') || '';
+
+    if (!name) {
+      const anchorRegex = />([^<]+)<\/a>\s+by/;
+      const anchorMatch = canvaEmbedCode.match(anchorRegex);
+      if (anchorMatch) {
+        name = anchorMatch[1].trim();
+      } else {
+        name = 'Canva Design';
+      }
+    }
+
+    // Guess orientation from padding-top ratio
+    const paddingRegex = /padding-top:\s*([\d.]+)%/;
+    const paddingMatch = canvaEmbedCode.match(paddingRegex);
+    let isHorizontal = false;
+    if (paddingMatch) {
+      const padVal = parseFloat(paddingMatch[1]);
+      if (padVal < 100) {
+        isHorizontal = true;
+      }
+    }
+
+    const newTemplate: CardTemplate = {
+      id: `canva_${Date.now()}`,
+      name: name,
+      description: `Imported from Canva Embed Code`,
+      category: 'custom',
+      cardWidth: isHorizontal ? 1010 : 638,
+      cardHeight: isHorizontal ? 638 : 1010,
+      frontElements: [],
+      backElements: [],
+      canvaEmbedUrl: embedUrl,
+      canvaEmbedUrlBack: embedUrl,
+      createdAt: new Date().toISOString(),
+    };
+
+    addTemplate(newTemplate);
+    setActiveTemplate(newTemplate.id);
+    showToast('Canva Template imported successfully!', 'success');
+    setShowCanvaImport(false);
+    setCanvaEmbedCode('');
+  };
+
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-2">
@@ -271,14 +382,24 @@ const TemplateGallery: React.FC = () => {
           <Palette className="w-6 h-6 text-emerald-600" />
           <h1 className="text-2xl font-bold text-gray-900">Template Gallery</h1>
         </div>
-        {/* ✅ Upload custom template button */}
-        <button
-          onClick={() => setShowUpload(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Upload Custom Template
-        </button>
+        <div className="flex gap-2">
+          {/* ✅ Import Canva Embed button */}
+          <button
+            onClick={() => setShowCanvaImport(true)}
+            className="flex items-center gap-2 px-4 py-2 border-2 border-emerald-600 text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-50 shadow-sm transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            Import Canva Embed
+          </button>
+          {/* ✅ Upload custom template button */}
+          <button
+            onClick={() => setShowUpload(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Upload Custom Template
+          </button>
+        </div>
       </div>
       <p className="text-gray-500 text-sm mb-6">
         Choose from pre-built templates, upload your own, or duplicate and customize.
@@ -423,6 +544,7 @@ const TemplateGallery: React.FC = () => {
             </div>
 
             <div className="px-6 py-5 space-y-5">
+
               {/* Template name */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Template Name</label>
@@ -463,7 +585,7 @@ const TemplateGallery: React.FC = () => {
                   <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
                     const f = e.target.files?.[0]; if (!f) return;
                     if (f.size > 5 * 1024 * 1024) { showToast('Max 5MB', 'error'); return; }
-                    setUploadBg(await readBase64(f)); e.target.value = '';
+                    setUploadBg(await readFileAsBase64(f)); e.target.value = '';
                   }} />
                 </div>
 
@@ -493,7 +615,7 @@ const TemplateGallery: React.FC = () => {
                   <input ref={bgBackRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
                     const f = e.target.files?.[0]; if (!f) return;
                     if (f.size > 5 * 1024 * 1024) { showToast('Max 5MB', 'error'); return; }
-                    setUploadBgBack(await readBase64(f)); e.target.value = '';
+                    setUploadBgBack(await readFileAsBase64(f)); e.target.value = '';
                   }} />
                 </div>
               </div>
@@ -525,7 +647,7 @@ const TemplateGallery: React.FC = () => {
                 />
                 <input ref={jsonRef} type="file" accept=".json" className="hidden" onChange={async (e) => {
                   const f = e.target.files?.[0]; if (!f) return;
-                  const text = await readText(f);
+                  const text = await readFileAsText(f);
                   setUploadJson(text); setUploadJsonError('');
                   e.target.value = '';
                 }} />
@@ -566,6 +688,76 @@ const TemplateGallery: React.FC = () => {
               >
                 <Upload className="w-3.5 h-3.5" />
                 Import Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ─── Canva Embed Import Modal ───────────────────────────── */}
+      {showCanvaImport && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowCanvaImport(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Import Canva Design</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Paste Canva HTML embed code to automatically create a template</p>
+              </div>
+              <button onClick={() => setShowCanvaImport(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Canva HTML Embed Code</label>
+                <textarea
+                  value={canvaEmbedCode}
+                  onChange={(e) => setCanvaEmbedCode(e.target.value)}
+                  placeholder={`e.g. <div style="position: relative; ..."><iframe src="https://www.canva.com/design/.../watch?embed" ...></iframe></div>...`}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                />
+              </div>
+
+              {canvaError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-2.5 text-xs">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {canvaError}
+                </div>
+              )}
+
+              {/* Instructions / Warning */}
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 text-xs space-y-1.5">
+                <p className="font-semibold flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-700" /> How to get Canva Embed Code:
+                </p>
+                <ol className="list-decimal list-inside text-[11px] text-amber-800 space-y-1">
+                  <li>In Canva, click <strong>Share</strong> (top right) → <strong>More</strong></li>
+                  <li>Select <strong>Embed</strong> option and click <strong>Embed</strong></li>
+                  <li>Copy the <strong>HTML embed code</strong> block</li>
+                </ol>
+                <div className="border-t border-amber-200/50 mt-2 pt-2 text-[10px] text-amber-700 leading-normal">
+                  ⚠️ <strong>Export Note:</strong> Due to CORS limitations, external interactive Canva iframes cannot be captured on PDF/PNG exports. For export builds, please upload your Canva layout as a standard static Background Image in the designer.
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50/50">
+              <button
+                type="button"
+                onClick={() => setShowCanvaImport(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCanvaImport}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-all"
+              >
+                Import Design
               </button>
             </div>
           </div>

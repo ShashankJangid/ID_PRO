@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import type { CardTemplate, CardData, CardElement, Organization } from '@/types';
+import { QRCodeSVG } from 'qrcode.react';
+import type { CardTemplate, CardData, CardElement, Organization, QRFieldKey } from '@/types';
 import { getFieldValue } from '@/store';
 
 interface CardRendererProps {
@@ -18,26 +19,71 @@ function getImageUrl(
   cardData: CardData,
   organization: Organization
 ): string | null {
-  switch (el.imageSource) {
-    case 'photo':
-      return cardData.photo || null;
-    case 'logo':
-      return organization.logo || null;
-    case 'signature1':
-      return organization.signature1 || null;
-    case 'signature2':
-      return organization.signature2 || null;
-    case 'custom':
-      return el.staticImageUrl || null;
-    default:
-      return el.staticImageUrl || null;
+  const src = el.imageSource;
+  if (!src) return el.staticImageUrl || null;
+
+  // Dynamic indexed sources: logo_N, signature_N, asset_N
+  if (src.startsWith('logo_')) {
+    const idx = parseInt(src.split('_')[1]);
+    return organization.logos?.[idx]?.data || null;
+  }
+  if (src.startsWith('signature_')) {
+    const idx = parseInt(src.split('_')[1]);
+    return organization.signatures?.[idx]?.data || null;
+  }
+  if (src.startsWith('asset_')) {
+    const idx = parseInt(src.split('_')[1]);
+    return organization.assets?.[idx]?.data || null;
+  }
+
+  switch (src) {
+    case 'photo':      return cardData.photo || null;
+    case 'logo':       return organization.logos?.[0]?.data || organization.logo || null;
+    case 'signature1': return organization.signatures?.[0]?.data || organization.signature1 || null;
+    case 'signature2': return organization.signatures?.[1]?.data || organization.signature2 || null;
+    case 'custom':     return el.staticImageUrl || null;
+    default:           return el.staticImageUrl || null;
   }
 }
 
-/** Generate QR code URL */
-function getQRUrl(value: string): string {
-  const text = encodeURIComponent(value || 'ID Card');
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${text}`;
+/** Generate QR code data from selected fields */
+function buildQRData(
+  el: CardElement,
+  cardData: CardData,
+  org: Organization
+): string {
+  // Priority: element's own qrFields > org default > hardcoded fallback
+  const fields = (el.qrFields && el.qrFields.length > 0)
+    ? el.qrFields
+    : ((org.defaultQRFields && org.defaultQRFields.length > 0)
+        ? org.defaultQRFields
+        : ['name', 'code', 'role'] as QRFieldKey[]);
+
+  const fieldLabelMap: Record<string, string> = {
+    name: 'Name', role: 'Role', code: 'ID', dob: 'DOB', blood: 'Blood',
+    contact: 'Contact', address: 'Address', issued: 'Issued', valid: 'Valid',
+    emergency: 'Emergency', orgName: 'Org', orgPhone: 'OrgPhone',
+    orgEmail: 'OrgEmail', orgWebsite: 'Website',
+  };
+
+  const lines: string[] = [];
+  for (const f of fields) {
+    const label = fieldLabelMap[f] || f;
+    let value = '';
+    if (f === 'orgName') value = org.name || '';
+    else if (f === 'orgPhone') value = org.phone || '';
+    else if (f === 'orgEmail') value = org.email || '';
+    else if (f === 'orgWebsite') value = org.website || '';
+    else value = (cardData as any)[f] || '';
+    if (value) lines.push(`${label}: ${value}`);
+  }
+
+  // Absolute fallback — never return empty string
+  if (lines.length === 0) {
+    const fallback = cardData.code || cardData.name || 'ID Card';
+    return fallback;
+  }
+  return lines.join('\n');
 }
 
 /** Render a single card element */
@@ -50,18 +96,16 @@ function renderElement(
   const displayText = el.staticText || value || (el.field ? `[${el.label}]` : '');
   const imgUrl = el.imageSource ? getImageUrl(el, cardData, org) : (el.staticImageUrl || null);
 
-  // For text elements, use minHeight so content is never clipped
+  // Fixed height for all elements (including text) to ensure layout alignment on export
   const baseStyle: React.CSSProperties = {
     position: 'absolute',
     left: el.x,
     top: el.y,
     width: el.width,
-    ...(el.type === 'text'
-      ? { minHeight: el.height, height: 'auto' }
-      : { height: el.height }),
+    height: el.height,
     zIndex: el.zIndex || 1,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-    overflow: el.type === 'text' ? 'visible' : 'hidden',
+    overflow: el.type === 'text' ? 'visible' : 'hidden', // Avoid clipping text characters
   };
 
   const s = el.style;
@@ -148,19 +192,26 @@ function renderElement(
     }
 
     case 'qr': {
-      const qrValue = el.field ? getFieldValue(cardData, el.field, org) : cardData.code || 'ID';
+      const qrValue = buildQRData(el, cardData, org);
       return (
-        <img
+        <div
           key={el.id}
-          src={getQRUrl(qrValue)}
-          alt="QR Code"
           style={{
             ...baseStyle,
             backgroundColor: s.backgroundColor || '#fff',
             padding: 4,
             borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
+        >
+          <QRCodeSVG
+            value={qrValue || 'ID Card'}
+            size={Math.min(el.width, el.height) - 8}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
       );
     }
 
@@ -200,6 +251,9 @@ const CardRenderer: React.FC<CardRendererProps> = ({
 }) => {
   const elements = side === 'front' ? template.frontElements : template.backElements;
 
+  const bgImage = side === 'front' ? template.backgroundImage : (template.backgroundImageBack || template.backgroundImage);
+  const canvaEmbedUrl = side === 'front' ? template.canvaEmbedUrl : (template.canvaEmbedUrlBack || template.canvaEmbedUrl);
+
   const cardStyle: React.CSSProperties = useMemo(
     () => ({
       width: template.cardWidth,
@@ -218,6 +272,40 @@ const CardRenderer: React.FC<CardRendererProps> = ({
 
   return (
     <div className={className} style={cardStyle}>
+      {/* Background — Canva Embed Iframe or Static Image */}
+      {canvaEmbedUrl ? (
+        <iframe
+          src={canvaEmbedUrl}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            zIndex: 0,
+            pointerEvents: 'none', // Critical: do not block overlay selection clicks!
+            display: 'block',
+          }}
+          title="Canva Design"
+        />
+      ) : bgImage ? (
+        <img
+          src={bgImage}
+          alt="card background"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill', // fill = no letterboxing, matches card exactly
+            zIndex: 0,
+            pointerEvents: 'none',
+            display: 'block',
+          }}
+        />
+      ) : null}
       {elements.map((el) => renderElement(el, cardData, organization))}
     </div>
   );
