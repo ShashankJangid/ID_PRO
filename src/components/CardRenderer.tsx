@@ -139,6 +139,9 @@ function renderElement(
     zIndex: el.zIndex || 1,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
     overflow: el.type === 'text' ? 'visible' : 'hidden',
+    margin: 0,
+    padding: 0,
+    boxSizing: 'border-box',
   };
 
   const s = el.style;
@@ -160,7 +163,7 @@ function renderElement(
         whiteSpace: 'pre-wrap',
         backgroundColor: s.backgroundColor || 'transparent',
         borderRadius: s.borderRadius,
-        padding: s.backgroundColor ? '4px 8px' : undefined,
+        padding: s.backgroundColor ? '4px 8px' : 0,
       };
       return (
         <div key={el.id} style={textStyle}>
@@ -238,7 +241,6 @@ function renderElement(
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxSizing: 'border-box',
           }}
         >
           <QRCodeCanvas
@@ -304,6 +306,11 @@ const CardRenderer: React.FC<CardRendererProps> = ({
       transformOrigin: 'top left',
       boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
       borderRadius: 12,
+      margin: 0,
+      padding: 0,
+      border: 'none',
+      lineHeight: 'normal',
+      fontSize: 'initial',
       ...style,
     }),
     [template.cardWidth, template.cardHeight, scale, style]

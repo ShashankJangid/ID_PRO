@@ -66,12 +66,26 @@ const PreviewExport: React.FC = () => {
     async (card: CardData, cardSide: 'front' | 'back'): Promise<HTMLCanvasElement> => {
       if (!template) throw new Error('No template');
 
+      // Save current scroll coordinates to restore later
+      const originalScrollX = window.scrollX || window.pageXOffset || 0;
+      const originalScrollY = window.scrollY || window.pageYOffset || 0;
+
+      // Scroll to top-left corner before drawing to avoid scroll-offset calculation errors in html2canvas
+      window.scrollTo(0, 0);
+
+      // Allow scroll/layout recalculations to settle
+      await new Promise((r) => requestAnimationFrame(r));
+
       // Off-screen container at EXACT card size — no scaling tricks
       const wrapper = document.createElement('div');
+      wrapper.id = 'export-capture-wrapper';
       wrapper.style.cssText = [
         'position:fixed',
         'left:-99999px',
         'top:0',
+        'margin:0',
+        'padding:0',
+        'border:none',
         'width:0',
         'height:0',
         'overflow:visible',
@@ -85,12 +99,16 @@ const PreviewExport: React.FC = () => {
 
       // Inner container — exact card pixel dimensions, no transform
       const container = document.createElement('div');
+      container.id = 'export-capture-container';
       container.style.cssText = [
         `width:${template.cardWidth}px`,
         `height:${template.cardHeight}px`,
         'overflow:hidden',
         'position:relative',
         'background:#ffffff',
+        'margin:0',
+        'padding:0',
+        'border:none',
         // Reset inherited styles that cause text shift
         'line-height:normal',
         'font-size:16px',
@@ -167,12 +185,36 @@ const PreviewExport: React.FC = () => {
             clonedDoc.documentElement.style.margin = '0';
             clonedDoc.documentElement.style.padding = '0';
           }
+
+          // Move the wrapper to left: 0, top: 0 in the cloned document to eliminate float precision shift errors!
+          const clonedWrapper = clonedDoc.getElementById('export-capture-wrapper');
+          if (clonedWrapper) {
+            clonedWrapper.style.position = 'absolute';
+            clonedWrapper.style.left = '0';
+            clonedWrapper.style.top = '0';
+            clonedWrapper.style.width = `${template.cardWidth}px`;
+            clonedWrapper.style.height = `${template.cardHeight}px`;
+            clonedWrapper.style.opacity = '1';
+            clonedWrapper.style.zIndex = '99999';
+          }
+
+          const clonedContainer = clonedDoc.getElementById('export-capture-container');
+          if (clonedContainer) {
+            clonedContainer.style.position = 'absolute';
+            clonedContainer.style.left = '0';
+            clonedContainer.style.top = '0';
+            clonedContainer.style.margin = '0';
+            clonedContainer.style.padding = '0';
+            clonedContainer.style.border = 'none';
+          }
+
           // Force all text elements in the clone to have no extra margin/padding
-          const allDivs = clonedDoc.querySelectorAll('div, span');
+          const defaultView = clonedDoc.defaultView || window;
+          const allDivs = clonedDoc.querySelectorAll('div, span, p, img');
           allDivs.forEach((el) => {
             const htmlEl = el as HTMLElement;
             // Only touch elements that are positioned (our card elements)
-            const style = window.getComputedStyle(htmlEl);
+            const style = defaultView.getComputedStyle(htmlEl);
             if (style.position === 'absolute') {
               htmlEl.style.margin = '0';
               htmlEl.style.boxSizing = 'border-box';
@@ -183,6 +225,10 @@ const PreviewExport: React.FC = () => {
 
       if (root) root.unmount();
       document.body.removeChild(wrapper);
+
+      // Restore original scroll coordinates
+      window.scrollTo(originalScrollX, originalScrollY);
+
       return canvas;
     },
     [template, organization]
