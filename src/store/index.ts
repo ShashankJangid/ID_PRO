@@ -47,6 +47,8 @@ interface AppState {
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   clearToast: () => void;
+  darkMode: boolean;
+  setDarkMode: (v: boolean) => void;
 }
 
 const defaultOrg: Organization = {
@@ -316,6 +318,8 @@ export const useAppStore = create<AppState>()(
       toast: null,
       showToast: (message, type = 'info') => set({ toast: { message, type } }),
       clearToast: () => set({ toast: null }),
+      darkMode: false,
+      setDarkMode: (v) => set({ darkMode: v }),
     }),
     {
       name: 'idcard-studio-storage-guest',
@@ -353,6 +357,7 @@ export const useAppStore = create<AppState>()(
         exportFormat: state.exportFormat,
         designerSide: state.designerSide,
         zoom: state.zoom,
+        darkMode: state.darkMode,
       }),
     }
   )
