@@ -105,6 +105,25 @@ const idbStorage: StateStorage = {
           return localValue;
         }
       }
+
+      // If guest store is not found, check if old global key 'idcard-studio-storage' exists in IndexedDB and migrate it
+      if (value === null && name === 'idcard-studio-storage-guest') {
+        const oldVal = await new Promise<string | null>((resolve) => {
+          const tx = db.transaction('keyval', 'readonly');
+          const store = tx.objectStore('keyval');
+          const req = store.get('idcard-studio-storage');
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+        if (oldVal !== null) {
+          console.log('Migrating old global storage to guest storage...');
+          await idbStorage.setItem(name, oldVal);
+          const tx = db.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          store.delete('idcard-studio-storage');
+          return oldVal;
+        }
+      }
       return value;
     } catch (e) {
       console.warn('IndexedDB getItem failed, falling back to localStorage:', e);
@@ -213,7 +232,7 @@ export const useAppStore = create<AppState>()(
       clearToast: () => set({ toast: null }),
     }),
     {
-      name: 'idcard-studio-storage',
+      name: 'idcard-studio-storage-guest',
       storage: createJSONStorage(() => idbStorage),
       onRehydrateStorage: () => (state, error) => {
         if (!error && state) {
@@ -305,4 +324,10 @@ export function suggestMappings(headers: string[]): ColumnMapping[] {
     }
   });
   return suggestions;
+}
+
+export async function switchStoreUser(userId: string | null) {
+  const name = userId ? `idcard-studio-storage-${userId}` : 'idcard-studio-storage-guest';
+  useAppStore.persist.setOptions({ name });
+  await useAppStore.persist.rehydrate();
 }
