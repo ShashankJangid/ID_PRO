@@ -82,6 +82,12 @@
   color: hsl(var(--foreground));
 }
 
+/* Logo color inversion for dark mode visibility */
+.dark img[alt="JS AlphaSoft"],
+.dark img[alt="Logo"] {
+  filter: invert(1) brightness(1.5) !important;
+}
+
 /* Base Layout Overrides */
 .dark .flex.h-screen.w-screen.bg-gray-50 {
   background-color: hsl(var(--background)) !important;
@@ -246,7 +252,7 @@
 }
 
 /* Slide position selector logic */
-.theme-switch-container:has(.theme-switch-btn:nth-child(2).active) .theme-switch-slider {
+.theme-switch-container:has(.theme-switch-btn:nth-child(3).active) .theme-switch-slider {
   transform: translateX(100%);
 }
 
