@@ -38,6 +38,21 @@ const PreviewExport: React.FC = () => {
   const template = getActiveTemplate();
   const activeCard = cardDataList[activeCardIndex];
 
+  // Helper: Convert template pixels to mm for PDF export
+  const pixelsToMm = (pixels: number, dpi: number = 96) => {
+    return (pixels * 25.4) / dpi;
+  };
+
+  // Get PDF dimensions from template (in mm)
+  const getPdfDimensions = () => {
+    if (!template) return { cardW: 54.0, cardH: 85.6 };
+    const dpi = template.dpi || 96;
+    return {
+      cardW: pixelsToMm(template.cardWidth, dpi),
+      cardH: pixelsToMm(template.cardHeight, dpi),
+    };
+  };
+
   const filteredCards = searchQuery
     ? cardDataList.filter(
         (c) =>
@@ -46,33 +61,45 @@ const PreviewExport: React.FC = () => {
       )
     : cardDataList;
 
-  // ─── Capture card to canvas using real CardRenderer ───
+  // ─── Capture card to canvas ───
   const captureCard = useCallback(
     async (card: CardData, cardSide: 'front' | 'back'): Promise<HTMLCanvasElement> => {
       if (!template) throw new Error('No template');
 
-      // Create a hidden wrapper at top-left to avoid coordinate precision/offscreen layout issues
+      // Off-screen container at EXACT card size — no scaling tricks
       const wrapper = document.createElement('div');
-      wrapper.style.position = 'absolute';
-      wrapper.style.left = '0';
-      wrapper.style.top = '0';
-      wrapper.style.width = '0';
-      wrapper.style.height = '0';
-      wrapper.style.overflow = 'hidden';
-      wrapper.style.zIndex = '-9999';
-      wrapper.style.pointerEvents = 'none';
+      wrapper.style.cssText = [
+        'position:fixed',
+        'left:-99999px',
+        'top:0',
+        'width:0',
+        'height:0',
+        'overflow:visible',
+        'z-index:-9999',
+        'pointer-events:none',
+        // Reset any global CSS that could shift text
+        'line-height:normal',
+        'font-size:16px',
+      ].join(';');
       document.body.appendChild(wrapper);
 
-      // Create container inside the wrapper at exact card size
+      // Inner container — exact card pixel dimensions, no transform
       const container = document.createElement('div');
-      container.style.width = `${template.cardWidth}px`;
-      container.style.height = `${template.cardHeight}px`;
-      container.style.overflow = 'hidden';
+      container.style.cssText = [
+        `width:${template.cardWidth}px`,
+        `height:${template.cardHeight}px`,
+        'overflow:hidden',
+        'position:relative',
+        'background:#ffffff',
+        // Reset inherited styles that cause text shift
+        'line-height:normal',
+        'font-size:16px',
+        'font-family:Inter,sans-serif',
+      ].join(';');
       wrapper.appendChild(container);
 
-      const cardStyle = { boxShadow: 'none', borderRadius: 0 };
+      // Render CardRenderer with scale=1 (no transform)
       let root: any = null;
-      // Render the real CardRenderer React component into the container
       await new Promise<void>((resolve) => {
         root = createRoot(container);
         root.render(
@@ -82,52 +109,70 @@ const PreviewExport: React.FC = () => {
             organization,
             side: cardSide,
             scale: 1,
-            style: cardStyle,
+            style: { boxShadow: 'none', borderRadius: 0, transform: 'none' },
           })
         );
-        // Give React + images time to fully render
-        setTimeout(resolve, 700);
+        // Wait for React to paint + fonts + images
+        setTimeout(resolve, 800);
       });
 
-      // Wait for all custom fonts in the document to be fully loaded
-      if (document.fonts) {
-        await document.fonts.ready;
-      }
+      // Fonts
+      if (document.fonts) await document.fonts.ready;
 
-      // Wait for all images inside to fully load
+      // Images
       const imgs = Array.from(container.querySelectorAll('img'));
       await Promise.all(
         imgs.map(
           (img) =>
-            new Promise<void>((resolve) => {
-              if ((img as HTMLImageElement).complete) resolve();
+            new Promise<void>((res) => {
+              if ((img as HTMLImageElement).complete) res();
               else {
-                (img as HTMLImageElement).onload = () => resolve();
-                (img as HTMLImageElement).onerror = () => resolve();
+                (img as HTMLImageElement).onload = () => res();
+                (img as HTMLImageElement).onerror = () => res();
               }
             })
         )
       );
 
+      // Extra paint frame
+      await new Promise((r) => requestAnimationFrame(r));
+
       const canvas = await html2canvas(container, {
-        scale: 3,
+        scale: 3,           // 3x for print quality
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
         width: template.cardWidth,
         height: template.cardHeight,
         logging: false,
-        windowWidth: template.cardWidth,
-        windowHeight: template.cardHeight,
-        scrollX: 0,
-        scrollY: 0,
+        // These are critical — container is at position 0,0 in wrapper
         x: 0,
         y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: template.cardWidth,
+        windowHeight: template.cardHeight,
+        // Disable foreignObject — more reliable cross-browser text rendering
+        foreignObjectRendering: false,
+        // Remove any proxy
+        proxy: undefined,
+        imageTimeout: 15000,
+        onclone: (clonedDoc) => {
+          // Force all text elements in the clone to have no extra margin/padding
+          const allDivs = clonedDoc.querySelectorAll('div, span');
+          allDivs.forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            // Only touch elements that are positioned (our card elements)
+            const style = window.getComputedStyle(htmlEl);
+            if (style.position === 'absolute') {
+              htmlEl.style.margin = '0';
+              htmlEl.style.boxSizing = 'border-box';
+            }
+          });
+        },
       });
 
-      if (root) {
-        root.unmount();
-      }
+      if (root) root.unmount();
       document.body.removeChild(wrapper);
       return canvas;
     },
@@ -147,14 +192,11 @@ const PreviewExport: React.FC = () => {
         const backCanvas = await captureCard(activeCard, 'back');
         setExportProgress(80);
 
-        const cardW = 54.0; // mm
-        const cardH = 85.6; // mm
+        const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
-
         pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
         pdf.addPage([cardW, cardH], 'portrait');
         pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-
         pdf.save(`${activeCard.code || 'id_card'}.pdf`);
       } else if (format === 'png') {
         const frontCanvas = await captureCard(activeCard, 'front');
@@ -179,14 +221,11 @@ const PreviewExport: React.FC = () => {
         const backCanvas = await captureCard(activeCard, 'back');
         setExportProgress(80);
 
-        const cardW = 54.0;
-        const cardH = 85.6;
+        const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
-
         pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
         pdf.addPage([cardW, cardH], 'portrait');
         pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-
         pdf.autoPrint();
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
@@ -212,41 +251,32 @@ const PreviewExport: React.FC = () => {
 
     try {
       if (format === 'pdf') {
-        const cardW = 54.0;
-        const cardH = 85.6;
+        const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
 
         for (let i = 0; i < cardDataList.length; i++) {
           const card = cardDataList[i];
           const frontCanvas = await captureCard(card, 'front');
           const backCanvas = await captureCard(card, 'back');
-
           if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
           pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
           pdf.addPage([cardW, cardH], 'portrait');
           pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-
           setExportProgress(Math.round(((i + 1) / cardDataList.length) * 100));
         }
-
         pdf.save('all_id_cards.pdf');
       } else {
-        // PNG bulk - use JSZip approach
         for (let i = 0; i < cardDataList.length; i++) {
           const card = cardDataList[i];
           const frontCanvas = await captureCard(card, 'front');
-
           const link = document.createElement('a');
           link.download = `${card.code || 'card'}_${i + 1}_front.png`;
           link.href = frontCanvas.toDataURL('image/png');
           link.click();
-
-          // Small delay to prevent browser blocking
           await new Promise((r) => setTimeout(r, 300));
           setExportProgress(Math.round(((i + 1) / cardDataList.length) * 100));
         }
       }
-
       showToast(`Exported ${cardDataList.length} cards!`, 'success');
     } catch (err) {
       showToast('Bulk export failed: ' + (err as Error).message, 'error');
@@ -310,7 +340,6 @@ const PreviewExport: React.FC = () => {
 
       {/* Center - Card Preview */}
       <div className="flex-1 bg-gray-100 overflow-auto flex flex-col">
-        {/* Toolbar */}
         <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-gray-700">
@@ -344,9 +373,7 @@ const PreviewExport: React.FC = () => {
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() =>
-                setActiveCardIndex(Math.min(cardDataList.length - 1, activeCardIndex + 1))
-              }
+              onClick={() => setActiveCardIndex(Math.min(cardDataList.length - 1, activeCardIndex + 1))}
               disabled={activeCardIndex === cardDataList.length - 1}
               className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
             >
@@ -355,16 +382,26 @@ const PreviewExport: React.FC = () => {
           </div>
         </div>
 
-        {/* Card preview area */}
-        <div className="flex-1 overflow-auto flex justify-center p-6 pt-6">
-          <div className="transform scale-[0.55] origin-top">
-            <CardRenderer
-              template={template}
-              cardData={activeCard}
-              organization={organization}
-              side={side}
-              scale={1}
-            />
+        {/* Card preview — scale to fit */}
+        <div className="flex-1 overflow-auto flex justify-center items-start p-8">
+          <div
+            style={{
+              width: template.cardWidth * 0.55,
+              height: template.cardHeight * 0.55,
+              position: 'relative',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', position: 'absolute' }}>
+              <CardRenderer
+                template={template}
+                cardData={activeCard}
+                organization={organization}
+                side={side}
+                scale={1}
+                style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.15)', borderRadius: 12 }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -373,72 +410,37 @@ const PreviewExport: React.FC = () => {
       <div className="w-72 bg-white border-l border-gray-200 p-5 overflow-y-auto">
         <h3 className="text-sm font-bold text-gray-900 mb-4">Export Options</h3>
 
-        {/* Format selection */}
         <div className="space-y-2 mb-6">
-          <button
-            onClick={() => setExportFormat('pdf')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all ${
-              exportFormat === 'pdf'
-                ? 'border-emerald-500 bg-emerald-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <FileText className={`w-5 h-5 ${exportFormat === 'pdf' ? 'text-emerald-600' : 'text-gray-400'}`} />
-            <div className="text-left">
-              <p className={`text-sm font-semibold ${exportFormat === 'pdf' ? 'text-emerald-800' : 'text-gray-700'}`}>
-                PDF
-              </p>
-              <p className="text-[10px] text-gray-500">Standard card size (54 x 85.6 mm)</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setExportFormat('png')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all ${
-              exportFormat === 'png'
-                ? 'border-emerald-500 bg-emerald-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <FileImage className={`w-5 h-5 ${exportFormat === 'png' ? 'text-emerald-600' : 'text-gray-400'}`} />
-            <div className="text-left">
-              <p className={`text-sm font-semibold ${exportFormat === 'png' ? 'text-emerald-800' : 'text-gray-700'}`}>
-                PNG Images
-              </p>
-              <p className="text-[10px] text-gray-500">High resolution images</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setExportFormat('print')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all ${
-              exportFormat === 'print'
-                ? 'border-emerald-500 bg-emerald-50'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <Printer className={`w-5 h-5 ${exportFormat === 'print' ? 'text-emerald-600' : 'text-gray-400'}`} />
-            <div className="text-left">
-              <p className={`text-sm font-semibold ${exportFormat === 'print' ? 'text-emerald-800' : 'text-gray-700'}`}>
-                Print
-              </p>
-              <p className="text-[10px] text-gray-500">Open print dialog</p>
-            </div>
-          </button>
+          {[
+            { id: 'pdf' as ExportFormat, icon: FileText, label: 'PDF', desc: 'Standard card size (54 x 85.6 mm)' },
+            { id: 'png' as ExportFormat, icon: FileImage, label: 'PNG Images', desc: 'High resolution images' },
+            { id: 'print' as ExportFormat, icon: Printer, label: 'Print', desc: 'Open print dialog' },
+          ].map(({ id, icon: Icon, label, desc }) => (
+            <button
+              key={id}
+              onClick={() => setExportFormat(id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all ${
+                exportFormat === id
+                  ? 'border-emerald-500 bg-emerald-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <Icon className={`w-5 h-5 ${exportFormat === id ? 'text-emerald-600' : 'text-gray-400'}`} />
+              <div className="text-left">
+                <p className={`text-sm font-semibold ${exportFormat === id ? 'text-emerald-800' : 'text-gray-700'}`}>{label}</p>
+                <p className="text-[10px] text-gray-500">{desc}</p>
+              </div>
+            </button>
+          ))}
         </div>
 
-        {/* Export actions */}
         <div className="space-y-3">
           <button
             onClick={() => exportSingle(exportFormat)}
             disabled={exporting}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all"
           >
-            {exporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             Export Current Card
           </button>
 
@@ -448,17 +450,12 @@ const PreviewExport: React.FC = () => {
               disabled={exporting}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-emerald-200 text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-all"
             >
-              {exporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Package className="w-4 h-4" />
-              )}
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
               Export All ({cardDataList.length})
             </button>
           )}
         </div>
 
-        {/* Progress */}
         {exporting && (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-1">
@@ -474,26 +471,20 @@ const PreviewExport: React.FC = () => {
           </div>
         )}
 
-        {/* Card info */}
         <div className="mt-6 pt-4 border-t border-gray-200">
           <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">Current Card</h4>
           <div className="space-y-2 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Name</span>
-              <span className="font-medium text-gray-900">{activeCard.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Code</span>
-              <span className="font-medium text-gray-900">{activeCard.code}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Role</span>
-              <span className="font-medium text-gray-900">{activeCard.role}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Template</span>
-              <span className="font-medium text-gray-900">{template.name}</span>
-            </div>
+            {[
+              ['Name', activeCard.name],
+              ['Code', activeCard.code],
+              ['Role', activeCard.role],
+              ['Template', template.name],
+            ].map(([label, val]) => (
+              <div key={label} className="flex justify-between">
+                <span className="text-gray-500">{label}</span>
+                <span className="font-medium text-gray-900 truncate ml-2 max-w-[140px]">{val}</span>
+              </div>
+            ))}
           </div>
 
           {/* Photo Upload */}
@@ -502,11 +493,7 @@ const PreviewExport: React.FC = () => {
             <label className="cursor-pointer block">
               <div className="w-full h-28 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden bg-gray-50 hover:border-emerald-400 hover:bg-emerald-50 transition-all">
                 {activeCard.photo ? (
-                  <img
-                    src={activeCard.photo}
-                    alt="Card photo"
-                    className="w-full h-full object-cover rounded-xl"
-                  />
+                  <img src={activeCard.photo} alt="Card photo" className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   <div className="text-center px-3">
                     <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-2">

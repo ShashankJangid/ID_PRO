@@ -1,8 +1,8 @@
 import React from 'react';
 import { Copy, Trash2, Image } from 'lucide-react';
-import type { CardElement, CardTemplate, Organization, DataField, QRFieldKey } from '@/types';
-import { QR_FIELD_OPTIONS } from '@/types';
+import type { CardElement, CardTemplate, Organization, DataField, QRFieldKey, CardData } from '@/types';
 import QRFieldPicker from '../shared/QRFieldPicker';
+import { getFieldValue } from '@/store';
 
 interface PropertiesPanelProps {
   selectedElement: CardElement;
@@ -11,6 +11,7 @@ interface PropertiesPanelProps {
   onElementUpdate: (id: string, updates: Partial<CardElement>) => void;
   onDuplicateElement: (el: CardElement) => void;
   onDeleteElement: (id: string) => void;
+  cardData?: CardData;
 }
 
 const dataFieldOptions: { value: DataField; label: string; group?: string }[] = [
@@ -75,6 +76,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onElementUpdate,
   onDuplicateElement,
   onDeleteElement,
+  cardData,
 }) => {
   const [alignOpen, setAlignOpen] = React.useState(false);
   const [dimOpen, setDimOpen] = React.useState(true);
@@ -401,10 +403,25 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     const fields: QRFieldKey[] = selectedElement.qrFields?.length
                       ? selectedElement.qrFields
                       : (organization.defaultQRFields || ['name', 'code']);
+                    const fieldLabelMap: Record<string, string> = {
+                      name: 'Name', role: 'Role', code: 'ID', dob: 'DOB', blood: 'Blood',
+                      contact: 'Contact', address: 'Address', issued: 'Issued', valid: 'Valid',
+                      emergency: 'Emergency', orgName: 'Org', orgAddress: 'Address', orgPhone: 'OrgPhone',
+                      orgEmail: 'OrgEmail', orgWebsite: 'Website', orgTagline: 'Tagline', orgEmergency: 'OrgEmergency',
+                      custom1: 'Custom1', custom2: 'Custom2', custom3: 'Custom3'
+                    };
+                    const lines: string[] = [];
+                    for (const f of fields) {
+                      const label = fieldLabelMap[f] || f;
+                      const value = getFieldValue(cardData, f as any, organization);
+                      if (value) lines.push(`${label}: ${value}`);
+                    }
+                    const previewText = lines.join(' / ') || cardData?.code || cardData?.name || 'ID';
                     return fields.length > 0 ? (
                       <div className="mt-2 p-1.5 bg-white rounded border border-gray-200">
-                        <p className="text-[9px] text-gray-400 font-mono truncate">
-                          {fields.map(k => QR_FIELD_OPTIONS.find(o => o.key === k)?.label).join(' · ')}
+                        <p className="text-[8px] font-bold text-gray-400 uppercase mb-1">Live QR Data Preview</p>
+                        <p className="text-[9px] text-gray-700 font-mono break-words whitespace-normal leading-tight">
+                          {previewText}
                         </p>
                       </div>
                     ) : (
