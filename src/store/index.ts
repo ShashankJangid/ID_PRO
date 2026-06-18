@@ -215,6 +215,28 @@ export const useAppStore = create<AppState>()(
     {
       name: 'idcard-studio-storage',
       storage: createJSONStorage(() => idbStorage),
+      onRehydrateStorage: () => (state, error) => {
+        if (!error && state) {
+          // Deduplicate templates by ID
+          const uniqueTemplates = state.templates.filter(
+            (t, index, self) => self.findIndex((x) => x.id === t.id) === index
+          );
+          if (uniqueTemplates.length !== state.templates.length) {
+            useAppStore.setState({ templates: uniqueTemplates });
+          }
+
+          if (uniqueTemplates.length === 0) {
+            import('@/templates/built-in').then(({ getBuiltInTemplates }) => {
+              const builtIns = getBuiltInTemplates();
+              builtIns.forEach((t) => {
+                if (!useAppStore.getState().templates.some(x => x.id === t.id)) {
+                  useAppStore.getState().addTemplate(t);
+                }
+              });
+            });
+          }
+        }
+      },
       partialize: (state) => ({
         organization: state.organization,
         hasSetup: state.hasSetup,

@@ -41,16 +41,7 @@ function App() {
     return unsubscribe;
   }, []);
 
-  // ─── Initialize built-in templates ───
-  useEffect(() => {
-    const { templates: existingTemplates } = useAppStore.getState();
-    if (existingTemplates.length === 0) {
-      import('@/templates/built-in').then(({ getBuiltInTemplates }) => {
-        const builtIns = getBuiltInTemplates();
-        builtIns.forEach((t) => useAppStore.getState().addTemplate(t));
-      });
-    }
-  }, []);
+
 
   // ─── Welcome toast ───
   useEffect(() => {
