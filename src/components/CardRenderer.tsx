@@ -37,31 +37,31 @@ function getImageUrl(
   }
 
   switch (src) {
-    case 'photo':      return cardData.photo || null;
-    case 'logo':       return organization.logos?.[0]?.data || organization.logo || null;
+    case 'photo': return cardData.photo || null;
+    case 'logo': return organization.logos?.[0]?.data || organization.logo || null;
     case 'signature1': return organization.signatures?.[0]?.data || organization.signature1 || null;
     case 'signature2': return organization.signatures?.[1]?.data || organization.signature2 || null;
-    case 'custom':     return el.staticImageUrl || null;
-    default:           return el.staticImageUrl || null;
+    case 'custom': return el.staticImageUrl || null;
+    default: return el.staticImageUrl || null;
   }
 }
 
 /** Short human-readable labels for each QR field key */
 const QR_FIELD_LABEL_MAP: Record<string, string> = {
-  name:        'Name',
-  role:        'Role',
-  code:        'ID',
-  dob:         'DOB',
-  blood:       'Blood',
-  contact:     'Contact',
-  address:     'Address',
-  issued:      'Issued',
-  valid:       'Valid',
-  emergency:   'Emergency',
-  orgName:     'Org',
-  orgPhone:    'Ph',
-  orgEmail:    'Email',
-  orgWebsite:  'Web',
+  name: 'Name',
+  role: 'Role',
+  code: 'ID',
+  dob: 'DOB',
+  blood: 'Blood',
+  contact: 'Contact',
+  address: 'Address',
+  issued: 'Issued',
+  valid: 'Valid',
+  emergency: 'Emergency',
+  orgName: 'Org',
+  orgPhone: 'Ph',
+  orgEmail: 'Email',
+  orgWebsite: 'Web',
 };
 
 /**
@@ -73,12 +73,12 @@ function getQRFieldValue(
   org: Organization
 ): string {
   switch (key) {
-    case 'orgName':    return org.name || '';
-    case 'orgPhone':   return org.phone || '';
-    case 'orgEmail':   return org.email || '';
+    case 'orgName': return org.name || '';
+    case 'orgPhone': return org.phone || '';
+    case 'orgEmail': return org.email || '';
     case 'orgWebsite': return org.website || '';
     // All person fields live on cardData
-    default:           return (cardData as Record<string, string | undefined>)[key] || '';
+    default: return (cardData as Record<string, string | undefined>)[key] || '';
   }
 }
 
@@ -166,7 +166,7 @@ function renderElement(
         padding: s.backgroundColor ? '4px 8px' : 0,
       };
       return (
-        <div key={el.id} style={textStyle}>
+        <div key={el.id} data-element-type="text" style={textStyle}>
           {displayText}
         </div>
       );
@@ -219,8 +219,8 @@ function renderElement(
           s.shapeType === 'circle'
             ? '50%'
             : s.shapeType === 'rounded-rect'
-            ? s.borderRadius || 12
-            : s.borderRadius || 0,
+              ? s.borderRadius || 12
+              : s.borderRadius || 0,
         boxShadow: s.shadow,
       };
       return <div key={el.id} style={shapeStyle} />;
