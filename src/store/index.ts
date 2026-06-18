@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type {
   CardTemplate, Organization, CardData, ColumnMapping,
   AppTab, ExportFormat, DataField,
@@ -70,6 +70,83 @@ const defaultCardData: CardData = {
   valid: '31-12-2025', emergency: '9876543211',
 };
 
+const getIDBDatabase = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('idcard-studio-db', 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('keyval')) {
+        db.createObjectStore('keyval');
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const idbStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    try {
+      const db = await getIDBDatabase();
+      const value = await new Promise<string | null>((resolve, reject) => {
+        const tx = db.transaction('keyval', 'readonly');
+        const store = tx.objectStore('keyval');
+        const req = store.get(name);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      // Migrate from localStorage if not found in IndexedDB
+      if (value === null) {
+        const localValue = localStorage.getItem(name);
+        if (localValue !== null) {
+          console.log('Migrating localStorage to IndexedDB storage...');
+          await idbStorage.setItem(name, localValue);
+          localStorage.removeItem(name);
+          return localValue;
+        }
+      }
+      return value;
+    } catch (e) {
+      console.warn('IndexedDB getItem failed, falling back to localStorage:', e);
+      return localStorage.getItem(name);
+    }
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    try {
+      const db = await getIDBDatabase();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('keyval', 'readwrite');
+        const store = tx.objectStore('keyval');
+        const req = store.put(value, name);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn('IndexedDB setItem failed, falling back to localStorage:', e);
+      try {
+        localStorage.setItem(name, value);
+      } catch (err) {
+        console.error('LocalStorage quota exceeded on fallback:', err);
+      }
+    }
+  },
+  removeItem: async (name: string): Promise<void> => {
+    try {
+      const db = await getIDBDatabase();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('keyval', 'readwrite');
+        const store = tx.objectStore('keyval');
+        const req = store.delete(name);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn('IndexedDB removeItem failed, falling back to localStorage:', e);
+      localStorage.removeItem(name);
+    }
+  },
+};
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -137,6 +214,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'idcard-studio-storage',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({
         organization: state.organization,
         hasSetup: state.hasSetup,
