@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useAppStore } from '@/store';
+import { useAppStore, switchStoreUser } from '@/store';
 import { onAuthChange, signOutUser, type User } from '@/lib/firebase';
 import Layout from '@/components/Layout';
 import Toast from '@/components/Toast';
@@ -34,7 +34,8 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((u) => {
+    const unsubscribe = onAuthChange(async (u) => {
+      await switchStoreUser(u ? u.uid : null);
       setUser(u);
       setAuthLoading(false);
     });
