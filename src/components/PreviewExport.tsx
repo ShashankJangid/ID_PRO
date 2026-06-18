@@ -218,6 +218,14 @@ const PreviewExport: React.FC = () => {
             if (style.position === 'absolute') {
               htmlEl.style.margin = '0';
               htmlEl.style.boxSizing = 'border-box';
+
+              // Compensate for html2canvas vertical baseline rendering shift
+              if (htmlEl.getAttribute('data-element-type') === 'text') {
+                const currentTop = parseFloat(htmlEl.style.top || '0');
+                if (!isNaN(currentTop)) {
+                  htmlEl.style.top = `${currentTop - 3.5}px`;
+                }
+              }
             }
           });
         },

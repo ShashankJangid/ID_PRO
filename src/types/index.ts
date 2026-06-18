@@ -82,7 +82,7 @@ export interface CardTemplate {
   cardWidth: number; cardHeight: number; dpi?: number;
   frontElements: CardElement[]; backElements: CardElement[];
   suggestedMappings?: Record<string, string[]>;
-  createdAt?: string; isBuiltIn?: boolean;
+  createdAt?: string; updatedAt?: string; isBuiltIn?: boolean;
   backgroundImage?: string; backgroundImageBack?: string;
   canvaEmbedUrl?: string; canvaEmbedUrlBack?: string;
 }
