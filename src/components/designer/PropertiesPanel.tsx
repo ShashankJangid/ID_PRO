@@ -2,7 +2,7 @@ import React from 'react';
 import { Copy, Trash2, Image } from 'lucide-react';
 import type { CardElement, CardTemplate, Organization, DataField, QRFieldKey, CardData } from '@/types';
 import QRFieldPicker from '../shared/QRFieldPicker';
-import { getFieldValue } from '@/store';
+import { buildQRData } from '../CardRenderer';
 
 interface PropertiesPanelProps {
   selectedElement: CardElement;
@@ -15,7 +15,6 @@ interface PropertiesPanelProps {
 }
 
 const dataFieldOptions: { value: DataField; label: string; group?: string }[] = [
-  // Person fields
   { value: 'name', label: 'Full Name', group: 'Person' },
   { value: 'role', label: 'Role / Designation', group: 'Person' },
   { value: 'code', label: 'ID Code / Roll No.', group: 'Person' },
@@ -26,7 +25,6 @@ const dataFieldOptions: { value: DataField; label: string; group?: string }[] = 
   { value: 'issued', label: 'Issued Date', group: 'Person' },
   { value: 'valid', label: 'Valid Until', group: 'Person' },
   { value: 'emergency', label: 'Emergency Contact', group: 'Person' },
-  // Org fields
   { value: 'orgName', label: 'Org Name', group: 'Organization' },
   { value: 'orgAddress', label: 'Org Address', group: 'Organization' },
   { value: 'orgPhone', label: 'Org Phone', group: 'Organization' },
@@ -34,7 +32,6 @@ const dataFieldOptions: { value: DataField; label: string; group?: string }[] = 
   { value: 'orgWebsite', label: 'Org Website', group: 'Organization' },
   { value: 'orgTagline', label: 'Org Tagline', group: 'Organization' },
   { value: 'orgEmergency', label: 'Org Emergency', group: 'Organization' },
-  // Custom fields (labels from org)
   { value: 'custom1', label: 'Custom Field 1', group: 'Custom' },
   { value: 'custom2', label: 'Custom Field 2', group: 'Custom' },
   { value: 'custom3', label: 'Custom Field 3', group: 'Custom' },
@@ -83,6 +80,14 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const [dataOpen, setDataOpen] = React.useState(true);
   const [styleOpen, setStyleOpen] = React.useState(true);
 
+  // Build a demo card so we can preview the actual QR string live
+  const demoCard = cardData || {
+    name: 'John Doe', role: 'Manager', code: 'EMP001',
+    dob: '01-01-1990', blood: 'O+', contact: '9876543210',
+    address: '123 Main St', issued: '01-01-2024',
+    valid: '31-12-2025', emergency: '9876543211',
+  };
+
   return (
     <div className="w-72 bg-white border-l border-gray-200 overflow-y-auto">
       <div className="p-4 flex flex-col h-full">
@@ -107,7 +112,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
         </div>
 
-        {/* Label (Always visible at the top) */}
+        {/* Label */}
         <div className="mb-4">
           <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Label</label>
           <input
@@ -118,7 +123,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           />
         </div>
 
-        {/* Collapsible Accordion Sections */}
         <div className="flex-1 space-y-1">
           {/* Section 1: Dimensions & Position */}
           <Section title="Dimensions & Position" isOpen={dimOpen} onToggle={() => setDimOpen(!dimOpen)}>
@@ -175,7 +179,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           {/* Section 2: Alignment Quick-Actions */}
           <Section title="Alignment on Card" isOpen={alignOpen} onToggle={() => setAlignOpen(!alignOpen)}>
             <div className="border border-gray-200 rounded-lg p-2 bg-gray-50 space-y-3">
-              {/* Edge Alignment Row */}
               <div>
                 <p className="text-[9px] text-gray-400 uppercase font-semibold mb-1">Edge Align</p>
                 <div className="grid grid-cols-3 gap-1">
@@ -254,7 +257,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </div>
               </div>
 
-              {/* Center on Card */}
               <button
                 title="Center on Card (both axes)"
                 onClick={() => onElementUpdate(selectedElement.id, {
@@ -266,7 +268,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 ⊕ Center on Card
               </button>
 
-              {/* Quadrant grid */}
               <div>
                 <p className="text-[9px] text-gray-400 uppercase font-semibold mb-1">Quadrant</p>
                 <div className="grid grid-cols-3 gap-1">
@@ -293,7 +294,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </div>
               </div>
 
-              {/* Stretch Actions */}
               <div>
                 <p className="text-[9px] text-gray-400 uppercase font-semibold mb-1">Stretch</p>
                 <div className="grid grid-cols-2 gap-1">
@@ -332,7 +332,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
           {/* Section 3: Data & Content */}
           <Section title="Data & Content" isOpen={dataOpen} onToggle={() => setDataOpen(!dataOpen)}>
-            {/* Field binding — text only */}
+            {/* Text field binding */}
             {selectedElement.type === 'text' && (
               <div className="space-y-3">
                 <div>
@@ -369,7 +369,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     </optgroup>
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Static Text</label>
                   <input
@@ -383,14 +382,16 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               </div>
             )}
 
-            {/* QR Code Fields Picker */}
+            {/* ── QR Code Fields Picker ── */}
             {selectedElement.type === 'qr' && (
               <div className="space-y-3">
                 <div className="border border-gray-200 rounded-lg p-2 bg-gray-50">
                   <label className="block text-[10px] font-bold text-gray-500 uppercase mb-2">
                     QR Encoded Fields
                   </label>
-                  <p className="text-[9px] text-gray-400 mb-2">Select which fields to encode in this QR code. Overrides the org default.</p>
+                  <p className="text-[9px] text-gray-400 mb-2">
+                    Select which fields to encode. Values are joined by " / " in the QR code.
+                  </p>
                   <QRFieldPicker
                     selectedFields={selectedElement.qrFields?.length
                       ? selectedElement.qrFields
@@ -398,36 +399,38 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     onChange={(nextFields) => onElementUpdate(selectedElement.id, { qrFields: nextFields })}
                     columns={2}
                   />
-                  {/* Preview */}
+
+                  {/* ── Live QR string preview ── */}
                   {(() => {
                     const fields: QRFieldKey[] = selectedElement.qrFields?.length
                       ? selectedElement.qrFields
                       : (organization.defaultQRFields || ['name', 'code']);
-                    const fieldLabelMap: Record<string, string> = {
-                      name: 'Name', role: 'Role', code: 'ID', dob: 'DOB', blood: 'Blood',
-                      contact: 'Contact', address: 'Address', issued: 'Issued', valid: 'Valid',
-                      emergency: 'Emergency', orgName: 'Org', orgAddress: 'Address', orgPhone: 'OrgPhone',
-                      orgEmail: 'OrgEmail', orgWebsite: 'Website', orgTagline: 'Tagline', orgEmergency: 'OrgEmergency',
-                      custom1: 'Custom1', custom2: 'Custom2', custom3: 'Custom3'
-                    };
-                    const lines: string[] = [];
-                    for (const f of fields) {
-                      const label = fieldLabelMap[f] || f;
-                      const value = getFieldValue(cardData, f as any, organization);
-                      if (value) lines.push(`${label}: ${value}`);
+
+                    if (fields.length === 0) {
+                      return (
+                        <p className="mt-2 text-[9px] text-red-400">⚠ No fields selected — QR will be empty</p>
+                      );
                     }
-                    const previewText = lines.join(' / ') || cardData?.code || cardData?.name || 'ID';
-                    return fields.length > 0 ? (
-                      <div className="mt-2 p-1.5 bg-white rounded border border-gray-200">
-                        <p className="text-[8px] font-bold text-gray-400 uppercase mb-1">Live QR Data Preview</p>
-                        <p className="text-[9px] text-gray-700 font-mono break-words whitespace-normal leading-tight">
-                          {previewText}
+
+                    // Build actual QR string using the same function as CardRenderer
+                    const qrString = buildQRData(
+                      { ...selectedElement, qrFields: fields },
+                      demoCard as any,
+                      organization
+                    );
+
+                    return (
+                      <div className="mt-2 p-2 bg-white rounded border border-gray-200">
+                        <p className="text-[9px] text-gray-400 font-semibold uppercase mb-1">
+                          QR Preview (demo data)
+                        </p>
+                        <p className="text-[9px] text-emerald-700 font-mono break-all leading-relaxed">
+                          {qrString}
                         </p>
                       </div>
-                    ) : (
-                      <p className="mt-1 text-[9px] text-red-400">⚠ No fields selected — QR will be empty</p>
                     );
                   })()}
+
                   <button
                     type="button"
                     onClick={() => onElementUpdate(selectedElement.id, { qrFields: [] })}
@@ -491,7 +494,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   </select>
                 </div>
 
-                {/* Custom image uploader */}
                 {(selectedElement.imageSource === 'custom' || !selectedElement.imageSource) && (
                   <div className="mt-2">
                     <label className="cursor-pointer block">
@@ -549,7 +551,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             {/* QR Code Styles */}
             {selectedElement.type === 'qr' && (
               <div className="space-y-3">
-                {/* Background color */}
                 <div>
                   <label className="block text-[10px] text-gray-500 mb-1">Background</label>
                   <div className="flex gap-2">
@@ -571,7 +572,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     />
                   </div>
                 </div>
-                {/* Border Radius */}
                 <div>
                   <label className="block text-[10px] text-gray-500 mb-1">Border Radius</label>
                   <input
@@ -584,7 +584,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     className="w-full px-2 py-1 border border-gray-300 rounded text-xs outline-none"
                   />
                 </div>
-                {/* Border */}
                 <div>
                   <label className="block text-[10px] text-gray-500 mb-1">Border</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -613,7 +612,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     </div>
                   </div>
                 </div>
-                {/* Opacity */}
                 <div>
                   <label className="block text-[10px] text-gray-500 mb-1">
                     Opacity: {Math.round((selectedElement.style.opacity ?? 1) * 100)}%
@@ -633,7 +631,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             {/* Non-QR Element Styles */}
             {selectedElement.type !== 'qr' && (
               <div className="space-y-3">
-                {/* Text styles */}
                 {selectedElement.type === 'text' && (
                   <>
                     <div className="grid grid-cols-2 gap-2">
@@ -738,7 +735,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   </>
                 )}
 
-                {/* Shape styles */}
                 {selectedElement.type === 'shape' && (
                   <>
                     <div>
@@ -785,7 +781,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   </>
                 )}
 
-                {/* Border Radius for shape/image */}
                 {(selectedElement.type === 'image' || selectedElement.type === 'shape') && (
                   <div>
                     <label className="block text-[10px] text-gray-500 mb-1">Border Radius</label>

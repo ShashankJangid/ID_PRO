@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import type { CardTemplate, CardData, CardElement, Organization, QRFieldKey } from '@/types';
 import { getFieldValue } from '@/store';
 
@@ -13,6 +13,7 @@ interface CardRendererProps {
   style?: React.CSSProperties;
 }
 
+/** Get image URL for image source */
 function getImageUrl(
   el: CardElement,
   cardData: CardData,
@@ -21,6 +22,7 @@ function getImageUrl(
   const src = el.imageSource;
   if (!src) return el.staticImageUrl || null;
 
+  // Dynamic indexed sources: logo_N, signature_N, asset_N
   if (src.startsWith('logo_')) {
     const idx = parseInt(src.split('_')[1]);
     return organization.logos?.[idx]?.data || null;
@@ -35,7 +37,7 @@ function getImageUrl(
   }
 
   switch (src) {
-    case 'photo':      return cardData?.photo || null;
+    case 'photo':      return cardData.photo || null;
     case 'logo':       return organization.logos?.[0]?.data || organization.logo || null;
     case 'signature1': return organization.signatures?.[0]?.data || organization.signature1 || null;
     case 'signature2': return organization.signatures?.[1]?.data || organization.signature2 || null;
@@ -44,36 +46,79 @@ function getImageUrl(
   }
 }
 
-function buildQRData(
+/** Short human-readable labels for each QR field key */
+const QR_FIELD_LABEL_MAP: Record<string, string> = {
+  name:        'Name',
+  role:        'Role',
+  code:        'ID',
+  dob:         'DOB',
+  blood:       'Blood',
+  contact:     'Contact',
+  address:     'Address',
+  issued:      'Issued',
+  valid:       'Valid',
+  emergency:   'Emergency',
+  orgName:     'Org',
+  orgPhone:    'Ph',
+  orgEmail:    'Email',
+  orgWebsite:  'Web',
+};
+
+/**
+ * Get the raw value for a QR field key, reading from both cardData and org.
+ */
+function getQRFieldValue(
+  key: QRFieldKey,
+  cardData: CardData,
+  org: Organization
+): string {
+  switch (key) {
+    case 'orgName':    return org.name || '';
+    case 'orgPhone':   return org.phone || '';
+    case 'orgEmail':   return org.email || '';
+    case 'orgWebsite': return org.website || '';
+    // All person fields live on cardData
+    default:           return (cardData as Record<string, string | undefined>)[key] || '';
+  }
+}
+
+/**
+ * Build the QR code string.
+ * Format: "Label: Value / Label: Value / ..."  (single line, ' / ' separator)
+ * Falls back to card code/name if nothing is selected or all values are empty.
+ */
+export function buildQRData(
   el: CardElement,
   cardData: CardData,
   org: Organization
 ): string {
-  const fields = (el.qrFields && el.qrFields.length > 0)
-    ? el.qrFields
-    : ((org.defaultQRFields && org.defaultQRFields.length > 0)
+  // Priority: element's own qrFields > org default > built-in fallback
+  const fields: QRFieldKey[] =
+    (el.qrFields && el.qrFields.length > 0)
+      ? el.qrFields
+      : (org.defaultQRFields && org.defaultQRFields.length > 0)
         ? org.defaultQRFields
-        : ['name', 'code', 'role'] as QRFieldKey[]);
+        : ['name', 'code', 'role'];
 
-  const fieldLabelMap: Record<string, string> = {
-    name: 'Name', role: 'Role', code: 'ID', dob: 'DOB', blood: 'Blood',
-    contact: 'Contact', address: 'Address', issued: 'Issued', valid: 'Valid',
-    emergency: 'Emergency', orgName: 'Org', orgAddress: 'Address', orgPhone: 'OrgPhone',
-    orgEmail: 'OrgEmail', orgWebsite: 'Website', orgTagline: 'Tagline', orgEmergency: 'OrgEmergency',
-    custom1: 'Custom1', custom2: 'Custom2', custom3: 'Custom3'
-  };
+  const parts: string[] = [];
 
-  const lines: string[] = [];
-  for (const f of fields) {
-    const label = fieldLabelMap[f] || f;
-    const value = getFieldValue(cardData, f as any, org);
-    if (value) lines.push(`${label}: ${value}`);
+  for (const key of fields) {
+    const value = getQRFieldValue(key, cardData, org).trim();
+    if (!value) continue;
+    const label = QR_FIELD_LABEL_MAP[key] || key;
+    parts.push(`${label}: ${value}`);
   }
 
-  const result = lines.join(' / ');
-  return result || cardData?.code || cardData?.name || 'ID';
+  if (parts.length === 0) {
+    // Absolute fallback — never return empty string
+    return cardData.code || cardData.name || 'ID Card';
+  }
+
+  // Single line, separated by ' / '  — matches the image format
+  return parts.join(' / ');
 }
 
+/** Render a single card element */
 function renderElement(
   el: CardElement,
   cardData: CardData,
@@ -83,81 +128,67 @@ function renderElement(
   const displayText = el.staticText || value || (el.field ? `[${el.label}]` : '');
   const imgUrl = el.imageSource ? getImageUrl(el, cardData, org) : (el.staticImageUrl || null);
 
-  const s = el.style;
-
-  // Base style — position absolute, exact coords
   const baseStyle: React.CSSProperties = {
     position: 'absolute',
     left: el.x,
     top: el.y,
     width: el.width,
+    height: el.height,
     zIndex: el.zIndex || 1,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+    overflow: el.type === 'text' ? 'visible' : 'hidden',
   };
+
+  const s = el.style;
 
   switch (el.type) {
     case 'text': {
-      const fontSize = s.fontSize || 14;
-      const lineHeight = s.lineHeight || 1.4;
-      // Use minHeight so text is never clipped, but element still positions at el.y
-      const minH = Math.max(el.height, Math.ceil(fontSize * lineHeight));
-
       const textStyle: React.CSSProperties = {
         ...baseStyle,
-        // NO fixed height — use minHeight to prevent clipping
-        minHeight: minH,
-        fontSize,
+        fontSize: s.fontSize || 14,
         fontFamily: s.fontFamily || 'Inter, sans-serif',
         fontWeight: s.fontWeight || '400',
         color: s.color || '#000',
         textAlign: (s.textAlign as any) || 'left',
         letterSpacing: s.letterSpacing,
-        lineHeight,
+        lineHeight: s.lineHeight || 1.4,
         textTransform: s.textTransform || 'none',
-        // Critical: flex column so text starts at top (no vertical centering offset)
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
-        overflow: 'visible',
+        display: 'block',
         wordBreak: 'break-word',
         whiteSpace: 'pre-wrap',
         backgroundColor: s.backgroundColor || 'transparent',
-        borderRadius: s.backgroundColor ? s.borderRadius : undefined,
-        padding: s.backgroundColor ? '2px 6px' : 0,
-        // Remove any browser default margin/padding that causes offset
-        margin: 0,
-        boxSizing: 'border-box',
+        borderRadius: s.borderRadius,
+        padding: s.backgroundColor ? '4px 8px' : undefined,
       };
       return (
         <div key={el.id} style={textStyle}>
-          <span style={{ display: 'block', width: '100%', textAlign: (s.textAlign as any) || 'left' }}>
-            {displayText}
-          </span>
+          {displayText}
         </div>
       );
     }
 
     case 'image': {
-      const imgStyle: React.CSSProperties = {
-        ...baseStyle,
-        height: el.height,
-        objectFit: (s.objectFit as any) || 'cover',
-        borderRadius: s.borderRadius,
-        border: s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor || '#000'}` : undefined,
-        boxShadow: s.shadow,
-        display: 'block',
-      };
-
       if (imgUrl) {
-        return <img key={el.id} src={imgUrl} alt={el.label} style={imgStyle} />;
+        return (
+          <img
+            key={el.id}
+            src={imgUrl}
+            alt={el.label}
+            style={{
+              ...baseStyle,
+              objectFit: (s.objectFit as any) || 'cover',
+              borderRadius: s.borderRadius,
+              border: s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor || '#000'}` : undefined,
+              boxShadow: s.shadow,
+            }}
+          />
+        );
       }
       return (
         <div
           key={el.id}
           style={{
             ...baseStyle,
-            height: el.height,
             backgroundColor: '#f0f0f0',
             borderRadius: s.borderRadius,
             border: `2px dashed ${s.borderColor || '#ccc'}`,
@@ -167,7 +198,6 @@ function renderElement(
             fontSize: 11,
             color: '#999',
             textAlign: 'center',
-            boxSizing: 'border-box',
           }}
         >
           {el.label}
@@ -176,24 +206,19 @@ function renderElement(
     }
 
     case 'shape': {
-      return (
-        <div
-          key={el.id}
-          style={{
-            ...baseStyle,
-            height: el.height,
-            background: s.gradient || s.backgroundColor || '#ccc',
-            opacity: s.opacity,
-            borderRadius:
-              s.shapeType === 'circle'
-                ? '50%'
-                : s.shapeType === 'rounded-rect'
-                ? s.borderRadius || 12
-                : s.borderRadius || 0,
-            boxShadow: s.shadow,
-          }}
-        />
-      );
+      const shapeStyle: React.CSSProperties = {
+        ...baseStyle,
+        background: s.gradient || s.backgroundColor || '#ccc',
+        opacity: s.opacity,
+        borderRadius:
+          s.shapeType === 'circle'
+            ? '50%'
+            : s.shapeType === 'rounded-rect'
+            ? s.borderRadius || 12
+            : s.borderRadius || 0,
+        boxShadow: s.shadow,
+      };
+      return <div key={el.id} style={shapeStyle} />;
     }
 
     case 'qr': {
@@ -214,9 +239,9 @@ function renderElement(
             boxSizing: 'border-box',
           }}
         >
-          <QRCodeSVG
+          <QRCodeCanvas
             value={qrValue}
-            size={Math.min(el.width, el.height) - 8}
+            size={256}
             style={{ width: '100%', height: '100%' }}
           />
         </div>
@@ -229,7 +254,6 @@ function renderElement(
           key={el.id}
           style={{
             ...baseStyle,
-            height: el.height,
             backgroundColor: s.backgroundColor || '#fff',
             display: 'flex',
             alignItems: 'center',
@@ -259,8 +283,13 @@ const CardRenderer: React.FC<CardRendererProps> = ({
   style = {},
 }) => {
   const elements = side === 'front' ? template.frontElements : template.backElements;
-  const bgImage = side === 'front' ? template.backgroundImage : (template.backgroundImageBack || template.backgroundImage);
-  const canvaEmbedUrl = side === 'front' ? template.canvaEmbedUrl : (template.canvaEmbedUrlBack || template.canvaEmbedUrl);
+
+  const bgImage = side === 'front'
+    ? template.backgroundImage
+    : (template.backgroundImageBack || template.backgroundImage);
+  const canvaEmbedUrl = side === 'front'
+    ? template.canvaEmbedUrl
+    : (template.canvaEmbedUrlBack || template.canvaEmbedUrl);
 
   const cardStyle: React.CSSProperties = useMemo(
     () => ({
@@ -273,9 +302,6 @@ const CardRenderer: React.FC<CardRendererProps> = ({
       transformOrigin: 'top left',
       boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
       borderRadius: 12,
-      // Reset any inherited line-height that could shift text
-      lineHeight: 'normal',
-      fontSize: 'initial',
       ...style,
     }),
     [template.cardWidth, template.cardHeight, scale, style]
@@ -283,14 +309,18 @@ const CardRenderer: React.FC<CardRendererProps> = ({
 
   return (
     <div className={className} style={cardStyle}>
+      {/* Background — Canva Embed Iframe or Static Image */}
       {canvaEmbedUrl ? (
         <iframe
           src={canvaEmbedUrl}
           style={{
             position: 'absolute',
-            top: 0, left: 0,
-            width: '100%', height: '100%',
-            border: 'none', zIndex: 0,
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            zIndex: 0,
             pointerEvents: 'none',
             display: 'block',
           }}
@@ -302,8 +332,10 @@ const CardRenderer: React.FC<CardRendererProps> = ({
           alt="card background"
           style={{
             position: 'absolute',
-            top: 0, left: 0,
-            width: '100%', height: '100%',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
             objectFit: 'fill',
             zIndex: 0,
             pointerEvents: 'none',
