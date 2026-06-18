@@ -158,6 +158,15 @@ const PreviewExport: React.FC = () => {
         proxy: undefined,
         imageTimeout: 15000,
         onclone: (clonedDoc) => {
+          // Reset body and html element styles to avoid browser default margin/padding shifts (like the 15px/8px down shift)
+          if (clonedDoc.body) {
+            clonedDoc.body.style.margin = '0';
+            clonedDoc.body.style.padding = '0';
+          }
+          if (clonedDoc.documentElement) {
+            clonedDoc.documentElement.style.margin = '0';
+            clonedDoc.documentElement.style.padding = '0';
+          }
           // Force all text elements in the clone to have no extra margin/padding
           const allDivs = clonedDoc.querySelectorAll('div, span');
           allDivs.forEach((el) => {

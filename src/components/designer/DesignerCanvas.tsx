@@ -13,6 +13,7 @@ interface DesignerCanvasProps {
   guides: { x?: number; y?: number }[];
   cardRef: React.RefObject<HTMLDivElement | null>;
   onMouseDown: (e: React.MouseEvent, elId: string) => void;
+  onResizeStart: (e: React.MouseEvent, elId: string, handle: string) => void;
   onMouseMove: (e: React.MouseEvent) => void;
   onMouseUp: () => void;
 }
@@ -28,6 +29,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
   guides,
   cardRef,
   onMouseDown,
+  onResizeStart,
   onMouseMove,
   onMouseUp,
 }) => {
@@ -114,16 +116,40 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
               {/* Selection handles for selected element */}
               {isSelected && (
                 <>
-                  {/* Corner handles */}
-                  <div className="absolute -top-1 -left-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
-                  <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
-                  <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
+                   {/* Corner handles */}
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'top-left')}
+                    className="absolute -top-1 -left-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-nwse-resize"
+                  />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'top-right')}
+                    className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-nesw-resize"
+                  />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'bottom-left')}
+                    className="absolute -bottom-1 -left-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-nesw-resize"
+                  />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'bottom-right')}
+                    className="absolute -bottom-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-nwse-resize"
+                  />
                   {/* Edge handles */}
-                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
-                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
-                  <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm" />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'top')}
+                    className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-ns-resize"
+                  />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'bottom')}
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-ns-resize"
+                  />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'left')}
+                    className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-ew-resize"
+                  />
+                  <div
+                    onMouseDown={(e) => onResizeStart(e, el.id, 'right')}
+                    className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-emerald-500 rounded-full border border-white shadow-sm cursor-ew-resize"
+                  />
                 </>
               )}
             </div>

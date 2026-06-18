@@ -111,6 +111,7 @@ const CardDesigner: React.FC = () => {
   const {
     guides,
     handleMouseDown,
+    handleResizeStart,
     handleMouseMove,
     handleMouseUp,
   } = useDragResize({
@@ -538,6 +539,7 @@ const CardDesigner: React.FC = () => {
           guides={guides}
           cardRef={cardRef}
           onMouseDown={handleMouseDown}
+          onResizeStart={handleResizeStart}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         />
@@ -552,6 +554,7 @@ const CardDesigner: React.FC = () => {
           onElementUpdate={handleElementUpdate}
           onDuplicateElement={duplicateElement}
           onDeleteElement={deleteElement}
+          cardData={demoCard}
         />
       ) : (
         <div className="w-72 bg-white border-l border-gray-200 p-6 text-center flex flex-col justify-center items-center">
