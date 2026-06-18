@@ -158,7 +158,7 @@ export function getFieldValue(
   field: DataField | undefined,
   org: Organization
 ): string {
-  if (!card || !field) return '';
+  if (!field) return '';
   if (field === 'orgName') return org.name || '';
   if (field === 'orgAddress') return org.address || '';
   if (field === 'orgPhone') return org.phone || '';
@@ -166,6 +166,7 @@ export function getFieldValue(
   if (field === 'orgWebsite') return org.website || '';
   if (field === 'orgTagline') return org.tagline || '';
   if (field === 'orgEmergency') return org.emergencyContact || '';
+  if (!card) return '';
   return card[field] || '';
 }
 
