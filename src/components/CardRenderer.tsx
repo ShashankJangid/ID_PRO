@@ -111,11 +111,12 @@ export function buildQRData(
 
   if (parts.length === 0) {
     // Absolute fallback — never return empty string
-    return cardData.code || cardData.name || 'ID Card';
+    const fallback = cardData.code || cardData.name || 'ID Card';
+    return JSON.stringify([fallback]);
   }
 
-  // Single line, separated by ' / '  — matches the image format
-  return parts.join(' / ');
+  // Return as a JSON-stringified single array containing all selected data
+  return JSON.stringify(parts);
 }
 
 /** Render a single card element */
