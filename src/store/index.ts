@@ -512,6 +512,6 @@ export async function switchStoreUser(userId: string | null) {
   useAppStore.persist.setOptions({ name });
   await useAppStore.persist.rehydrate();
   if (userId) {
-    await syncStoreWithFirestore(userId);
+    syncStoreWithFirestore(userId);
   }
 }
