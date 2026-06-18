@@ -25,9 +25,22 @@ const LoadingFallback = () => (
 );
 
 function App() {
-  const { activeTab, showToast, hasSetup } = useAppStore(
-    useShallow((s) => ({ activeTab: s.activeTab, showToast: s.showToast, hasSetup: s.hasSetup }))
+  const { activeTab, showToast, hasSetup, darkMode } = useAppStore(
+    useShallow((s) => ({
+      activeTab: s.activeTab,
+      showToast: s.showToast,
+      hasSetup: s.hasSetup,
+      darkMode: s.darkMode,
+    }))
   );
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   // ─── Auth State ───
   const [user, setUser] = useState<User | null>(null);

@@ -9,6 +9,8 @@ import {
   HelpCircle,
   ChevronRight,
   LogOut,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -38,7 +40,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
-  const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast } =
+  const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast, darkMode, setDarkMode } =
     useAppStore(
       useShallow((s) => ({
         activeTab: s.activeTab,
@@ -47,8 +49,24 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         activeTemplateId: s.activeTemplateId,
         organization: s.organization,
         showToast: s.showToast,
+        darkMode: s.darkMode,
+        setDarkMode: s.setDarkMode,
       }))
     );
+
+  const toggleTheme = (isDark: boolean) => {
+    if (isDark === darkMode) return;
+
+    const docWithTransition = document as any;
+    if (!docWithTransition.startViewTransition) {
+      setDarkMode(isDark);
+      return;
+    }
+
+    docWithTransition.startViewTransition(() => {
+      setDarkMode(isDark);
+    });
+  };
 
   const handleNavClick = (item: (typeof navItems)[0]) => {
     if (item.requiresSetup && !hasSetup) {
@@ -140,7 +158,30 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         )}
 
         {/* Help + user */}
-        <div className="px-3 py-3 border-t border-gray-100 space-y-1">
+        <div className="px-3 py-3 border-t border-gray-100 space-y-2">
+          {/* Glassmorphic theme switcher slider */}
+          <div className="px-1">
+            <div className="theme-switch-container">
+              <div className="theme-switch-slider" />
+              <button
+                onClick={() => toggleTheme(false)}
+                className={`theme-switch-btn ${!darkMode ? 'active' : ''}`}
+                aria-label="Light mode"
+              >
+                <Sun className="w-3.5 h-3.5" />
+                <span>Light</span>
+              </button>
+              <button
+                onClick={() => toggleTheme(true)}
+                className={`theme-switch-btn ${darkMode ? 'active' : ''}`}
+                aria-label="Dark mode"
+              >
+                <Moon className="w-3.5 h-3.5" />
+                <span>Dark</span>
+              </button>
+            </div>
+          </div>
+
           <button
             onClick={() => useAppStore.getState().setShowHelp(true)}
             aria-label="Open Help & Guide"
