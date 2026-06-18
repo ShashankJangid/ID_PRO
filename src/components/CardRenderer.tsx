@@ -349,6 +349,8 @@ const CardRenderer: React.FC<CardRendererProps> = ({
             zIndex: 0,
             pointerEvents: 'none',
             display: 'block',
+            margin: 0,
+            padding: 0,
           }}
         />
       ) : null}

@@ -66,31 +66,23 @@ const PreviewExport: React.FC = () => {
     async (card: CardData, cardSide: 'front' | 'back'): Promise<HTMLCanvasElement> => {
       if (!template) throw new Error('No template');
 
-      // Save current scroll coordinates to restore later
-      const originalScrollX = window.scrollX || window.pageXOffset || 0;
-      const originalScrollY = window.scrollY || window.pageYOffset || 0;
-
-      // Scroll to top-left corner before drawing to avoid scroll-offset calculation errors in html2canvas
-      window.scrollTo(0, 0);
-
-      // Allow scroll/layout recalculations to settle
-      await new Promise((r) => requestAnimationFrame(r));
-
-      // Off-screen container at EXACT card size — no scaling tricks
+      // Off-screen container at EXACT card size — positioned absolutely at top-left
+      // of document body but invisible (opacity 0) to avoid user-visible flicker.
       const wrapper = document.createElement('div');
       wrapper.id = 'export-capture-wrapper';
       wrapper.style.cssText = [
-        'position:fixed',
-        'left:-99999px',
+        'position:absolute',
+        'left:0',
         'top:0',
+        `width:${template.cardWidth}px`,
+        `height:${template.cardHeight}px`,
         'margin:0',
         'padding:0',
         'border:none',
-        'width:0',
-        'height:0',
-        'overflow:visible',
         'z-index:-9999',
         'pointer-events:none',
+        'opacity:0',
+        'overflow:hidden',
         // Reset any global CSS that could shift text
         'line-height:normal',
         'font-size:16px',
@@ -163,39 +155,50 @@ const PreviewExport: React.FC = () => {
         width: template.cardWidth,
         height: template.cardHeight,
         logging: false,
-        // These are critical — container is at position 0,0 in wrapper
+        // Since clonedWrapper is isolated at 0,0 and scroll is 0, crop at exactly 0,0
         x: 0,
         y: 0,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: template.cardWidth,
-        windowHeight: template.cardHeight,
         // Disable foreignObject — more reliable cross-browser text rendering
         foreignObjectRendering: false,
         // Remove any proxy
         proxy: undefined,
         imageTimeout: 15000,
         onclone: (clonedDoc) => {
-          // Reset body and html element styles to avoid browser default margin/padding shifts (like the 15px/8px down shift)
+          // Reset body and html element styles to avoid browser default margin/padding/scrollbar shifts
           if (clonedDoc.body) {
             clonedDoc.body.style.margin = '0';
             clonedDoc.body.style.padding = '0';
+            clonedDoc.body.style.overflow = 'hidden';
+            clonedDoc.body.style.position = 'relative';
           }
           if (clonedDoc.documentElement) {
             clonedDoc.documentElement.style.margin = '0';
             clonedDoc.documentElement.style.padding = '0';
+            clonedDoc.documentElement.style.overflow = 'hidden';
           }
 
-          // Move the wrapper to left: 0, top: 0 in the cloned document to eliminate float precision shift errors!
+          // Clear everything else from the cloned document's body to prevent layout pollution/scrollbars
           const clonedWrapper = clonedDoc.getElementById('export-capture-wrapper');
-          if (clonedWrapper) {
+          if (clonedWrapper && clonedDoc.body) {
+            clonedDoc.body.innerHTML = '';
+            clonedDoc.body.appendChild(clonedWrapper);
+
+            // Re-style clonedWrapper to occupy the exact origin 0,0 perfectly
             clonedWrapper.style.position = 'absolute';
             clonedWrapper.style.left = '0';
             clonedWrapper.style.top = '0';
             clonedWrapper.style.width = `${template.cardWidth}px`;
             clonedWrapper.style.height = `${template.cardHeight}px`;
             clonedWrapper.style.opacity = '1';
-            clonedWrapper.style.zIndex = '99999';
+            clonedWrapper.style.zIndex = '1';
+            clonedWrapper.style.visibility = 'visible';
+            clonedWrapper.style.display = 'block';
+            clonedWrapper.style.margin = '0';
+            clonedWrapper.style.padding = '0';
+            clonedWrapper.style.border = 'none';
+            clonedWrapper.style.overflow = 'hidden';
           }
 
           const clonedContainer = clonedDoc.getElementById('export-capture-container');
@@ -206,6 +209,7 @@ const PreviewExport: React.FC = () => {
             clonedContainer.style.margin = '0';
             clonedContainer.style.padding = '0';
             clonedContainer.style.border = 'none';
+            clonedContainer.style.overflow = 'hidden';
           }
 
           // Force all text elements in the clone to have no extra margin/padding
@@ -223,7 +227,7 @@ const PreviewExport: React.FC = () => {
               if (htmlEl.getAttribute('data-element-type') === 'text') {
                 const currentTop = parseFloat(htmlEl.style.top || '0');
                 if (!isNaN(currentTop)) {
-                  htmlEl.style.top = `${currentTop - 3.5}px`;
+                  htmlEl.style.top = `${currentTop - 2.5}px`;
                 }
               }
             }
@@ -233,9 +237,6 @@ const PreviewExport: React.FC = () => {
 
       if (root) root.unmount();
       document.body.removeChild(wrapper);
-
-      // Restore original scroll coordinates
-      window.scrollTo(originalScrollX, originalScrollY);
 
       return canvas;
     },
