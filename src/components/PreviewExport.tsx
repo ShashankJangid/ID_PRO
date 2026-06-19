@@ -172,13 +172,11 @@ const PreviewExport: React.FC = () => {
             clonedDoc.body.style.padding = '0';
             clonedDoc.body.style.overflow = 'hidden';
             clonedDoc.body.style.position = 'relative';
-            clonedDoc.body.style.zoom = '1';
           }
           if (clonedDoc.documentElement) {
             clonedDoc.documentElement.style.margin = '0';
             clonedDoc.documentElement.style.padding = '0';
             clonedDoc.documentElement.style.overflow = 'hidden';
-            clonedDoc.documentElement.style.zoom = '1';
           }
 
           // Copy loaded fonts from parent document to clone to prevent font fallback metrics mismatch
