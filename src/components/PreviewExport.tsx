@@ -179,6 +179,13 @@ const PreviewExport: React.FC = () => {
             clonedDoc.documentElement.style.overflow = 'hidden';
           }
 
+          // Copy loaded fonts from parent document to clone to prevent font fallback metrics mismatch
+          if (document.fonts && clonedDoc.fonts) {
+            document.fonts.forEach((font) => {
+              clonedDoc.fonts.add(font);
+            });
+          }
+
           // Clear everything else from the cloned document's body to prevent layout pollution/scrollbars
           const clonedWrapper = clonedDoc.getElementById('export-capture-wrapper');
           if (clonedWrapper && clonedDoc.body) {
@@ -227,7 +234,7 @@ const PreviewExport: React.FC = () => {
               if (htmlEl.getAttribute('data-element-type') === 'text') {
                 const currentTop = parseFloat(htmlEl.style.top || '0');
                 if (!isNaN(currentTop)) {
-                  htmlEl.style.top = `${currentTop - 2.5}px`;
+                  htmlEl.style.top = `${currentTop - 3.5}px`;
                 }
               }
             }

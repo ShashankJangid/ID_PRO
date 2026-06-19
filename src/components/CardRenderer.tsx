@@ -256,6 +256,7 @@ function renderElement(
       return (
         <div
           key={el.id}
+          data-element-type="text"
           style={{
             ...baseStyle,
             backgroundColor: s.backgroundColor || '#fff',
