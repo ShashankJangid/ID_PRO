@@ -22,8 +22,9 @@ import {
 import { useAppStore } from '@/store';
 import { getBuiltInTemplates } from '@/templates/built-in';
 import CardRenderer from './CardRenderer';
-import type { CardTemplate, CardElement } from '@/types';
+import type { CardTemplate } from '@/types';
 import { readFileAsBase64, readFileAsText, getImageDimensions } from '@/lib/file-utils';
+import { rescaleElements, getStandardDimensions } from '@/lib/templateAutoFit';
 
 const categoryIcons: Record<string, React.ElementType> = {
   corporate: Building2,
@@ -197,17 +198,97 @@ const TemplateGallery: React.FC = () => {
   const validateLayout = (json: string): string => {
     try {
       const parsed = JSON.parse(json);
-      if (!Array.isArray(parsed.frontElements)) return 'Missing "frontElements" array';
-      const required = ['id', 'type', 'label', 'x', 'y', 'width', 'height', 'style'];
-      for (const el of parsed.frontElements) {
-        for (const f of required) {
-          if (el[f] === undefined) return `Element missing field: "${f}"`;
+      const required = ['id', 'type', 'x', 'y', 'width', 'height'];
+      
+      const checkElements = (els: any[], name: string) => {
+        if (!Array.isArray(els)) return '';
+        for (const el of els) {
+          for (const f of required) {
+            if (el[f] === undefined) return `Element in ${name} missing field: "${f}"`;
+          }
         }
+        return '';
+      };
+
+      if (parsed.frontElements) {
+        const err = checkElements(parsed.frontElements, 'frontElements');
+        if (err) return err;
+      }
+      if (parsed.backElements) {
+        const err = checkElements(parsed.backElements, 'backElements');
+        if (err) return err;
       }
       return '';
     } catch (e: any) {
       return `JSON parse error: ${e.message}`;
     }
+  };
+
+  // Helper: Auto-scale template dimensions and element coordinates to standard printable sizes
+  const rescaleTemplate = async (parsed: Partial<CardTemplate>, uploadBgUrl?: string | null) => {
+    let cardWidth = parsed.cardWidth || 0;
+    let cardHeight = parsed.cardHeight || 0;
+
+    const bgUrl = uploadBgUrl || parsed.backgroundImage || parsed.backgroundImageBack;
+
+    // If no width/height in JSON, get background image dimensions
+    if ((!cardWidth || !cardHeight) && bgUrl) {
+      try {
+        const dims = await getImageDimensions(bgUrl);
+        cardWidth = dims.w;
+        cardHeight = dims.h;
+      } catch (e) {
+        console.warn('Failed to get background image dimensions:', e);
+      }
+    }
+
+    // Guess orientation from elements if still unknown
+    if (!cardWidth || !cardHeight) {
+      const allElements = [...(parsed.frontElements || []), ...(parsed.backElements || [])];
+      let maxX = 0;
+      let maxY = 0;
+      allElements.forEach((el) => {
+        const right = (el.x || 0) + (el.width || 0);
+        const bottom = (el.y || 0) + (el.height || 0);
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
+      });
+
+      if (maxX > 0 || maxY > 0) {
+        if (maxX <= 340 && maxY <= 214) {
+          cardWidth = 340;
+          cardHeight = 214;
+        } else if (maxX <= 214 && maxY <= 340) {
+          cardWidth = 214;
+          cardHeight = 340;
+        } else if (maxX > maxY) {
+          cardWidth = 1010;
+          cardHeight = 638;
+        } else {
+          cardWidth = 638;
+          cardHeight = 1010;
+        }
+      }
+    }
+
+    // Default fallbacks if dimensions are still unresolvable
+    if (!cardWidth || !cardHeight) {
+      cardWidth = 638;
+      cardHeight = 1010;
+    }
+
+    // Determine standard printable targets based on aspect ratio
+    const { w: targetW, h: targetH } = getStandardDimensions(cardWidth, cardHeight);
+
+    const scaledFront = rescaleElements(parsed.frontElements, cardWidth, cardHeight, targetW, targetH);
+    const scaledBack = rescaleElements(parsed.backElements, cardWidth, cardHeight, targetW, targetH);
+
+    return {
+      cardWidth: targetW,
+      cardHeight: targetH,
+      frontElements: scaledFront,
+      backElements: scaledBack,
+    };
   };
 
   // ─── Import custom template ─────────────────────────────────────
@@ -222,33 +303,28 @@ const TemplateGallery: React.FC = () => {
     let parsed: Partial<CardTemplate>;
     try { parsed = JSON.parse(uploadJson); } catch { return; }
 
-    // If JSON doesn't specify dimensions, derive from the uploaded background image
-    let cardWidth = parsed.cardWidth || 340;
-    let cardHeight = parsed.cardHeight || 214;
-    if (uploadBg && !parsed.cardWidth) {
-      const dims = await getImageDimensions(uploadBg);
-      cardWidth = dims.w;
-      cardHeight = dims.h;
-    }
+    // Auto-scale layout dimensions and coordinates to standard printable sizes
+    const rescaled = await rescaleTemplate(parsed, uploadBg);
 
     const newTemplate: CardTemplate = {
       id: `custom_${Date.now()}`,
       name: uploadName || parsed.name || 'Custom Template',
       description: parsed.description || 'User-uploaded template',
       category: 'custom',
-      cardWidth,
-      cardHeight,
-      frontElements: (parsed.frontElements || []) as CardElement[],
-      backElements: (parsed.backElements || []) as CardElement[],
+      cardWidth: rescaled.cardWidth,
+      cardHeight: rescaled.cardHeight,
+      dpi: 300,
+      frontElements: rescaled.frontElements,
+      backElements: rescaled.backElements,
       isBuiltIn: false,
       createdAt: new Date().toISOString(),
-      backgroundImage: uploadBg || undefined,
-      backgroundImageBack: uploadBgBack || undefined,
+      backgroundImage: uploadBg || parsed.backgroundImage || undefined,
+      backgroundImageBack: uploadBgBack || parsed.backgroundImageBack || undefined,
     };
 
     addTemplate(newTemplate);
     setActiveTemplate(newTemplate.id);
-    showToast(`Template "${newTemplate.name}" imported and selected!`, 'success');
+    showToast(`Template "${newTemplate.name}" imported and auto-scaled!`, 'success');
 
     // reset
     setShowUpload(false);
@@ -265,14 +341,16 @@ const TemplateGallery: React.FC = () => {
 
     // Detect real image dimensions so elements placed later align correctly
     const { w, h } = await getImageDimensions(uploadBg);
+    const isPortrait = w < h;
 
     const newTemplate: CardTemplate = {
       id: `custom_${Date.now()}`,
       name: uploadName || 'Image Template',
       description: 'Image background — add fields in the Designer',
       category: 'custom',
-      cardWidth: w,
-      cardHeight: h,
+      cardWidth: isPortrait ? 638 : 1010,
+      cardHeight: isPortrait ? 1010 : 638,
+      dpi: 300,
       frontElements: [],
       backElements: [],
       isBuiltIn: false,

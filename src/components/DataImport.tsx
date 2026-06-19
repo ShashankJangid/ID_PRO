@@ -12,9 +12,90 @@ import {
   Images,
   FolderOpen,
   CheckCircle2,
+  Terminal,
+  Globe,
 } from 'lucide-react';
 import { useAppStore, suggestMappings } from '@/store';
 import { readFileAsBase64 } from '@/lib/file-utils';
+
+// Parse a curl command line into a RequestInit and URL
+export function parseCurl(curlString: string): { url: string; options: RequestInit } {
+  // Normalize line continuations and spaces
+  const cleanCmd = curlString.replace(/\\\n/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Find URL
+  const urlRegex = /(?:https?:\/\/)[^\s'"]+/i;
+  const urlMatch = cleanCmd.match(urlRegex);
+  let url = urlMatch ? urlMatch[0] : '';
+  url = url.replace(/['"\\]+$/, ''); // clean trailing quote/backslash
+
+  const headers: Record<string, string> = {};
+  let method = 'GET';
+  let body: string | undefined = undefined;
+
+  // Extract headers
+  const headerRegex = /(?:-H|--header)\s+('[^']*'|"[^"]*"|[^\s\\]+)/gi;
+  let match;
+  while ((match = headerRegex.exec(cleanCmd)) !== null) {
+    const rawVal = match[1];
+    const headerVal = rawVal.replace(/^['"]|['"]$/g, '').trim();
+    const colonIdx = headerVal.indexOf(':');
+    if (colonIdx > 0) {
+      const name = headerVal.substring(0, colonIdx).trim();
+      const value = headerVal.substring(colonIdx + 1).trim();
+      headers[name] = value;
+    }
+  }
+
+  // Extract method
+  const methodRegex = /(?:-X|--request)\s+('[^']*'|"[^"]*"|[^\s\\]+)/i;
+  const methodMatch = cleanCmd.match(methodRegex);
+  if (methodMatch) {
+    method = methodMatch[1].replace(/^['"]|['"]$/g, '').trim().toUpperCase();
+  }
+
+  // Extract body
+  const bodyRegex = /(?:-d|--data|--data-raw|--data-binary)\s+('[^']*'|"[^"]*"|[^\s\\]+)/i;
+  const bodyMatch = cleanCmd.match(bodyRegex);
+  if (bodyMatch) {
+    body = bodyMatch[1].replace(/^['"]|['"]$/g, '').trim();
+    if (method === 'GET') {
+      method = 'POST';
+    }
+  }
+
+  return {
+    url,
+    options: {
+      method,
+      headers,
+      body,
+    }
+  };
+}
+
+// Recursively find the first array containing objects in an arbitrary JSON structure
+export function findDataArray(obj: any): any[] | null {
+  if (Array.isArray(obj)) {
+    return obj;
+  }
+  if (obj && typeof obj === 'object') {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+        return val;
+      }
+    }
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val && typeof val === 'object') {
+        const found = findDataArray(val);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+}
 
 let xlsxLib: any = null;
 
@@ -96,6 +177,13 @@ const DataImport: React.FC = () => {
   const [bulkPhotoStats, setBulkPhotoStats] = useState<{ matched: number; unmatched: string[] } | null>(null);
   const [bulkPhotoLoading, setBulkPhotoLoading] = useState(false);
 
+  // ERP API State
+  const [importMethod, setImportMethod] = useState<'file' | 'api'>('file');
+  const [curlInput, setCurlInput] = useState('');
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [useProxy, setUseProxy] = useState(false);
+
   const activeCard = cardDataList[activeCardIndex] || cardDataList[0];
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +235,85 @@ const DataImport: React.FC = () => {
     };
 
     reader.readAsBinaryString(file);
+  };
+
+  const handleFetchERP = async () => {
+    setApiError('');
+    if (!curlInput.trim()) {
+      setApiError('Please paste your curl command first.');
+      return;
+    }
+
+    setApiLoading(true);
+    try {
+      const { url, options } = parseCurl(curlInput);
+
+      if (!url) {
+        throw new Error('Could not extract URL from the curl command.');
+      }
+
+      // Handle CORS Proxy if toggled
+      let fetchUrl = url;
+      if (useProxy) {
+        fetchUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      }
+
+      const response = await fetch(fetchUrl, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const json = await response.json();
+
+      // Find the array of objects in the response
+      const records = findDataArray(json);
+      if (!records || records.length === 0) {
+        throw new Error('Could not find any data array in the API response. Make sure the response contains a list of records.');
+      }
+
+      // Convert objects to headers and rows
+      const allKeys = new Set<string>();
+      records.forEach((rec: any) => {
+        if (rec && typeof rec === 'object') {
+          Object.keys(rec).forEach((k) => allKeys.add(k));
+        }
+      });
+
+      const hdrs = Array.from(allKeys);
+      if (hdrs.length === 0) {
+        throw new Error('No fields found in the API records.');
+      }
+
+      const dataRows = records.map((rec: any) => {
+        return hdrs.map((key) => {
+          const val = rec[key];
+          if (val === null || val === undefined) return '';
+          if (typeof val === 'object') return JSON.stringify(val);
+          return String(val).trim();
+        });
+      });
+
+      setFileName('ERP API Response');
+      setHeaders(hdrs);
+      setRows(dataRows);
+
+      // Auto-suggest mappings
+      const suggested = suggestMappings(hdrs);
+      setColumnMappings(suggested);
+
+      setStep('map');
+      showToast(`Fetched ${dataRows.length} records successfully!`, 'success');
+    } catch (err: any) {
+      console.error(err);
+      setApiError(err.message || 'An error occurred while fetching data.');
+    } finally {
+      setApiLoading(false);
+    }
   };
 
   const handleMappingChange = (excelCol: string, field: DataField) => {
@@ -358,29 +525,125 @@ const DataImport: React.FC = () => {
       {/* Step 1: Upload */}
       {step === 'upload' && (
         <div className="space-y-6">
-          {/* Upload zone */}
-          <div
-            onClick={() => fileRef.current?.click()}
-            className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all"
-          >
-            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Upload className="w-8 h-8 text-emerald-500" />
-            </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Upload Excel or CSV File</h3>
-            <p className="text-sm text-gray-500 mb-2">
-              Drag and drop or click to browse (.xlsx, .xls, .csv)
-            </p>
-            <p className="text-xs text-gray-400">
-              Your file should have column headers in the first row
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
+          {/* Tab selector */}
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
+            <button
+              onClick={() => setImportMethod('file')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                importMethod === 'file'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              Excel / CSV File
+            </button>
+            <button
+              onClick={() => setImportMethod('api')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                importMethod === 'api'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <Terminal className="w-4 h-4" />
+              ERP API (curl)
+            </button>
           </div>
+
+          {importMethod === 'file' ? (
+            /* Upload zone */
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all"
+            >
+              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Upload className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1">Upload Excel or CSV File</h3>
+              <p className="text-sm text-gray-500 mb-2">
+                Drag and drop or click to browse (.xlsx, .xls, .csv)
+              </p>
+              <p className="text-xs text-gray-400">
+                Your file should have column headers in the first row
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+            </div>
+          ) : (
+            /* ERP curl fetch zone */
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-1">ERP API curl Integration</h3>
+                <p className="text-xs text-gray-500">
+                  Paste your API `curl` command. The app will fetch and parse employee/student records.
+                </p>
+              </div>
+
+              <div>
+                <textarea
+                  value={curlInput}
+                  onChange={(e) => {
+                    setCurlInput(e.target.value);
+                    setApiError('');
+                  }}
+                  rows={5}
+                  placeholder={`curl --location 'https://api.schoolforschools.ai/v1/employees/minimal?page=1&limit=20' \\
+--header 'x-academic-session: 2026-27' \\
+--header 'x-branch-token: dpsindp'`}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 text-gray-800"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs text-gray-600 font-semibold cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={useProxy}
+                    onChange={(e) => setUseProxy(e.target.checked)}
+                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Use CORS Proxy Bypass <span className="text-gray-400 font-normal">(recommended if fetch fails due to browser security)</span></span>
+                </label>
+              </div>
+
+              {apiError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-xs space-y-1">
+                  <p className="font-bold">Fetch Failed:</p>
+                  <p>{apiError}</p>
+                  <p className="text-[10px] text-red-500 mt-1">
+                    💡 <strong>Tip:</strong> If it's a CORS policy block, check "Use CORS Proxy Bypass" or use a browser extension like "CORS Unblock" to bypass restrictions.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  disabled={apiLoading}
+                  onClick={handleFetchERP}
+                  className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5 transition-all shadow-sm"
+                >
+                  {apiLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Fetching Data...
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="w-3.5 h-3.5" />
+                      Fetch ERP Data
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Manual entry */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
