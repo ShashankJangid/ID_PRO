@@ -179,6 +179,7 @@ function renderElement(
             key={el.id}
             src={imgUrl}
             alt={el.label}
+            crossOrigin="anonymous"
             style={{
               ...baseStyle,
               objectFit: (s.objectFit as any) || 'cover',
@@ -340,6 +341,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({
         <img
           src={bgImage}
           alt="card background"
+          crossOrigin="anonymous"
           style={{
             position: 'absolute',
             top: 0,
