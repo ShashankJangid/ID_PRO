@@ -182,7 +182,6 @@ const DataImport: React.FC = () => {
   const [curlInput, setCurlInput] = useState('');
   const [apiLoading, setApiLoading] = useState(false);
   const [apiError, setApiError] = useState('');
-  const [useProxy, setUseProxy] = useState(false);
 
   const activeCard = cardDataList[activeCardIndex] || cardDataList[0];
 
@@ -252,13 +251,7 @@ const DataImport: React.FC = () => {
         throw new Error('Could not extract URL from the curl command.');
       }
 
-      // Handle CORS Proxy if toggled
-      let fetchUrl = url;
-      if (useProxy) {
-        fetchUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-      }
-
-      const response = await fetch(fetchUrl, {
+      const response = await fetch(url, {
         method: options.method,
         headers: options.headers,
         body: options.body,
@@ -600,24 +593,12 @@ const DataImport: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs text-gray-600 font-semibold cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={useProxy}
-                    onChange={(e) => setUseProxy(e.target.checked)}
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>Use CORS Proxy Bypass <span className="text-gray-400 font-normal">(recommended if fetch fails due to browser security)</span></span>
-                </label>
-              </div>
-
               {apiError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-xs space-y-1">
                   <p className="font-bold">Fetch Failed:</p>
                   <p>{apiError}</p>
                   <p className="text-[10px] text-red-500 mt-1">
-                    💡 <strong>Tip:</strong> If it's a CORS policy block, check "Use CORS Proxy Bypass" or use a browser extension like "CORS Unblock" to bypass restrictions.
+                    💡 <strong>Tip:</strong> If it's a CORS policy block, use a browser extension like "CORS Unblock" or start Chrome with web security disabled to bypass restrictions during local development.
                   </p>
                 </div>
               )}
