@@ -384,16 +384,16 @@ export function getFieldValue(
 export function suggestMappings(headers: string[]): ColumnMapping[] {
   const suggestions: ColumnMapping[] = [];
   const fieldPatterns: Record<DataField, string[]> = {
-    name: ['name', 'full name', 'employee name', 'student name', 'first name'],
-    role: ['role', 'designation', 'class', 'post', 'department', 'position', 'title'],
-    code: ['code', 'emp code', 'employee code', 'roll no', 'rollno', 'id', 'id no', 'roll number', 'registration'],
-    dob: ['dob', 'date of birth', 'birth date', 'birthdate', 'd.o.b'],
-    blood: ['blood', 'blood group', 'bld grp'],
-    contact: ['contact', 'contact no', 'phone', 'mobile', 'tel', 'cell'],
+    name: ['name', 'full name', 'employee name', 'student name', 'first name', 'employeename', 'studentname'],
+    role: ['role', 'designation', 'class', 'post', 'department', 'position', 'title', 'designations'],
+    code: ['code', 'emp code', 'employee code', 'roll no', 'rollno', 'id', 'id no', 'roll number', 'registration', 'employeeid', 'studentid', 'uuid', 'userid', 'admissionnumber', 'rollnumber'],
+    dob: ['dob', 'date of birth', 'birth date', 'birthdate', 'd.o.b', 'dateofbirth'],
+    blood: ['blood', 'blood group', 'bld grp', 'bloodgroup'],
+    contact: ['contact', 'contact no', 'phone', 'mobile', 'tel', 'cell', 'contactnumber', 'mobileno', 'primarymobileno'],
     address: ['address', 'addr', 'residence', 'location'],
     issued: ['issue', 'issued', 'issued on', 'issue date'],
     valid: ['valid', 'valid up to', 'valid upto', 'expiry', 'expiry date', 'valid till'],
-    emergency: ['emergency', 'emergency contact', 'emergency no', 'alt contact'],
+    emergency: ['emergency', 'emergency contact', 'emergency no', 'alt contact', 'emergencycontact', 'emergencyno', 'emergencycontactnumber'],
     orgName: ['organization', 'company', 'institute', 'school'],
     orgAddress: ['org address', 'company address'],
     orgPhone: ['org phone', 'company phone'],

@@ -74,6 +74,28 @@ export function parseCurl(curlString: string): { url: string; options: RequestIn
   };
 }
 
+// Flatten nested object keys into a single-level object using dot-notation
+export function flattenObject(obj: any, prefix = ''): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  if (!obj || typeof obj !== 'object') {
+    return result;
+  }
+
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    const newKey = prefix ? `${prefix}.${key}` : key;
+
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      Object.assign(result, flattenObject(val, newKey));
+    } else {
+      result[newKey] = val;
+    }
+  }
+
+  return result;
+}
+
 // Recursively find the first array containing objects in an arbitrary JSON structure
 export function findDataArray(obj: any): any[] | null {
   if (Array.isArray(obj)) {
@@ -269,9 +291,17 @@ const DataImport: React.FC = () => {
         throw new Error('Could not find any data array in the API response. Make sure the response contains a list of records.');
       }
 
+      // Flatten nested objects recursively
+      const flattenedRecords = records.map((rec: any) => {
+        if (rec && typeof rec === 'object') {
+          return flattenObject(rec);
+        }
+        return rec;
+      });
+
       // Convert objects to headers and rows
       const allKeys = new Set<string>();
-      records.forEach((rec: any) => {
+      flattenedRecords.forEach((rec: any) => {
         if (rec && typeof rec === 'object') {
           Object.keys(rec).forEach((k) => allKeys.add(k));
         }
@@ -282,7 +312,7 @@ const DataImport: React.FC = () => {
         throw new Error('No fields found in the API records.');
       }
 
-      const dataRows = records.map((rec: any) => {
+      const dataRows = flattenedRecords.map((rec: any) => {
         return hdrs.map((key) => {
           const val = rec[key];
           if (val === null || val === undefined) return '';
