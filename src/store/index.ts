@@ -386,7 +386,7 @@ export function suggestMappings(headers: string[]): ColumnMapping[] {
   const fieldPatterns: Record<DataField, string[]> = {
     name: ['name', 'full name', 'employee name', 'student name', 'first name', 'employeename', 'studentname'],
     role: ['role', 'designation', 'class', 'post', 'department', 'position', 'title', 'designations'],
-    code: ['code', 'emp code', 'employee code', 'roll no', 'rollno', 'id', 'id no', 'roll number', 'registration', 'employeeid', 'studentid', 'uuid', 'userid', 'admissionnumber', 'rollnumber'],
+    code: ['code', 'emp code', 'employee code', 'roll no', 'rollno', 'id', 'id no', 'roll number', 'registration', 'employeeid', 'studentid', 'admissionnumber', 'rollnumber'],
     dob: ['dob', 'date of birth', 'birth date', 'birthdate', 'd.o.b', 'dateofbirth'],
     blood: ['blood', 'blood group', 'bld grp', 'bloodgroup'],
     contact: ['contact', 'contact no', 'phone', 'mobile', 'tel', 'cell', 'contactnumber', 'mobileno', 'primarymobileno'],
@@ -404,12 +404,21 @@ export function suggestMappings(headers: string[]): ColumnMapping[] {
     custom1: ['custom1', 'field1', 'extra1'],
     custom2: ['custom2', 'field2', 'extra2'],
     custom3: ['custom3', 'field3', 'extra3'],
+    photo: ['photo', 'image', 'picture', 'path', 'avatar', 'pic'],
     static: [],
   };
   headers.forEach((header) => {
     const h = header.toLowerCase().trim();
+    const parts = h.split('.');
+    const lastPart = parts[parts.length - 1];
+
     for (const [field, patterns] of Object.entries(fieldPatterns)) {
-      if (patterns.some((p) => h.includes(p))) {
+      if (patterns.some((p) => {
+        if (p === 'id') {
+          return lastPart === 'id' || lastPart === 'id_no' || lastPart === 'idno';
+        }
+        return lastPart.includes(p);
+      })) {
         suggestions.push({ excelColumn: header, field: field as DataField });
         break;
       }

@@ -13,6 +13,7 @@ export type DataField =
   | 'address' | 'issued' | 'valid' | 'emergency'
   | 'orgName' | 'orgAddress' | 'orgPhone' | 'orgEmail' | 'orgWebsite' | 'orgTagline' | 'orgEmergency'
   | 'custom1' | 'custom2' | 'custom3'
+  | 'photo'
   | 'static';
 
 export type ExportFormat = 'pdf' | 'png' | 'print';

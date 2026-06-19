@@ -96,6 +96,23 @@ export function flattenObject(obj: any, prefix = ''): Record<string, any> {
   return result;
 }
 
+// Download image from URL and convert it to base64 Data URL
+export async function imageUrlToBase64(url: string): Promise<string> {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error('Failed to convert image to base64:', err);
+    return url; // Fallback to raw URL if fetch fails
+  }
+}
+
 // Recursively find the first array containing objects in an arbitrary JSON structure
 export function findDataArray(obj: any): any[] | null {
   if (Array.isArray(obj)) {
@@ -162,6 +179,7 @@ const fieldLabels: Record<DataField, string> = {
   custom1: 'Custom Field 1',
   custom2: 'Custom Field 2',
   custom3: 'Custom Field 3',
+  photo: 'Photo (Image URL)',
   static: 'Static Text',
 };
 
@@ -204,6 +222,7 @@ const DataImport: React.FC = () => {
   const [curlInput, setCurlInput] = useState('');
   const [apiLoading, setApiLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const activeCard = cardDataList[activeCardIndex] || cardDataList[0];
 
@@ -386,6 +405,20 @@ const DataImport: React.FC = () => {
         const d = new Date(epoch.getTime() + num * 24 * 60 * 60 * 1000);
         return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
       }
+      
+      // Handle ISO UTC timestamps (convert to IST date: UTC + 5:30)
+      if (val.includes('T') && val.endsWith('Z')) {
+        const date = new Date(val);
+        if (!isNaN(date.getTime())) {
+          const istMs = date.getTime() + (5.5 * 60 * 60 * 1000);
+          const istDate = new Date(istMs);
+          const day = String(istDate.getUTCDate()).padStart(2, '0');
+          const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+          const year = istDate.getUTCFullYear();
+          return `${day}-${month}-${year}`; // Returns DD-MM-YYYY
+        }
+      }
+
       // Try DD-MM-YYYY
       if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(val)) return val;
       // Try DD/MM/YYYY
@@ -411,19 +444,39 @@ const DataImport: React.FC = () => {
       custom1: getValue(row, 'custom1'),
       custom2: getValue(row, 'custom2'),
       custom3: getValue(row, 'custom3'),
+      photo: getValue(row, 'photo'),
     }));
 
     setImportedData(parsed);
     setStep('preview');
   };
 
-  const confirmImport = () => {
-    setCardDataList(importedData);
-    setStep('upload');
-    setFileName('');
-    setHeaders([]);
-    setRows([]);
-    showToast(`Successfully imported ${importedData.length} records!`, 'success');
+  const confirmImport = async () => {
+    setIsConfirming(true);
+    showToast('Importing records and downloading photos...', 'info');
+
+    try {
+      const updatedList = await Promise.all(
+        importedData.map(async (card) => {
+          if (card.photo && card.photo.startsWith('http')) {
+            const b64 = await imageUrlToBase64(card.photo);
+            return { ...card, photo: b64 };
+          }
+          return card;
+        })
+      );
+
+      setCardDataList(updatedList);
+      setStep('upload');
+      setFileName('');
+      setHeaders([]);
+      setRows([]);
+      showToast(`Successfully imported ${updatedList.length} records!`, 'success');
+    } catch (err: any) {
+      showToast('Error downloading photos: ' + err.message, 'error');
+    } finally {
+      setIsConfirming(false);
+    }
   };
 
   const startEdit = (idx: number) => {
@@ -948,10 +1001,20 @@ const DataImport: React.FC = () => {
             </button>
             <button
               onClick={confirmImport}
-              className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow-lg shadow-emerald-200 flex items-center gap-2"
+              disabled={isConfirming}
+              className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow-lg shadow-emerald-200 flex items-center gap-2 disabled:opacity-50"
             >
-              <Check className="w-4 h-4" />
-              Import {importedData.length} Records
+              {isConfirming ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Downloading Photos...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Import {importedData.length} Records
+                </>
+              )}
             </button>
           </div>
         </div>
