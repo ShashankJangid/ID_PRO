@@ -395,11 +395,11 @@ const CardDesigner: React.FC = () => {
       {/* Canvas Area */}
       <div className="flex-1 bg-gray-100 overflow-auto flex flex-col">
         {/* Top bar */}
-        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-gray-900">
-              {currentTemplate.name}
-              {canUndo && <span className="text-amber-500 ml-2 text-xs">(Unsaved Changes)</span>}
+        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between min-w-0 gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+            <span className="text-sm font-bold text-gray-900 min-w-0 flex-shrink flex items-center gap-1.5" title={currentTemplate.name}>
+              <span className="truncate">{currentTemplate.name}</span>
+              {canUndo && <span className="text-amber-500 text-[10px] whitespace-nowrap bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 flex-shrink-0">(Unsaved)</span>}
             </span>
             <div className="flex bg-gray-100 rounded-lg p-0.5">
               <button
@@ -506,7 +506,7 @@ const CardDesigner: React.FC = () => {
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
             {canUndo && (
               <>
                 <button

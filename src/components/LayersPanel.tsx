@@ -17,7 +17,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
   onMoveElement,
   onDeleteElement,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const getElementIcon = (type: CardElement['type']) => {
     switch (type) {
