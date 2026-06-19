@@ -46,23 +46,6 @@ function getImageUrl(
   }
 }
 
-/** Short human-readable labels for each QR field key */
-const QR_FIELD_LABEL_MAP: Record<string, string> = {
-  name: 'Name',
-  role: 'Role',
-  code: 'ID',
-  dob: 'DOB',
-  blood: 'Blood',
-  contact: 'Contact',
-  address: 'Address',
-  issued: 'Issued',
-  valid: 'Valid',
-  emergency: 'Emergency',
-  orgName: 'Org',
-  orgPhone: 'Ph',
-  orgEmail: 'Email',
-  orgWebsite: 'Web',
-};
 
 /**
  * Get the raw value for a QR field key, reading from both cardData and org.
@@ -105,18 +88,17 @@ export function buildQRData(
   for (const key of fields) {
     const value = getQRFieldValue(key, cardData, org).trim();
     if (!value) continue;
-    const label = QR_FIELD_LABEL_MAP[key] || key;
-    parts.push(`${label}: ${value}`);
+    parts.push(value);
   }
 
   if (parts.length === 0) {
     // Absolute fallback — never return empty string
     const fallback = cardData.code || cardData.name || 'ID Card';
-    return JSON.stringify([fallback]);
+    return fallback.toUpperCase();
   }
 
-  // Return as a JSON-stringified single array containing all selected data
-  return JSON.stringify(parts);
+  // Join values by "  /  " and convert everything to UPPERCASE
+  return parts.join('  /  ').toUpperCase();
 }
 
 /** Render a single card element */
