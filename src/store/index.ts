@@ -6,6 +6,7 @@ import type {
 } from '@/types';
 import { doc, setDoc, deleteDoc, getDoc, getDocs, collection } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { autoFitTemplate } from '@/lib/templateAutoFit';
 
 interface AppState {
   activeTab: AppTab;
@@ -226,17 +227,18 @@ export const useAppStore = create<AppState>()(
       activeTemplateId: null,
       addTemplate: (t) =>
         set((state) => {
+          const fitted = autoFitTemplate(t);
           const userId = auth.currentUser?.uid;
           if (userId) {
-            saveTemplateToFirestore(userId, t);
+            saveTemplateToFirestore(userId, fitted);
           }
-          return { templates: [...state.templates, t] };
+          return { templates: [...state.templates, fitted] };
         }),
       updateTemplate: (id, updates) =>
         set((state) => {
           const newTemplates = state.templates.map((t) => {
             if (t.id === id) {
-              const updated = { ...t, ...updates };
+              const updated = autoFitTemplate({ ...t, ...updates });
               const userId = auth.currentUser?.uid;
               if (userId) {
                 saveTemplateToFirestore(userId, updated);
@@ -326,13 +328,12 @@ export const useAppStore = create<AppState>()(
       storage: createJSONStorage(() => idbStorage),
       onRehydrateStorage: () => (state, error) => {
         if (!error && state) {
+          const autoFitted = state.templates.map((t) => autoFitTemplate(t));
           // Deduplicate templates by ID
-          const uniqueTemplates = state.templates.filter(
+          const uniqueTemplates = autoFitted.filter(
             (t, index, self) => self.findIndex((x) => x.id === t.id) === index
           );
-          if (uniqueTemplates.length !== state.templates.length) {
-            useAppStore.setState({ templates: uniqueTemplates });
-          }
+          useAppStore.setState({ templates: uniqueTemplates });
 
           if (uniqueTemplates.length === 0) {
             import('@/templates/built-in').then(({ getBuiltInTemplates }) => {
@@ -467,28 +468,29 @@ export async function syncStoreWithFirestore(userId: string | null) {
     }
 
     // 5. Merge templates
-    const mergedTemplates = [...localTemplates];
+    const mergedTemplates = [...localTemplates].map((t) => autoFitTemplate(t));
 
     // Upload local custom templates that don't exist in remote
     for (const localT of localTemplates) {
       if (localT.isBuiltIn) continue; // Built-in templates are not uploaded
       const remoteT = remoteTemplates.find((t) => t.id === localT.id);
       if (!remoteT) {
-        await saveTemplateToFirestore(userId, localT);
+        await saveTemplateToFirestore(userId, autoFitTemplate(localT));
       }
     }
 
     // Download remote templates that don't exist locally or are newer
     for (const remoteT of remoteTemplates) {
-      const localTIdx = mergedTemplates.findIndex((t) => t.id === remoteT.id);
+      const fittedRemoteT = autoFitTemplate(remoteT);
+      const localTIdx = mergedTemplates.findIndex((t) => t.id === fittedRemoteT.id);
       if (localTIdx === -1) {
-        mergedTemplates.push(remoteT);
+        mergedTemplates.push(fittedRemoteT);
       } else {
         const localT = mergedTemplates[localTIdx];
         const localTime = new Date(localT.createdAt || 0).getTime();
-        const remoteTime = new Date(remoteT.updatedAt || remoteT.createdAt || 0).getTime();
+        const remoteTime = new Date(fittedRemoteT.updatedAt || fittedRemoteT.createdAt || 0).getTime();
         if (remoteTime > localTime) {
-          mergedTemplates[localTIdx] = remoteT;
+          mergedTemplates[localTIdx] = fittedRemoteT;
         }
       }
     }
