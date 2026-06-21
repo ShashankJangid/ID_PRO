@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { useAppStore } from '@/store';
+import { useShallow } from 'zustand/react/shallow';
 
 interface BotGuideProps {
   hasSetup: boolean;
@@ -56,6 +58,12 @@ const getStepIndex = (hasSetup: boolean, hasTemplate: boolean, hasData: boolean)
 };
 
 export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasData }) => {
+  const { darkMode } = useAppStore(
+    useShallow((s) => ({
+      darkMode: s.darkMode,
+    }))
+  );
+
   const containerRef = useRef<HTMLDivElement>(null);
   const leftPupilRef = useRef<SVGGElement>(null);
   const rightPupilRef = useRef<SVGGElement>(null);
@@ -361,11 +369,13 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
           <div
             className="rounded-2xl shadow-2xl px-4 py-3 text-center"
             style={{
-              background: 'rgba(3, 8, 20, 0.95)',
-              border: `1.5px solid ${tip.color}44`,
+              background: darkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+              border: `1.5px solid ${tip.color}${darkMode ? '44' : '22'}`,
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
-              boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px ${tip.color}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
+              boxShadow: darkMode
+                ? `0 20px 60px rgba(0,0,0,0.65), 0 0 0 1px ${tip.color}22, inset 0 1px 0 rgba(255,255,255,0.05)`
+                : `0 20px 40px rgba(0,0,0,0.08), 0 0 0 1px ${tip.color}11`,
             }}
           >
             {/* Emoji */}
@@ -378,7 +388,7 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
               {tip.message}
             </p>
             {/* Sub message */}
-            <p className="text-[10px] text-white/40 leading-relaxed">
+            <p className={`text-[10px] leading-relaxed ${darkMode ? 'text-white/50' : 'text-slate-500'}`}>
               {tip.sub}
             </p>
             {/* Step indicator dots */}
@@ -390,7 +400,7 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
                   style={{
                     width: s === stepIndex ? 12 : 5,
                     height: 5,
-                    background: s === stepIndex ? tip.color : 'rgba(255,255,255,0.15)',
+                    background: s === stepIndex ? tip.color : (darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'),
                   }}
                 />
               ))}
@@ -402,8 +412,8 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
             style={{
               width: 10,
               height: 10,
-              background: 'rgba(3,8,20,0.95)',
-              border: `1.5px solid ${tip.color}44`,
+              background: darkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+              border: `1.5px solid ${tip.color}${darkMode ? '44' : '22'}`,
               borderTop: 'none',
               borderLeft: 'none',
               transform: 'rotate(45deg)',
