@@ -17,6 +17,7 @@ import { jsPDF } from 'jspdf';
 import { useAppStore } from '@/store';
 import CardRenderer from './CardRenderer';
 import type { CardData, ExportFormat } from '@/types';
+import { imageUrlToBase64 } from './DataImport';
 
 const PreviewExport: React.FC = () => {
   const {
@@ -27,6 +28,7 @@ const PreviewExport: React.FC = () => {
     organization,
     showToast,
     updateActiveCard,
+    setCardDataList,
   } = useAppStore();
 
   const [side, setSide] = useState<'front' | 'back'>('front');
@@ -40,6 +42,58 @@ const PreviewExport: React.FC = () => {
   useEffect(() => {
     setSelectedIndices(new Set(cardDataList.map((_, i) => i)));
   }, [cardDataList]);
+
+  // Background self-healing loop: download raw URLs and save them as base64 in the store
+  const failedUrlsRef = React.useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const rawPhotoCards = cardDataList.filter(
+      (c) =>
+        c.photo &&
+        (c.photo.startsWith('http://') || c.photo.startsWith('https://') || c.photo.startsWith('//')) &&
+        !failedUrlsRef.current.has(c.photo)
+    );
+    if (rawPhotoCards.length === 0) return;
+
+    let active = true;
+    const processPhotos = async () => {
+      const updatedList = [...cardDataList];
+      let changed = false;
+
+      for (let i = 0; i < updatedList.length; i++) {
+        if (!active) return;
+        const card = updatedList[i];
+        if (
+          card.photo &&
+          (card.photo.startsWith('http://') || card.photo.startsWith('https://') || card.photo.startsWith('//')) &&
+          !failedUrlsRef.current.has(card.photo)
+        ) {
+          const normalized = card.photo.startsWith('//') ? `https:${card.photo}` : card.photo;
+          try {
+            const b64 = await imageUrlToBase64(normalized);
+            if (b64 !== card.photo) {
+              updatedList[i] = { ...card, photo: b64 };
+              changed = true;
+            } else {
+              // Direct and proxy failed, add to failed list to skip retrying
+              failedUrlsRef.current.add(card.photo);
+            }
+          } catch (e) {
+            console.error('Failed to convert photo in background:', e);
+            failedUrlsRef.current.add(card.photo);
+          }
+        }
+      }
+
+      if (changed && active) {
+        setCardDataList(updatedList);
+      }
+    };
+
+    processPhotos();
+    return () => {
+      active = false;
+    };
+  }, [cardDataList, setCardDataList]);
 
   const template = getActiveTemplate();
   const activeCard = cardDataList[activeCardIndex];

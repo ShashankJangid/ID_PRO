@@ -164,8 +164,10 @@ export function flattenObject(obj: any, prefix = ''): Record<string, any> {
 
 // Download image from URL and convert it to base64 Data URL
 export async function imageUrlToBase64(url: string): Promise<string> {
+  // First try: Direct fetch
   try {
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const blob = await res.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -174,8 +176,23 @@ export async function imageUrlToBase64(url: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.error('Failed to convert image to base64:', err);
-    return url; // Fallback to raw URL if fetch fails
+    console.warn('Direct fetch failed, trying CORS proxy:', err);
+    // Second try: CORS proxy
+    try {
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Proxy HTTP error! status: ${res.status}`);
+      const blob = await res.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (proxyErr) {
+      console.error('Failed to convert image to base64 via proxy:', proxyErr);
+      return url; // Fallback to raw URL if both fail
+    }
   }
 }
 
