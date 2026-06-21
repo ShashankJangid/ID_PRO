@@ -5,19 +5,21 @@ export function useDesignerHistory<T>(initialState: T, maxDepth = 30) {
   const [present, setPresent] = useState<T>(initialState);
   const [future, setFuture] = useState<T[]>([]);
 
-  const set = useCallback((newState: T | ((prev: T) => T)) => {
+  const set = useCallback((newState: T | ((prev: T) => T), commitToHistory = true) => {
     setPresent((prev) => {
       const resolvedState = typeof newState === 'function' ? (newState as Function)(prev) : newState;
       if (resolvedState === prev) return prev;
 
-      setPast((p) => {
-        const nextPast = [...p, prev];
-        if (nextPast.length > maxDepth) {
-          nextPast.shift();
-        }
-        return nextPast;
-      });
-      setFuture([]);
+      if (commitToHistory) {
+        setPast((p) => {
+          const nextPast = [...p, prev];
+          if (nextPast.length > maxDepth) {
+            nextPast.shift();
+          }
+          return nextPast;
+        });
+        setFuture([]);
+      }
       return resolvedState;
     });
   }, [maxDepth]);

@@ -82,10 +82,10 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   // Build a demo card so we can preview the actual QR string live
   const demoCard = cardData || {
-    name: 'John Doe', role: 'Manager', code: 'EMP001',
-    dob: '01-01-1990', blood: 'O+', contact: '9876543210',
-    address: '123 Main St', issued: '01-01-2024',
-    valid: '31-12-2025', emergency: '9876543211',
+    name: 'Sample Name', role: 'Designation', code: 'DEMO-001',
+    dob: '01-01-2000', blood: 'A+', contact: '+91-XXXXXXXXXX',
+    address: 'School Address, City', issued: '01-06-2025',
+    valid: '31-05-2026', emergency: '+91-XXXXXXXXXX',
   };
 
   return (

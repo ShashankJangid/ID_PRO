@@ -22,10 +22,10 @@ const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
   canRedo = false,
 }) => {
   return (
-    <div className="w-20 bg-white border-r border-gray-200 flex flex-col items-center py-4 gap-2.5 z-10 select-none">
+    <div className="w-20 glass-panel border-r border-gray-200/10 flex flex-col items-center py-4 gap-2.5 z-10 select-none">
       <button
         onClick={() => onAddElement('text')}
-        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all"
         title="Add Text Element"
       >
         <Type className="w-5 h-5 mb-1" />
@@ -33,7 +33,7 @@ const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
       </button>
       <button
         onClick={() => onAddElement('image')}
-        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all"
         title="Add Image Element"
       >
         <Image className="w-5 h-5 mb-1" />
@@ -41,7 +41,7 @@ const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
       </button>
       <button
         onClick={() => onAddElement('shape')}
-        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all"
         title="Add Shape Element"
       >
         <Shapes className="w-5 h-5 mb-1" />
@@ -49,21 +49,21 @@ const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
       </button>
       <button
         onClick={() => onAddElement('qr')}
-        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all"
         title="Add QR Code"
       >
         <QrCode className="w-5 h-5 mb-1" />
         <span className="text-[9px] font-semibold">QR Code</span>
       </button>
 
-      <div className="w-12 h-px bg-gray-200 my-1" />
+      <div className="w-12 h-px bg-gray-200/10 my-1" />
 
       {onUndo && onRedo && (
         <>
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className="w-16 py-1.5 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-600 transition-colors"
+            className="w-16 py-1.5 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-600 transition-all active:scale-95"
             title="Undo Last Action"
           >
             <Undo2 className="w-4 h-4 mb-0.5" />
@@ -72,28 +72,28 @@ const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className="w-16 py-1.5 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-600 transition-colors"
+            className="w-16 py-1.5 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-600 transition-all active:scale-95"
             title="Redo Last Action"
           >
             <Redo2 className="w-4 h-4 mb-0.5" />
             <span className="text-[9px] font-semibold">Redo</span>
           </button>
-          <div className="w-12 h-px bg-gray-200 my-1" />
+          <div className="w-12 h-px bg-gray-200/10 my-1" />
         </>
       )}
 
       <button
         onClick={() => onZoomChange(Math.max(0.2, zoom - 0.1))}
-        className="w-16 py-1 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+        className="w-16 py-1 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-500/15 transition-all active:scale-95"
         title="Zoom Out"
       >
         <span className="text-sm font-extrabold leading-none">-</span>
         <span className="text-[9px] font-semibold mt-0.5">Zoom Out</span>
       </button>
-      <span className="text-[10px] text-gray-500 font-bold my-0.5">{Math.round(zoom * 100)}%</span>
+      <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold my-0.5">{Math.round(zoom * 100)}%</span>
       <button
         onClick={() => onZoomChange(Math.min(3, zoom + 0.1))}
-        className="w-16 py-1 flex flex-col items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+        className="w-16 py-1 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-500/15 transition-all active:scale-95"
         title="Zoom In"
       >
         <span className="text-sm font-extrabold leading-none">+</span>

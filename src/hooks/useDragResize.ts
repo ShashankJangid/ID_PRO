@@ -6,7 +6,7 @@ interface UseDragResizeProps {
   elements: CardElement[];
   zoom: number;
   cardRef: React.RefObject<HTMLDivElement | null>;
-  handleElementUpdate: (id: string, updates: Partial<CardElement>) => void;
+  handleElementUpdate: (id: string, updates: Partial<CardElement>, commitToHistory?: boolean) => void;
   setSelectedElementId: (id: string | null) => void;
 }
 
@@ -21,6 +21,7 @@ export function useDragResize({
   const [draggedEl, setDraggedEl] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [guides, setGuides] = useState<{ x?: number; y?: number }[]>([]);
+  const [hasCommittedStart, setHasCommittedStart] = useState(false);
 
   // State to track resize actions
   const [activeHandle, setActiveHandle] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function useDragResize({
       y: (e.clientY - parentRect.top) / zoom - el.y,
     });
     setDraggedEl(elId);
+    setHasCommittedStart(false);
     setSelectedElementId(elId);
   };
 
@@ -55,6 +57,7 @@ export function useDragResize({
 
     setActiveHandle(handle);
     setDraggedEl(elId);
+    setHasCommittedStart(false);
     setDragStartDims({
       x: el.x,
       y: el.y,
@@ -85,6 +88,12 @@ export function useDragResize({
       const cardH = currentTemplate.cardHeight;
       const SNAP = 6; // snap threshold in card-px
       const MIN_SIZE = 15; // minimum allowed dimension
+
+      let commit = false;
+      if (!hasCommittedStart) {
+        commit = true;
+        setHasCommittedStart(true);
+      }
 
       if (activeHandle) {
         // ─── RESIZING OPERATIONS ───
@@ -184,7 +193,7 @@ export function useDragResize({
           y: Math.round(newY),
           width: Math.round(newW),
           height: Math.round(newH),
-        });
+        }, commit);
       } else {
         // ─── TRANSLATION (DRAG MOVE) ───
         let x = (e.clientX - rect.left) / zoom - dragOffset.x;
@@ -245,7 +254,7 @@ export function useDragResize({
         handleElementUpdate(draggedEl, {
           x: Math.round(x),
           y: Math.round(y),
-        });
+        }, commit);
       }
     },
     [
@@ -259,6 +268,7 @@ export function useDragResize({
       currentTemplate,
       elements,
       cardRef,
+      hasCommittedStart,
     ]
   );
 
@@ -266,6 +276,7 @@ export function useDragResize({
     setDraggedEl(null);
     setActiveHandle(null);
     setGuides([]);
+    setHasCommittedStart(false);
   }, []);
 
   return {

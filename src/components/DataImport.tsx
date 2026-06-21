@@ -74,6 +74,56 @@ export function parseCurl(curlString: string): { url: string; options: RequestIn
   };
 }
 
+// Format any address array or object into a single formatted string representation
+export function formatAddressValue(val: any): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val.trim();
+  if (typeof val === 'number') return String(val);
+  if (Array.isArray(val)) {
+    return val.map(item => formatAddressValue(item)).filter(Boolean).join(', ');
+  }
+  if (typeof val === 'object') {
+    const parts: string[] = [];
+    const collect = (o: any) => {
+      if (o === null || o === undefined) return;
+      if (typeof o !== 'object') {
+        parts.push(String(o).trim());
+        return;
+      }
+      if (Array.isArray(o)) {
+        o.forEach(item => collect(item));
+        return;
+      }
+      for (const k of Object.keys(o)) {
+        collect(o[k]);
+      }
+    };
+    collect(val);
+    return parts.filter(Boolean).join(', ');
+  }
+  return String(val).trim();
+}
+
+// Helper to check if an object contains nested objects (excluding arrays/null)
+function hasNestedObject(o: any): boolean {
+  if (!o || typeof o !== 'object' || Array.isArray(o)) return false;
+  return Object.values(o).some(v => v !== null && typeof v === 'object' && !Array.isArray(v));
+}
+
+// Try to parse string values that contain JSON structures
+function tryParseJSON(val: any): any {
+  if (typeof val !== 'string') return val;
+  const trimmed = val.trim();
+  if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (e) {
+      return val;
+    }
+  }
+  return val;
+}
+
 // Flatten nested object keys into a single-level object using dot-notation
 export function flattenObject(obj: any, prefix = ''): Record<string, any> {
   const result: Record<string, any> = {};
@@ -83,10 +133,26 @@ export function flattenObject(obj: any, prefix = ''): Record<string, any> {
   }
 
   for (const key of Object.keys(obj)) {
-    const val = obj[key];
+    let val = obj[key];
+    val = tryParseJSON(val);
     const newKey = prefix ? `${prefix}.${key}` : key;
+    const lowerKey = key.toLowerCase();
 
-    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+    if (lowerKey.includes('address') && !hasNestedObject(val)) {
+      result[newKey] = formatAddressValue(val);
+    } else if (Array.isArray(val)) {
+      // Check if it's an array of objects that have designation/name properties
+      const isArrayOfObjects = val.length > 0 && val.every(item => item && typeof item === 'object' && ('name' in item || 'label' in item || 'value' in item || 'title' in item));
+      if (isArrayOfObjects) {
+        const getObjectStringValue = (item: any) => {
+          if (!item || typeof item !== 'object') return '';
+          return String(item.name || item.label || item.value || item.title || '').trim();
+        };
+        result[newKey] = val.map(getObjectStringValue).filter(Boolean).join(', ');
+      } else {
+        result[newKey] = val;
+      }
+    } else if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
       Object.assign(result, flattenObject(val, newKey));
     } else {
       result[newKey] = val;
@@ -208,6 +274,9 @@ const DataImport: React.FC = () => {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<string[][]>([]);
   const [importedData, setImportedData] = useState<CardData[]>([]);
+  const [bulkIssued, setBulkIssued] = useState('');
+  const [bulkValid, setBulkValid] = useState('');
+  const [bulkEmergency, setBulkEmergency] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<CardData>>({});
   const fileRef = useRef<HTMLInputElement>(null);
@@ -218,11 +287,23 @@ const DataImport: React.FC = () => {
   const [bulkPhotoLoading, setBulkPhotoLoading] = useState(false);
 
   // ERP API State
-  const [importMethod, setImportMethod] = useState<'file' | 'api'>('file');
+  const [importMethod, setImportMethod] = useState<'file' | 'api' | 'both'>('file');
   const [curlInput, setCurlInput] = useState('');
   const [apiLoading, setApiLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
+
+  // Both Mode States
+  const [erpHeaders, setErpHeaders] = useState<string[]>([]);
+  const [erpRows, setErpRows] = useState<string[][]>([]);
+  const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
+  const [excelRows, setExcelRows] = useState<string[][]>([]);
+  const [erpJoinKey, setErpJoinKey] = useState<string>('');
+  const [excelJoinKey, setExcelJoinKey] = useState<string>('');
+  const [bothMappings, setBothMappings] = useState<Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>>(() => {
+    const initial: Partial<Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>> = {};
+    return initial as Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>;
+  });
 
   const activeCard = cardDataList[activeCardIndex] || cardDataList[0];
 
@@ -358,6 +439,304 @@ const DataImport: React.FC = () => {
     }
   };
 
+  const findJoinKeySuggestion = (hdrs: string[]): string => {
+    const keys = ['code', 'id', 'emp_code', 'employee_code', 'roll_no', 'rollno', 'id_no', 'emp_id', 'employee_id'];
+    for (const k of keys) {
+      const found = hdrs.find(h => h.toLowerCase().trim() === k || h.toLowerCase().trim().includes(k));
+      if (found) return found;
+    }
+    return hdrs[0] || '';
+  };
+
+  const handleBothExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    let XLSX: any;
+    try {
+      XLSX = await loadXLSX();
+    } catch {
+      showToast('Failed to load XLSX library', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
+
+        if (jsonData.length < 2) {
+          showToast('Excel file must have at least a header row and one data row', 'error');
+          return;
+        }
+
+        const hdrs = jsonData[0].map((h) => String(h || '').trim());
+        const dataRows = jsonData
+          .slice(1)
+          .filter((r) => r.some((c) => c !== undefined && c !== null && String(c).trim() !== ''))
+          .map((r) => r.map((c) => String(c || '').trim()));
+
+        setExcelHeaders(hdrs);
+        setExcelRows(dataRows);
+
+        const suggestedKey = findJoinKeySuggestion(hdrs);
+        setExcelJoinKey(suggestedKey);
+
+        showToast(`Loaded ${dataRows.length} records from Excel`, 'success');
+      } catch (err) {
+        showToast('Error parsing Excel: ' + (err as Error).message, 'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleBothFetchERP = async () => {
+    setApiError('');
+    if (!curlInput.trim()) {
+      setApiError('Please paste your curl command first.');
+      return;
+    }
+
+    setApiLoading(true);
+    try {
+      const { url, options } = parseCurl(curlInput);
+
+      if (!url) {
+        throw new Error('Could not extract URL from the curl command.');
+      }
+
+      const response = await fetch(url, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const json = await response.json();
+      const records = findDataArray(json);
+      if (!records || records.length === 0) {
+        throw new Error('Could not find any data array in the API response.');
+      }
+
+      const flattenedRecords = records.map((rec: any) => {
+        if (rec && typeof rec === 'object') {
+          return flattenObject(rec);
+        }
+        return rec;
+      });
+
+      const allKeys = new Set<string>();
+      flattenedRecords.forEach((rec: any) => {
+        if (rec && typeof rec === 'object') {
+          Object.keys(rec).forEach((k) => allKeys.add(k));
+        }
+      });
+
+      const hdrs = Array.from(allKeys);
+      if (hdrs.length === 0) {
+        throw new Error('No fields found in the API records.');
+      }
+
+      const dataRows = flattenedRecords.map((rec: any) => {
+        return hdrs.map((key) => {
+          const val = rec[key];
+          if (val === null || val === undefined) return '';
+          if (typeof val === 'object') return JSON.stringify(val);
+          return String(val).trim();
+        });
+      });
+
+      setErpHeaders(hdrs);
+      setErpRows(dataRows);
+
+      const suggestedKey = findJoinKeySuggestion(hdrs);
+      setErpJoinKey(suggestedKey);
+
+      showToast(`Fetched ${dataRows.length} records from ERP!`, 'success');
+    } catch (err: any) {
+      console.error(err);
+      setApiError(err.message || 'An error occurred while fetching data.');
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  const autoSuggestBothMappings = (erpCols: string[], excelCols: string[]) => {
+    const erpSuggestions = suggestMappings(erpCols);
+    const excelSuggestions = suggestMappings(excelCols);
+
+    const mappings: Record<string, { source: 'erp' | 'excel' | 'none'; column: string }> = {};
+
+    Object.keys(fieldLabels).forEach((f) => {
+      mappings[f] = { source: 'none', column: '' };
+    });
+
+    erpSuggestions.forEach((s) => {
+      mappings[s.field] = { source: 'erp', column: s.excelColumn };
+    });
+
+    excelSuggestions.forEach((s) => {
+      if (mappings[s.field].source === 'none') {
+        mappings[s.field] = { source: 'excel', column: s.excelColumn };
+      }
+    });
+
+    return mappings as Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>;
+  };
+
+  const handleStartBothMapping = () => {
+    if (erpRows.length === 0) {
+      showToast('Please fetch ERP data first', 'error');
+      return;
+    }
+    if (excelRows.length === 0) {
+      showToast('Please upload an Excel file first', 'error');
+      return;
+    }
+    if (!erpJoinKey) {
+      showToast('Please select ERP Join Key', 'error');
+      return;
+    }
+    if (!excelJoinKey) {
+      showToast('Please select Excel Join Key', 'error');
+      return;
+    }
+
+    const suggested = autoSuggestBothMappings(erpHeaders, excelHeaders);
+    setBothMappings(suggested);
+    setStep('map');
+  };
+
+  const processBothImport = () => {
+    const nameMap = bothMappings.name;
+    const codeMap = bothMappings.code;
+
+    if (!nameMap || nameMap.source === 'none' || !nameMap.column) {
+      showToast('Name field must be mapped to a source and column', 'error');
+      return;
+    }
+    if (!codeMap || codeMap.source === 'none' || !codeMap.column) {
+      showToast('Code field must be mapped to a source and column', 'error');
+      return;
+    }
+
+    if (!erpJoinKey || !excelJoinKey) {
+      showToast('ERP and Excel Join Keys must be configured', 'error');
+      return;
+    }
+
+    const erpJoinIdx = erpHeaders.indexOf(erpJoinKey);
+    const excelJoinIdx = excelHeaders.indexOf(excelJoinKey);
+
+    if (erpJoinIdx < 0 || excelJoinIdx < 0) {
+      showToast('Selected join key columns not found in datasets', 'error');
+      return;
+    }
+
+    const parseDate = (val: string): string => {
+      if (!val) return '';
+      const num = parseFloat(val);
+      if (!isNaN(num) && num > 30000 && num < 50000) {
+        const epoch = new Date(1899, 11, 30);
+        const d = new Date(epoch.getTime() + num * 24 * 60 * 60 * 1000);
+        return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+      }
+      if (val.includes('T') && val.endsWith('Z')) {
+        const date = new Date(val);
+        if (!isNaN(date.getTime())) {
+          const istMs = date.getTime() + (5.5 * 60 * 60 * 1000);
+          const istDate = new Date(istMs);
+          const day = String(istDate.getUTCDate()).padStart(2, '0');
+          const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+          const year = istDate.getUTCFullYear();
+          return `${day}-${month}-${year}`;
+        }
+      }
+      if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(val)) return val;
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)) {
+        const p = val.split('/');
+        return `${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}-${p[2]}`;
+      }
+      return val;
+    };
+
+    const erpMap = new Map<string, string[]>();
+    erpRows.forEach((row) => {
+      const keyVal = (row[erpJoinIdx] || '').trim().toLowerCase();
+      if (keyVal) {
+        erpMap.set(keyVal, row);
+      }
+    });
+
+    const excelMap = new Map<string, string[]>();
+    excelRows.forEach((row) => {
+      const keyVal = (row[excelJoinIdx] || '').trim().toLowerCase();
+      if (keyVal) {
+        excelMap.set(keyVal, row);
+      }
+    });
+
+    const allKeys = new Set<string>([...erpMap.keys(), ...excelMap.keys()]);
+
+    if (allKeys.size === 0) {
+      showToast('No records found to merge.', 'error');
+      return;
+    }
+
+    const getValue = (erpRow: string[] | undefined, excelRow: string[] | undefined, field: DataField): string => {
+      const map = bothMappings[field];
+      if (!map || map.source === 'none' || !map.column) return '';
+
+      if (map.source === 'erp') {
+        if (!erpRow) return '';
+        const idx = erpHeaders.indexOf(map.column);
+        return idx >= 0 ? erpRow[idx] || '' : '';
+      } else {
+        if (!excelRow) return '';
+        const idx = excelHeaders.indexOf(map.column);
+        return idx >= 0 ? excelRow[idx] || '' : '';
+      }
+    };
+
+    const parsed: CardData[] = Array.from(allKeys).map((key, idx) => {
+      const erpRow = erpMap.get(key);
+      const excelRow = excelMap.get(key);
+
+      const cardName = getValue(erpRow, excelRow, 'name');
+      const cardCode = getValue(erpRow, excelRow, 'code');
+
+      const finalCode = cardCode || key.toUpperCase();
+      const finalName = cardName || `Record ${finalCode}`;
+
+      return {
+        id: `card_both_${idx}`,
+        name: finalName,
+        role: getValue(erpRow, excelRow, 'role'),
+        code: finalCode,
+        dob: parseDate(getValue(erpRow, excelRow, 'dob')),
+        blood: getValue(erpRow, excelRow, 'blood'),
+        contact: getValue(erpRow, excelRow, 'contact'),
+        address: getValue(erpRow, excelRow, 'address'),
+        issued: parseDate(getValue(erpRow, excelRow, 'issued')),
+        valid: parseDate(getValue(erpRow, excelRow, 'valid')),
+        emergency: getValue(erpRow, excelRow, 'emergency'),
+        custom1: getValue(erpRow, excelRow, 'custom1'),
+        custom2: getValue(erpRow, excelRow, 'custom2'),
+        custom3: getValue(erpRow, excelRow, 'custom3'),
+        photo: getValue(erpRow, excelRow, 'photo'),
+      };
+    });
+
+    setImportedData(parsed);
+    setStep('preview');
+  };
+
   const handleMappingChange = (excelCol: string, field: DataField) => {
     const filtered = columnMappings.filter((m) => m.excelColumn !== excelCol);
     if (field) {
@@ -451,16 +830,42 @@ const DataImport: React.FC = () => {
     setStep('preview');
   };
 
+  const handleBulkApply = () => {
+    if (!bulkIssued.trim() && !bulkValid.trim() && !bulkEmergency.trim()) {
+      showToast('Please enter at least one value to apply.', 'info');
+      return;
+    }
+    setImportedData(prev => prev.map(card => {
+      const updated = { ...card };
+      if (bulkIssued.trim()) updated.issued = bulkIssued.trim();
+      if (bulkValid.trim()) updated.valid = bulkValid.trim();
+      if (bulkEmergency.trim()) updated.emergency = bulkEmergency.trim();
+      return updated;
+    }));
+    showToast('Applied common values to all imported cards!', 'success');
+  };
+
   const confirmImport = async () => {
     setIsConfirming(true);
     showToast('Importing records and downloading photos...', 'info');
 
+    const isPhotoUrl = (val: string) =>
+      val.startsWith('http://') || val.startsWith('https://') || val.startsWith('//');
+
+    const normalisePhotoUrl = (val: string) =>
+      val.startsWith('//') ? `https:${val}` : val;
+
     try {
       const updatedList = await Promise.all(
         importedData.map(async (card) => {
-          if (card.photo && card.photo.startsWith('http')) {
-            const b64 = await imageUrlToBase64(card.photo);
-            return { ...card, photo: b64 };
+          if (card.photo && isPhotoUrl(card.photo)) {
+            try {
+              const b64 = await imageUrlToBase64(normalisePhotoUrl(card.photo));
+              return { ...card, photo: b64 };
+            } catch {
+              // Photo download failed — keep card but clear the broken URL
+              return { ...card, photo: undefined };
+            }
           }
           return card;
         })
@@ -471,9 +876,16 @@ const DataImport: React.FC = () => {
       setFileName('');
       setHeaders([]);
       setRows([]);
+      setErpHeaders([]);
+      setErpRows([]);
+      setExcelHeaders([]);
+      setExcelRows([]);
+      setErpJoinKey('');
+      setExcelJoinKey('');
+      setBothMappings({} as any);
       showToast(`Successfully imported ${updatedList.length} records!`, 'success');
     } catch (err: any) {
-      showToast('Error downloading photos: ' + err.message, 'error');
+      showToast('Error during import: ' + err.message, 'error');
     } finally {
       setIsConfirming(false);
     }
@@ -602,13 +1014,13 @@ const DataImport: React.FC = () => {
       {step === 'upload' && (
         <div className="space-y-6">
           {/* Tab selector */}
-          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
+          <div className="flex bg-gray-100 dark:bg-[hsl(222,47%,13%)] rounded-xl p-1 max-w-md">
             <button
               onClick={() => setImportMethod('file')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
                 importMethod === 'file'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-white dark:bg-[hsl(222,47%,9%)] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900 dark:text-[hsl(213,31%,65%)] dark:hover:text-white'
               }`}
             >
               <Upload className="w-4 h-4" />
@@ -618,12 +1030,23 @@ const DataImport: React.FC = () => {
               onClick={() => setImportMethod('api')}
               className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
                 importMethod === 'api'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-white dark:bg-[hsl(222,47%,9%)] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900 dark:text-[hsl(213,31%,65%)] dark:hover:text-white'
               }`}
             >
               <Terminal className="w-4 h-4" />
               ERP API (curl)
+            </button>
+            <button
+              onClick={() => setImportMethod('both')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all ${
+                importMethod === 'both'
+                  ? 'bg-white dark:bg-[hsl(222,47%,9%)] text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900 dark:text-[hsl(213,31%,65%)] dark:hover:text-white'
+              }`}
+            >
+              <Database className="w-4 h-4" />
+              Both (ERP + Excel)
             </button>
           </div>
 
@@ -631,16 +1054,16 @@ const DataImport: React.FC = () => {
             /* Upload zone */
             <div
               onClick={() => fileRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all"
+              className="border-2 border-dashed border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-2xl p-12 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/10 transition-all"
             >
-              <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Upload className="w-8 h-8 text-emerald-500" />
               </div>
-              <h3 className="text-base font-semibold text-gray-900 mb-1">Upload Excel or CSV File</h3>
-              <p className="text-sm text-gray-500 mb-2">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Upload Excel or CSV File</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                 Drag and drop or click to browse (.xlsx, .xls, .csv)
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
                 Your file should have column headers in the first row
               </p>
               <input
@@ -651,14 +1074,11 @@ const DataImport: React.FC = () => {
                 onChange={handleFileUpload}
               />
             </div>
-          ) : (
+          ) : importMethod === 'api' ? (
             /* ERP curl fetch zone */
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] p-6 shadow-sm space-y-4">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">ERP API curl Integration</h3>
-                <p className="text-xs text-gray-500">
-                  Paste your API `curl` command. The app will fetch and parse employee/student records.
-                </p>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">ERP API curl Integration</h3>
               </div>
 
               <div>
@@ -669,18 +1089,17 @@ const DataImport: React.FC = () => {
                     setApiError('');
                   }}
                   rows={5}
-                  placeholder={`curl --location 'https://api.schoolforschools.ai/v1/employees/minimal?page=1&limit=20' \\
---header 'x-academic-session: 2026-27' \\
---header 'x-branch-token: dpsindp'`}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 text-gray-800"
+                  placeholder={`curl --location 'https://api.your-erp.com/v1/employees' \\
+--header 'Authorization: Bearer YOUR_API_KEY'`}
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 dark:bg-[hsl(222,47%,13%)] text-gray-800 dark:text-white"
                 />
               </div>
 
               {apiError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-xs space-y-1">
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 rounded-xl px-4 py-3 text-xs space-y-1">
                   <p className="font-bold">Fetch Failed:</p>
                   <p>{apiError}</p>
-                  <p className="text-[10px] text-red-500 mt-1">
+                  <p className="text-[10px] text-red-500 dark:text-red-400/80 mt-1">
                     💡 <strong>Tip:</strong> If it's a CORS policy block, use a browser extension like "CORS Unblock" or start Chrome with web security disabled to bypass restrictions during local development.
                   </p>
                 </div>
@@ -706,6 +1125,166 @@ const DataImport: React.FC = () => {
                   )}
                 </button>
               </div>
+            </div>
+          ) : (
+            /* Both (ERP + Excel) hybrid upload zone */
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left side: ERP Integration */}
+                <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] p-6 shadow-sm space-y-4 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        1. Fetch ERP Data
+                      </h3>
+                      {erpRows.length > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+                          <Check className="w-3 h-3" />
+                          {erpRows.length} Records Loaded
+                        </span>
+                      )}
+                    </div>
+
+                    <textarea
+                      value={curlInput}
+                      onChange={(e) => {
+                        setCurlInput(e.target.value);
+                        setApiError('');
+                      }}
+                      rows={4}
+                      placeholder={`curl --location 'https://api.your-erp.com/v1/employees' \\
+--header 'Authorization: Bearer YOUR_API_KEY'`}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 dark:bg-[hsl(222,47%,13%)] text-gray-800 dark:text-white"
+                    />
+
+                    {apiError && (
+                      <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 rounded-lg p-2.5 text-[10px]">
+                        {apiError}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      disabled={apiLoading}
+                      onClick={handleBothFetchERP}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      {apiLoading ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Fetching...
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-3.5 h-3.5" />
+                          {erpRows.length > 0 ? 'Refetch ERP Data' : 'Fetch ERP Data'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right side: Excel Upload */}
+                <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] p-6 shadow-sm space-y-4 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        2. Upload Excel / CSV
+                      </h3>
+                      {excelRows.length > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+                          <Check className="w-3 h-3" />
+                          {excelRows.length} Records Loaded
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      onClick={() => fileRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-xl p-6 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/10 transition-all flex flex-col items-center justify-center min-h-[120px]"
+                    >
+                      <Upload className="w-6 h-6 text-emerald-500 mb-2" />
+                      <p className="text-xs font-semibold text-gray-700 dark:text-white mb-1">
+                        {excelRows.length > 0 ? 'Upload Different File' : 'Upload Excel or CSV File'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-505">
+                        Supports .xlsx, .xls, .csv
+                      </p>
+                    </div>
+
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                      onChange={handleBothExcelUpload}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Match Keys Selection (shows only when both sources have records loaded) */}
+              {erpRows.length > 0 && excelRows.length > 0 && (
+                <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] p-6 shadow-sm space-y-4 animate-in">
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                    3. Configure Join Columns
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Select the key column in both datasets to match records (e.g. Employee ID, Roll Number, etc.).
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
+                        ERP Join Key Column
+                      </label>
+                      <select
+                        value={erpJoinKey}
+                        onChange={(e) => setErpJoinKey(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-[hsl(222,47%,13%)] border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-lg text-xs text-gray-900 dark:text-white outline-none"
+                      >
+                        {erpHeaders.map((col) => (
+                          <option key={col} value={col}>
+                            {col}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
+                        Excel Join Key Column
+                      </label>
+                      <select
+                        value={excelJoinKey}
+                        onChange={(e) => setExcelJoinKey(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-[hsl(222,47%,13%)] border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-lg text-xs text-gray-900 dark:text-white outline-none"
+                      >
+                        {excelHeaders.map((col) => (
+                          <option key={col} value={col}>
+                            {col}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleStartBothMapping}
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      Configure Field Mapping &amp; Merge
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -794,7 +1373,7 @@ const DataImport: React.FC = () => {
               </div>
               <div className="px-5 py-4">
                 <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                  Name your photo files exactly as the <strong className="text-gray-700">Employee ID / Roll No. / Admission No.</strong> of each person (e.g. <code className="bg-gray-100 px-1 rounded">EMP001.jpg</code>, <code className="bg-gray-100 px-1 rounded">ROLL42.png</code>). Upload them all at once and photos will be assigned automatically.
+                  Name your photo files exactly as the <strong className="text-gray-700">Employee ID / Roll No. / Admission No.</strong> of each person (e.g. <code className="bg-gray-100 px-1 rounded">DEMO-001.jpg</code>, <code className="bg-gray-100 px-1 rounded">STU-042.png</code>). Upload them all at once and photos will be assigned automatically.
                 </p>
                 <div
                   onClick={() => bulkPhotoRef.current?.click()}
@@ -896,64 +1475,236 @@ const DataImport: React.FC = () => {
 
       {/* Step 2: Column Mapping */}
       {step === 'map' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900">Map Columns</h3>
-              <p className="text-xs text-gray-500">
-                Match Excel columns to card fields. Name and Code are required.
-              </p>
-            </div>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {fileName}
-            </span>
-          </div>
-          <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
-            {headers.map((header, idx) => (
-              <div key={idx} className="px-5 py-3 flex items-center gap-4">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">{header}</p>
-                  <p className="text-xs text-gray-400">
-                    Sample: {rows[0]?.[idx] || 'N/A'}
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-gray-300" />
-                <select
-                  value={getMappedField(header)}
-                  onChange={(e) => handleMappingChange(header, e.target.value as DataField)}
-                  className="w-48 px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
-                >
-                  <option value="">-- Skip --</option>
-                  {Object.entries(fieldLabels).map(([field, label]) => (
-                    <option key={field} value={field}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+        importMethod === 'both' ? (
+          <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] shadow-sm">
+            <div className="px-5 py-3 border-b border-gray-100 dark:border-[hsl(222,47%,18%)] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Map Columns</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Select the source and corresponding column for each card field. Name and Code are required.
+                </p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+                  Merging on key: ERP column "{erpJoinKey}" ⟷ Excel column "{excelJoinKey}"
+                </p>
               </div>
-            ))}
+              <span className="text-xs text-gray-500 bg-gray-100 dark:bg-[hsl(222,47%,13%)] dark:text-gray-400 px-2 py-1 rounded">
+                Hybrid Import (ERP + Excel)
+              </span>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-[hsl(222,47%,18%)] max-h-[450px] overflow-y-auto">
+              {Object.entries(fieldLabels).map(([fieldKey, fieldLabel]) => {
+                const mapping = bothMappings[fieldKey as DataField] || { source: 'none', column: '' };
+                const isRequired = fieldKey === 'name' || fieldKey === 'code';
+
+                let sampleVal = 'N/A';
+                if (mapping.source === 'erp' && mapping.column) {
+                  const colIdx = erpHeaders.indexOf(mapping.column);
+                  if (colIdx >= 0 && erpRows.length > 0) {
+                    sampleVal = erpRows[0][colIdx] || 'empty';
+                  }
+                } else if (mapping.source === 'excel' && mapping.column) {
+                  const colIdx = excelHeaders.indexOf(mapping.column);
+                  if (colIdx >= 0 && excelRows.length > 0) {
+                    sampleVal = excelRows[0][colIdx] || 'empty';
+                  }
+                }
+
+                return (
+                  <div key={fieldKey} className="px-5 py-3 flex flex-col md:flex-row md:items-center gap-4 hover:bg-gray-50/50 dark:hover:bg-[hsl(222,47%,13%)]/20 transition-all">
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        {fieldLabel}
+                        {isRequired && <span className="text-red-500">*</span>}
+                      </p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        Sample: <span className="font-mono text-gray-600 dark:text-gray-300">{sampleVal}</span>
+                      </p>
+                    </div>
+
+                    {/* Source Toggle */}
+                    <div className="flex bg-gray-100 dark:bg-[hsl(222,47%,13%)] rounded-lg p-0.5 max-w-[280px]">
+                      {(['none', 'erp', 'excel'] as const).map((src) => (
+                        <button
+                          key={src}
+                          type="button"
+                          onClick={() => {
+                            setBothMappings((prev) => ({
+                              ...prev,
+                              [fieldKey]: {
+                                source: src,
+                                column: src === 'none' ? '' : src === 'erp' ? erpHeaders[0] || '' : excelHeaders[0] || '',
+                              },
+                            }));
+                          }}
+                          className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                            mapping.source === src
+                              ? 'bg-white dark:bg-[hsl(222,47%,9%)] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white'
+                          }`}
+                        >
+                          {src === 'none' && 'Skip'}
+                          {src === 'erp' && 'ERP API'}
+                          {src === 'excel' && 'Excel'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Column Dropdown */}
+                    <div className="w-52">
+                      {mapping.source !== 'none' ? (
+                        <select
+                          value={mapping.column}
+                          onChange={(e) => {
+                            setBothMappings((prev) => ({
+                              ...prev,
+                              [fieldKey]: {
+                                ...mapping,
+                                column: e.target.value,
+                              },
+                            }));
+                          }}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-[hsl(222,47%,13%)] border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-lg text-xs text-gray-900 dark:text-white outline-none"
+                        >
+                          {(mapping.source === 'erp' ? erpHeaders : excelHeaders).map((col) => (
+                            <option key={col} value={col}>
+                              {col}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="text-xs text-gray-400 dark:text-gray-505 italic px-2.5 py-1.5">
+                          Field ignored
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 dark:border-[hsl(222,47%,18%)] flex justify-between">
+              <button
+                onClick={() => setStep('upload')}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Back
+              </button>
+              <button
+                onClick={processBothImport}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 flex items-center gap-2"
+              >
+                Preview Merged Data
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="px-5 py-3 border-t border-gray-100 flex justify-between">
-            <button
-              onClick={() => setStep('upload')}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
-            >
-              Back
-            </button>
-            <button
-              onClick={processImport}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 flex items-center gap-2"
-            >
-              Preview Data
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+        ) : (
+          <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] shadow-sm">
+            <div className="px-5 py-3 border-b border-gray-100 dark:border-[hsl(222,47%,18%)] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Map Columns</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Match Excel columns to card fields. Name and Code are required.
+                </p>
+              </div>
+              <span className="text-xs text-gray-500 bg-gray-100 dark:bg-[hsl(222,47%,13%)] dark:text-gray-400 px-2 py-1 rounded">
+                {fileName}
+              </span>
+            </div>
+            <div className="divide-y divide-gray-50 dark:divide-[hsl(222,47%,18%)] max-h-96 overflow-y-auto">
+              {headers.map((header, idx) => (
+                <div key={idx} className="px-5 py-3 flex items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{header}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      Sample: {rows[0]?.[idx] || 'N/A'}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-gray-300" />
+                  <select
+                    value={getMappedField(header)}
+                    onChange={(e) => handleMappingChange(header, e.target.value as DataField)}
+                    className="w-48 px-2.5 py-1.5 bg-white dark:bg-[hsl(222,47%,13%)] border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-lg text-xs text-gray-900 dark:text-white outline-none"
+                  >
+                    <option value="">-- Skip --</option>
+                    {Object.entries(fieldLabels).map(([field, label]) => (
+                      <option key={field} value={field}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-100 dark:border-[hsl(222,47%,18%)] flex justify-between">
+              <button
+                onClick={() => setStep('upload')}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Back
+              </button>
+              <button
+                onClick={processImport}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 flex items-center gap-2"
+              >
+                Preview Data
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Step 3: Preview */}
       {step === 'preview' && (
         <div className="space-y-4">
+          {/* Bulk Apply Common Values */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4 animate-in">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+              <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider text-emerald-950">Bulk Apply Common Values</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Issued Date</label>
+                <input
+                  type="text"
+                  placeholder="DD-MM-YYYY"
+                  value={bulkIssued}
+                  onChange={(e) => setBulkIssued(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Valid Upto</label>
+                <input
+                  type="text"
+                  placeholder="DD-MM-YYYY"
+                  value={bulkValid}
+                  onChange={(e) => setBulkValid(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Emergency Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. +91 99999 99999"
+                  value={bulkEmergency}
+                  onChange={(e) => setBulkEmergency(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={handleBulkApply}
+                className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-all shadow-sm shadow-emerald-100/50"
+              >
+                Apply to All Cards
+              </button>
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-bold text-gray-900">

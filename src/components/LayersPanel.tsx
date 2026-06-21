@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Type, Image, Shapes, QrCode, Layers, ChevronUp, ChevronDown, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Type, Image, Shapes, QrCode, Layers, ChevronUp, ChevronDown, Trash2, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import type { CardElement } from '@/types';
 
 interface LayersPanelProps {
@@ -8,6 +8,7 @@ interface LayersPanelProps {
   onSelectElement: (id: string | null) => void;
   onMoveElement: (id: string, direction: 'up' | 'down') => void;
   onDeleteElement: (id: string) => void;
+  onReorderElements: (elements: CardElement[]) => void;
 }
 
 export const LayersPanel: React.FC<LayersPanelProps> = ({
@@ -16,8 +17,11 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
   onSelectElement,
   onMoveElement,
   onDeleteElement,
+  onReorderElements,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const getElementIcon = (type: CardElement['type']) => {
     switch (type) {
@@ -32,6 +36,35 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
       default:
         return <Layers className="w-4 h-4 text-gray-500" />;
     }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+      const reordered = [...elements];
+      const [removed] = reordered.splice(draggedIndex, 1);
+      reordered.splice(targetIndex, 0, removed);
+      onReorderElements(reordered);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   if (isCollapsed) {
@@ -83,17 +116,30 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
           [...elements].reverse().map((el, revIdx) => {
             const actualIdx = elements.length - 1 - revIdx;
             const isSelected = el.id === selectedElementId;
+            const isDragOver = dragOverIndex === actualIdx;
             return (
               <div
                 key={el.id}
                 onClick={() => onSelectElement(el.id)}
+                draggable
+                onDragStart={(e) => handleDragStart(e, actualIdx)}
+                onDragOver={(e) => handleDragOver(e, actualIdx)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, actualIdx)}
+                onDragEnd={() => {
+                  setDraggedIndex(null);
+                  setDragOverIndex(null);
+                }}
                 className={`group flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${
-                  isSelected
+                  isDragOver
+                    ? 'border-dashed border-emerald-500 bg-emerald-50/55 scale-[0.98]'
+                    : isSelected
                     ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 font-medium'
                     : 'bg-white border-transparent hover:bg-gray-50 text-gray-700 hover:border-gray-200'
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab group-hover:text-gray-400 flex-shrink-0" />
                   <div className="flex-shrink-0">{getElementIcon(el.type)}</div>
                   <div className="truncate text-xs">
                     {el.label || `New ${el.type}`}

@@ -1,9 +1,12 @@
-/* IDCard Studio - App Styles */
+/* Card Gen - App Styles */
 
-/* Smooth scrollbar */
+/* ── Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── Refined Scrollbars ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -11,37 +14,56 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #d1fae5;
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #6ee7b7;
 }
 
-/* Animations */
+/* ── Keyframe Animations ── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slideInFromBottom {
-  from {
-    transform: translateY(16px);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
+@keyframes slideInFromLeft {
+  from { transform: translateX(-12px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Animation Utilities ── */
 .animate-in {
   animation: fadeIn 0.2s ease-out;
 }
@@ -50,14 +72,125 @@
   animation: slideInFromBottom 0.3s ease-out;
 }
 
-/* Card rendering styles */
+.slide-in-from-left {
+  animation: slideInFromLeft 0.25s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* ── Skeleton Shimmer ── */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Glassmorphism Card ── */
+.glass-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-card {
+  background: rgba(30, 30, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Gradient Border ── */
+.gradient-border {
+  position: relative;
+  border-radius: 12px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 13.5px;
+  background: linear-gradient(135deg, #10b981, #06b6d4, #8b5cf6);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* ── Glow Pulse Indicator ── */
+.glow-dot {
+  animation: glow-pulse 1.8s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+/* ── Sidebar Transition ── */
+aside {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Nav Tooltip (collapsed) ── */
+.nav-tooltip {
+  position: relative;
+}
+
+.nav-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 5px 10px;
+  border-radius: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateY(-50%) translateX(-4px);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.nav-tooltip:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ── Card Rendering ── */
 .id-card-render {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Designer canvas grid background */
+.id-card-render,
+.id-card-render * {
+  box-sizing: border-box !important;
+}
+
+.id-card-render div[style*="position: absolute"],
+.id-card-render div[style*="position:absolute"] {
+  margin: 0 !important;
+  padding: 0;
+}
+
+/* ── Designer Canvas Grid ── */
 .designer-grid {
   background-image:
     linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
@@ -65,12 +198,12 @@
   background-size: 20px 20px;
 }
 
-/* Selection ring for designer */
+/* ── Selection Ring ── */
 .selection-ring {
   box-shadow: 0 0 0 2px #10b981, 0 0 0 4px rgba(16, 185, 129, 0.2);
 }
 
-/* Line clamp utility */
+/* ── Line Clamp ── */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -79,20 +212,20 @@
   overflow: hidden;
 }
 
-/* Prevent text selection during drag */
+/* ── Drag Prevention ── */
 .no-select {
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Input focus styles */
+/* ── Input Focus ── */
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
 }
 
-/* Upload zone hover */
+/* ── Upload Zone ── */
 .upload-zone {
   transition: all 0.2s ease;
 }
@@ -102,7 +235,7 @@ textarea:focus {
   background-color: rgba(16, 185, 129, 0.02);
 }
 
-/* Card hover effects */
+/* ── Card Hover ── */
 .card-hover {
   transition: all 0.2s ease;
 }
@@ -112,12 +245,21 @@ textarea:focus {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-/* Button press effect */
+/* ── Button Press ── */
 button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
-/* Print styles */
+/* ── Premium Shadow Utilities ── */
+.shadow-colored-emerald {
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+.shadow-colored-blue {
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+/* ── Print ── */
 @media print {
   .no-print {
     display: none !important;
