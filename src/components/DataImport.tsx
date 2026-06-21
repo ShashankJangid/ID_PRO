@@ -300,6 +300,7 @@ const DataImport: React.FC = () => {
   const [excelRows, setExcelRows] = useState<string[][]>([]);
   const [erpJoinKey, setErpJoinKey] = useState<string>('');
   const [excelJoinKey, setExcelJoinKey] = useState<string>('');
+  const [bothJoinMode, setBothJoinMode] = useState<'inner' | 'outer'>('inner');
   const [bothMappings, setBothMappings] = useState<Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>>(() => {
     const initial: Partial<Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>> = {};
     return initial as Record<DataField, { source: 'erp' | 'excel' | 'none'; column: string }>;
@@ -666,9 +667,21 @@ const DataImport: React.FC = () => {
       return val;
     };
 
+    const normalizeKey = (val: any): string => {
+      if (val === undefined || val === null) return '';
+      let k = String(val).trim();
+      if (/^\d+(\.0+)?$/.test(k)) {
+        const numVal = parseFloat(k);
+        if (!isNaN(numVal)) {
+          return String(numVal);
+        }
+      }
+      return k.toLowerCase();
+    };
+
     const erpMap = new Map<string, string[]>();
     erpRows.forEach((row) => {
-      const keyVal = (row[erpJoinIdx] || '').trim().toLowerCase();
+      const keyVal = normalizeKey(row[erpJoinIdx]);
       if (keyVal) {
         erpMap.set(keyVal, row);
       }
@@ -676,15 +689,20 @@ const DataImport: React.FC = () => {
 
     const excelMap = new Map<string, string[]>();
     excelRows.forEach((row) => {
-      const keyVal = (row[excelJoinIdx] || '').trim().toLowerCase();
+      const keyVal = normalizeKey(row[excelJoinIdx]);
       if (keyVal) {
         excelMap.set(keyVal, row);
       }
     });
 
-    const allKeys = new Set<string>([...erpMap.keys(), ...excelMap.keys()]);
+    let allKeys: string[] = [];
+    if (bothJoinMode === 'inner') {
+      allKeys = Array.from(erpMap.keys()).filter((k) => excelMap.has(k));
+    } else {
+      allKeys = Array.from(new Set([...erpMap.keys(), ...excelMap.keys()]));
+    }
 
-    if (allKeys.size === 0) {
+    if (allKeys.length === 0) {
       showToast('No records found to merge.', 'error');
       return;
     }
@@ -704,7 +722,7 @@ const DataImport: React.FC = () => {
       }
     };
 
-    const parsed: CardData[] = Array.from(allKeys).map((key, idx) => {
+    const parsed: CardData[] = allKeys.map((key, idx) => {
       const erpRow = erpMap.get(key);
       const excelRow = excelMap.get(key);
 
@@ -1237,7 +1255,7 @@ const DataImport: React.FC = () => {
                     Select the key column in both datasets to match records (e.g. Employee ID, Roll Number, etc.).
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
                         ERP Join Key Column
@@ -1269,6 +1287,20 @@ const DataImport: React.FC = () => {
                             {col}
                           </option>
                         ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
+                        Merge Mode
+                      </label>
+                      <select
+                        value={bothJoinMode}
+                        onChange={(e) => setBothJoinMode(e.target.value as 'inner' | 'outer')}
+                        className="w-full px-2.5 py-1.5 bg-white dark:bg-[hsl(222,47%,13%)] border border-gray-300 dark:border-[hsl(222,47%,18%)] rounded-lg text-xs text-gray-900 dark:text-white outline-none"
+                      >
+                        <option value="inner">Matching Records Only (Inner Join)</option>
+                        <option value="outer">All Records (Outer Join / Union)</option>
                       </select>
                     </div>
                   </div>

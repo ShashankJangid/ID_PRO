@@ -59,6 +59,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
+    if (!darkMode) {
+      if (bgRef.current) {
+        bgRef.current.style.background = '#f8fafc';
+      }
+      return;
+    }
+
     // Default center so spotlight is visible before any mouse move
     cursorPos.current = {
       x: window.innerWidth / 2,
@@ -92,7 +99,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           `radial-gradient(1400px circle at ${x}px ${y}px,`,
           `  rgba(6,95,70, 0.07) 0%,`,
           `  transparent 65%),`,
-          `#030712`,
+          `#000000`,
         ].join('');
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -103,7 +110,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       window.removeEventListener('mousemove', onMove);
       cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [darkMode]);
 
 
   // ── Social loading ──
@@ -288,15 +295,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     <main
       ref={bgRef}
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-none"
-      style={{ background: '#030712', fontFamily: "'Inter', 'DM Sans', system-ui, -apple-system, sans-serif" }}
+      style={{ background: darkMode ? '#000000' : '#f8fafc', fontFamily: "'Inter', 'DM Sans', system-ui, -apple-system, sans-serif" }}
     >
       {/* Static faint grid overlay for depth */}
       <div
         aria-hidden
         className="pointer-events-none select-none absolute inset-0 z-0"
         style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)',
+          backgroundImage: darkMode
+            ? 'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)'
+            : 'linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)',
           backgroundSize: '48px 48px',
         }}
       />
@@ -304,15 +312,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <div aria-hidden className="pointer-events-none select-none absolute inset-0 z-0 overflow-hidden">
         <div 
           className="absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] animate-blob"
-          style={{ background: 'hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.08)' }} 
+          style={{ background: darkMode ? 'hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.08)' : 'hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.04)' }} 
         />
         <div 
           className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full blur-[130px] animate-blob animation-delay-2000"
-          style={{ background: 'hsla(calc(var(--primary-h, 160) + 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.07)' }} 
+          style={{ background: darkMode ? 'hsla(calc(var(--primary-h, 160) + 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.07)' : 'hsla(calc(var(--primary-h, 160) + 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.03)' }} 
         />
         <div 
           className="absolute top-[40%] left-[50%] w-[35vw] h-[35vw] rounded-full blur-[110px] animate-blob animation-delay-4000"
-          style={{ background: 'hsla(calc(var(--primary-h, 160) - 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.06)' }} 
+          style={{ background: darkMode ? 'hsla(calc(var(--primary-h, 160) - 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.06)' : 'hsla(calc(var(--primary-h, 160) - 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.02)' }} 
         />
       </div>
       {/* Invisible reCAPTCHA anchor */}
@@ -321,7 +329,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <div className="relative z-10 w-full max-w-md md:max-w-5xl flex flex-col-reverse md:flex-row items-center justify-center gap-8 md:gap-16">
         
         {/* Left Center Panel: Marketing & Clients */}
-        <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-white space-y-6">
+        <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-slate-800 dark:text-white space-y-6">
           <div className="space-y-4">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 backdrop-blur-sm">
@@ -335,7 +343,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 fontWeight: 700,
                 lineHeight: 1.15,
                 letterSpacing: '-0.02em',
-                background: 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 45%, #94a3b8 100%)',
+                background: darkMode
+                  ? 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 45%, #94a3b8 100%)'
+                  : 'linear-gradient(135deg, #0f172a 0%, #334155 55%, #64748b 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -348,7 +358,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 fontFamily: "'Inter', system-ui, sans-serif",
                 fontSize: '14px',
                 lineHeight: '1.7',
-                color: '#94a3b8',
+                color: darkMode ? '#94a3b8' : '#475569',
                 maxWidth: '360px',
                 fontWeight: 400,
               }}
@@ -358,7 +368,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             {/* Feature pills */}
             <div className="flex flex-wrap gap-2 justify-center md:justify-start pt-1">
               {['⚡ Bulk Generation', '🔗 ERP Integration', '☁️ Cloud Sync', '🎨 Custom Templates'].map(f => (
-                <span key={f} style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 500, color: '#cbd5e1', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '4px 10px', backdropFilter: 'blur(4px)' }}>{f}</span>
+                <span
+                  key={f}
+                  style={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: darkMode ? '#cbd5e1' : '#334155',
+                    background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    border: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                >
+                  {f}
+                </span>
               ))}
             </div>
           </div>
@@ -429,26 +454,26 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         <div className="w-full max-w-md flex flex-col">
           {/* Card */}
           <div 
-            className="glass-card rounded-3xl shadow-2xl border border-slate-200/50 dark:border-white/10 overflow-hidden"
+            className="glass-card rounded-3xl shadow-2xl border border-slate-200/50 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-300"
             style={{
               background: darkMode
-                ? 'linear-gradient(135deg, rgba(11,17,34,0.92) 0%, rgba(8,12,24,0.85) 50%, rgba(11,17,34,0.9) 100%)'
-                : 'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, hsla(var(--primary-h, 160), var(--primary-s, 84%), 98%, 0.45) 50%, rgba(255,255,255,0.9) 100%)',
+                ? 'linear-gradient(135deg, rgba(10,10,10,0.95) 0%, rgba(3,3,3,0.92) 50%, rgba(8,8,8,0.95) 100%)'
+                : 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, hsla(var(--primary-h, 160), var(--primary-s, 84%), 98%, 0.55) 50%, rgba(255,255,255,0.94) 100%)',
             }}
           >
           
             {/* ── Gradient Header with Robot Avatar ── */}
-            <div className="bg-gradient-to-br from-[#020617] via-[#0b132b] to-[#1e293b] px-8 pt-8 pb-4 text-center relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[#000000] via-[#0a0a0a] to-[#141414] px-8 pt-8 pb-4 text-center relative overflow-hidden">
               {/* Glowing background blobs */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
                 {/* Theme-synced Gradient Blobs in Header */}
                 <div 
                   className="absolute -left-10 top-1/2 -translate-y-1/2 w-48 h-48 rounded-full filter blur-3xl animate-pulse" 
-                  style={{ background: 'linear-gradient(to bottom right, hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.3), hsla(calc(var(--primary-h, 160) + 30), var(--primary-s, 84%), var(--primary-l, 39%), 0.15))' }}
+                  style={{ background: 'linear-gradient(to bottom right, hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.25), hsla(calc(var(--primary-h, 160) + 30), var(--primary-s, 84%), var(--primary-l, 39%), 0.12))' }}
                 />
                 <div 
                   className="absolute -right-10 top-1/3 -translate-y-1/2 w-56 h-56 rounded-full filter blur-3xl animate-pulse" 
-                  style={{ animationDelay: '1.2s', background: 'linear-gradient(to bottom right, hsla(calc(var(--primary-h, 160) - 30), var(--primary-s, 84%), var(--primary-l, 39%), 0.25), hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.1))' }} 
+                  style={{ animationDelay: '1.2s', background: 'linear-gradient(to bottom right, hsla(calc(var(--primary-h, 160) - 30), var(--primary-s, 84%), var(--primary-l, 39%), 0.2), hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.08))' }} 
                 />
               </div>
   
@@ -465,11 +490,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 <Logo className="w-6 h-6" />
                 <h1 className="text-xl font-bold text-white tracking-wide">Card Gen</h1>
               </div>
-              <p className="text-blue-300 text-[10px] mt-0.5 font-semibold uppercase tracking-wider relative z-10">by JS AlphaSoft</p>
+              <p className="text-slate-400 dark:text-emerald-450 text-[10px] mt-0.5 font-semibold uppercase tracking-wider relative z-10">by JS AlphaSoft</p>
             </div>
   
             {/* ── Body ── */}
-            <div className="login-dark-context bg-gradient-to-b from-transparent to-emerald-500/5 dark:to-emerald-950/10 px-7 py-7">
+            <div className={`${darkMode ? 'login-dark-context' : ''} bg-gradient-to-b from-transparent to-emerald-500/5 dark:to-emerald-950/10 px-7 py-7`}>
             {/* Global error / success messages */}
             {error && (
               <div
@@ -558,7 +583,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               /* ══ EMAIL & PASSWORD PRIMARY VIEW ═══════════════ */
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 {/* Sign In / Sign Up Mode selector */}
-                <div className="flex rounded-xl p-1 gap-1 mb-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div
+                  className="flex rounded-xl p-1 gap-1 mb-2 transition-all duration-200"
+                  style={{
+                    background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)',
+                    border: darkMode ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.08)'
+                  }}
+                >
                   {(['signin', 'signup'] as const).map((m) => (
                     <button
                       type="button"
@@ -566,8 +597,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                       onClick={() => { setEmailMode(m); setError(''); setSuccess(''); }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all"
                       style={emailMode === m
-                        ? { background: 'rgba(52,211,153,0.12)', color: '#34d399', boxShadow: '0 1px 4px rgba(52,211,153,0.15)' }
-                        : { color: 'rgba(148,163,184,0.7)' }
+                        ? {
+                            background: darkMode ? 'rgba(52,211,153,0.12)' : 'rgba(16,185,129,0.15)',
+                            color: darkMode ? '#34d399' : '#059669',
+                            boxShadow: darkMode ? '0 1px 4px rgba(52,211,153,0.15)' : '0 1px 4px rgba(16,185,129,0.1)'
+                          }
+                        : {
+                            color: darkMode ? 'rgba(148,163,184,0.7)' : 'rgba(71,85,105,0.75)'
+                          }
                       }
                     >
                       {m === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -606,7 +643,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10 outline-none"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/10 rounded-full transition-colors z-10 outline-none"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -630,7 +667,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors z-10 outline-none"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/10 rounded-full transition-colors z-10 outline-none"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -651,11 +688,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
                 {/* Forgot password */}
                 {emailMode === 'signin' && (
-                  <p className="text-center text-xs text-gray-400 pt-1">
+                  <p className="text-center text-xs text-slate-500 dark:text-slate-400 pt-1">
                     <button
                       type="button"
                       onClick={() => setEmailMode('reset')}
-                      className="text-emerald-400 hover:text-emerald-300 hover:underline font-medium transition-colors"
+                      className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline font-medium transition-colors"
                     >
                       Forgot password?
                     </button>
@@ -667,7 +704,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   <button
                     type="button"
                     onClick={() => { setEmailMode('signin'); setResetSent(false); }}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                    className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
                   >
                     <ArrowLeft className="w-3 h-3" /> Back to Sign In
                   </button>
@@ -681,7 +718,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 <div className="w-full border-t border-slate-200/50 dark:border-white/5"></div>
               </div>
               <div className="relative flex justify-center text-[9px] uppercase tracking-wider font-semibold">
-                <span className="px-3 py-1 bg-slate-500/10 dark:bg-white/5 text-gray-400 dark:text-gray-400 rounded-full border border-slate-200/50 dark:border-white/5 backdrop-blur-sm">Or continue with</span>
+                <span className="px-3 py-1 bg-slate-500/10 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-full border border-slate-200/50 dark:border-white/10 backdrop-blur-sm">Or continue with</span>
               </div>
             </div>
 
@@ -693,7 +730,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 disabled={isLoading}
                 className="w-full flex items-center justify-center gap-3 px-4 py-2.5 glass-btn rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:scale-[1.01]"
               >
-                {socialLoading === 'google' ? <Loader2 className="w-4 h-4 animate-spin text-[#0b132b]" /> : <GoogleIcon />}
+                {socialLoading === 'google' ? <Loader2 className="w-4 h-4 animate-spin text-slate-800 dark:text-white" /> : <GoogleIcon />}
                 Sign In with Google
               </button>
 
@@ -713,23 +750,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <button
                 type="button"
                 onClick={() => { setIsPhoneMode(!isPhoneMode); setError(''); setSuccess(''); }}
-                className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline font-semibold transition-colors"
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-350 hover:underline font-semibold transition-colors"
               >
                 {isPhoneMode ? 'Sign In with Email & Password' : 'Sign In with Phone Number'}
               </button>
             </div>
 
             {/* Footer Note */}
-            <p className="text-center text-[10px] text-gray-500 mt-6">
+            <p className="text-center text-[10px] text-slate-500 dark:text-slate-400 mt-6">
               By signing in you agree to our{' '}
-              <span className="text-emerald-400 cursor-pointer hover:underline hover:text-emerald-300 transition-colors">Terms</span>{' '}
+              <span className="text-emerald-600 dark:text-emerald-400 cursor-pointer hover:underline hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">Terms</span>{' '}
               and{' '}
-              <span className="text-emerald-400 cursor-pointer hover:underline hover:text-emerald-300 transition-colors">Privacy Policy</span>
+              <span className="text-emerald-600 dark:text-emerald-400 cursor-pointer hover:underline hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">Privacy Policy</span>
             </p>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
+        <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-4">
           Card Gen · All data synced with your cloud account
         </p>
       </div>

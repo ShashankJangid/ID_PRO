@@ -1,9 +1,9 @@
 import React from 'react';
-import { Type, Image, Shapes, QrCode, Undo2, Redo2 } from 'lucide-react';
+import { Type, Image, Shapes, QrCode, Undo2, Redo2, Building2 } from 'lucide-react';
 import type { CardElement } from '@/types';
-
+ 
 interface DesignerToolbarProps {
-  onAddElement: (type: CardElement['type']) => void;
+  onAddElement: (type: CardElement['type'] | 'logo') => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   onUndo?: () => void;
@@ -11,7 +11,7 @@ interface DesignerToolbarProps {
   canUndo?: boolean;
   canRedo?: boolean;
 }
-
+ 
 const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
   onAddElement,
   zoom,
@@ -38,6 +38,14 @@ const DesignerToolbar: React.FC<DesignerToolbarProps> = ({
       >
         <Image className="w-5 h-5 mb-1" />
         <span className="text-[9px] font-semibold">Image</span>
+      </button>
+      <button
+        onClick={() => onAddElement('logo')}
+        className="w-16 py-2 flex flex-col items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95 transition-all"
+        title="Add Company Logo"
+      >
+        <Building2 className="w-5 h-5 mb-1" />
+        <span className="text-[9px] font-semibold">Logo</span>
       </button>
       <button
         onClick={() => onAddElement('shape')}

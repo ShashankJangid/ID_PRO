@@ -124,24 +124,41 @@ const CardDesigner: React.FC = () => {
     setSelectedElementId,
   });
 
-  const addElement = (type: CardElement['type']) => {
+  const addElement = (type: CardElement['type'] | 'logo') => {
     setCurrentTemplate((prev) => {
       if (!prev) return null;
-      const newEl: CardElement = {
-        id: `el_${Date.now()}`,
-        type,
-        label: `New ${type}`,
-        x: 50,
-        y: 50,
-        width: type === 'text' ? 200 : type === 'qr' ? 100 : 150,
-        height: type === 'text' ? 30 : type === 'qr' ? 100 : 150,
-        style: {
-          fontSize: 14,
-          color: '#000000',
-          fontWeight: '400',
-          backgroundColor: type === 'shape' ? '#cccccc' : undefined,
-        },
-      };
+      let newEl: CardElement;
+      if (type === 'logo') {
+        newEl = {
+          id: `el_${Date.now()}`,
+          type: 'image',
+          imageSource: 'logo',
+          label: 'Company Logo',
+          x: 25,
+          y: 25,
+          width: 70,
+          height: 70,
+          style: {
+            objectFit: 'contain',
+          },
+        };
+      } else {
+        newEl = {
+          id: `el_${Date.now()}`,
+          type,
+          label: `New ${type}`,
+          x: 50,
+          y: 50,
+          width: type === 'text' ? 200 : type === 'qr' ? 100 : 150,
+          height: type === 'text' ? 30 : type === 'qr' ? 100 : 150,
+          style: {
+            fontSize: 14,
+            color: '#000000',
+            fontWeight: '400',
+            backgroundColor: type === 'shape' ? '#cccccc' : undefined,
+          },
+        };
+      }
       const newTemplate = { ...prev };
       if (designerSide === 'front') {
         newTemplate.frontElements = [...newTemplate.frontElements, newEl];
