@@ -88,7 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
           `radial-gradient(1200px circle at ${x}px ${y}px,`,
           `  hsla(var(--gradient-h), var(--gradient-s), var(--gradient-l, 50%), 0.04) 0%,`,
           `  transparent 60%),`,
-          `#030712`,
+          `#000000`,
         ].join('');
       }
       rafId = requestAnimationFrame(tick);
@@ -125,7 +125,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const userInitial = (user.displayName || user.email || '?')[0].toUpperCase();
 
   return (
-    <div ref={bgRef} className="flex h-screen w-screen bg-slate-50 dark:bg-[#030712] overflow-hidden transition-colors duration-300 relative">
+    <div ref={bgRef} className="flex h-screen w-screen bg-slate-50 dark:bg-black overflow-hidden transition-colors duration-300 relative">
       {/* Ambient background decorative elements (glowing liquid blobs for Glassmorphism) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div 
@@ -154,7 +154,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
             transition-all duration-300 ease-in-out
             overflow-hidden rounded-none
           `}
-          style={{ background: darkMode ? 'rgba(11, 17, 34, 0.45)' : 'rgba(255, 255, 255, 0.45)' }}
+          style={{ background: darkMode ? 'rgba(10, 10, 10, 0.45)' : 'rgba(255, 255, 255, 0.45)' }}
         >
           {/* Top gradient strip */}
           <div className="h-[3px] w-full bg-gradient-to-r from-emerald-500 to-teal-500 flex-shrink-0" />
@@ -423,7 +423,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
             hover:scale-110
             transition-all duration-200
           "
-          style={{ background: darkMode ? 'rgba(11, 17, 34, 0.85)' : 'rgba(255, 255, 255, 0.85)' }}
+          style={{ background: darkMode ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.85)' }}
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>

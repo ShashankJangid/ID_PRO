@@ -41,33 +41,33 @@
   }
 
   .dark {
-    --background: 224 71% 4%;
+    --background: 0 0% 0%;
     --foreground: 213 31% 91%;
-    --card: 224 71% 6%;
+    --card: 0 0% 3%;
     --card-foreground: 213 31% 91%;
-    --popover: 224 71% 6%;
+    --popover: 0 0% 3%;
     --popover-foreground: 213 31% 91%;
     --primary-l: 59.8%;
     --primary: var(--primary-h) var(--primary-s) var(--primary-l);
     --primary-foreground: 0 0% 100%;
-    --secondary: 224 71% 9%;
+    --secondary: 0 0% 8%;
     --secondary-foreground: 213 31% 91%;
-    --muted: 224 71% 9%;
+    --muted: 0 0% 8%;
     --muted-foreground: 215 20% 55%;
-    --accent: 224 71% 11%;
+    --accent: 0 0% 10%;
     --accent-foreground: 213 31% 91%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 213 31% 91%;
-    --border: 224 71% 14%;
-    --input: 224 71% 14%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
     --ring: var(--primary-h) var(--primary-s) var(--primary-l);
-    --sidebar-background: 224 71% 5%;
+    --sidebar-background: 0 0% 2%;
     --sidebar-foreground: 213 31% 85%;
     --sidebar-primary: var(--primary-h) var(--primary-s) var(--primary-l);
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 71% 9%;
+    --sidebar-accent: 0 0% 8%;
     --sidebar-accent-foreground: 213 31% 91%;
-    --sidebar-border: 224 71% 14%;
+    --sidebar-border: 0 0% 12%;
     --sidebar-ring: var(--primary-h) var(--primary-s) var(--primary-l);
   }
 }
@@ -106,7 +106,19 @@
 }
 .dark .bg-gray-200,
 .dark .bg-slate-200 {
-  background-color: hsl(224 71% 16%) !important;
+  background-color: hsl(0 0% 16%) !important;
+}
+.dark .bg-gray-900,
+.dark .bg-slate-900 {
+  background-color: hsl(var(--card)) !important;
+}
+.dark .bg-gray-800,
+.dark .bg-slate-800 {
+  background-color: hsl(var(--secondary)) !important;
+}
+.dark .bg-gray-950,
+.dark .bg-slate-950 {
+  background-color: #000000 !important;
 }
 
 /* Borders */
@@ -118,7 +130,7 @@
 }
 .dark .border-gray-300,
 .dark .border-slate-300 {
-  border-color: hsl(224 71% 20%) !important;
+  border-color: hsl(0 0% 20%) !important;
 }
 
 /* Text */
@@ -337,7 +349,7 @@
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .dark .glass-panel {
-  background: rgba(11, 17, 34, 0.55);
+  background: rgba(10, 10, 10, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
 }
@@ -352,7 +364,7 @@
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .dark .glass-card {
-  background: rgba(11, 17, 34, 0.65);
+  background: rgba(10, 10, 10, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.35);
 }
@@ -366,7 +378,7 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .dark .glass-input {
-  background: rgba(11, 17, 34, 0.5) !important;
+  background: rgba(10, 10, 10, 0.5) !important;
   border: 1px solid rgba(255, 255, 255, 0.09) !important;
 }
 .glass-input:focus {
@@ -375,7 +387,7 @@
   box-shadow: 0 0 0 2px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.2) !important;
 }
 .dark .glass-input:focus {
-  background: rgba(11, 17, 34, 0.75) !important;
+  background: rgba(10, 10, 10, 0.75) !important;
 }
 
 /* Frosted glass buttons with scale micro-animations */
@@ -442,7 +454,7 @@
    login page regardless of body.dark class
    ============================================== */
 .login-dark-context .glass-input {
-  background: rgba(11, 17, 34, 0.5) !important;
+  background: rgba(10, 10, 10, 0.5) !important;
   border: 1px solid rgba(255, 255, 255, 0.09) !important;
   color: #e2e8f0 !important;
 }
@@ -450,7 +462,7 @@
   color: rgba(148, 163, 184, 0.55) !important;
 }
 .login-dark-context .glass-input:focus {
-  background: rgba(11, 17, 34, 0.75) !important;
+  background: rgba(10, 10, 10, 0.75) !important;
   border-color: rgba(52, 211, 153, 0.5) !important;
   box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.15) !important;
 }
@@ -463,6 +475,6 @@
   background: rgba(17, 24, 39, 0.75) !important;
 }
 .login-dark-context .glass-card {
-  background: rgba(11, 17, 34, 0.65) !important;
+  background: rgba(10, 10, 10, 0.65) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
