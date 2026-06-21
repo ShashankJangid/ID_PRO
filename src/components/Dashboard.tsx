@@ -88,10 +88,12 @@ const Dashboard: React.FC = () => {
     <div className="p-8 max-w-5xl mx-auto">
 
       {/* ── Hero Header ── */}
-      <div className="relative mb-8 rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 p-6 shadow-lg">
-        {/* Decorative blobs */}
-        <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-12 w-24 h-24 rounded-full bg-teal-400/20 blur-xl pointer-events-none" />
+      <div className="relative mb-8 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 p-6 shadow-lg">
+        {/* Decorative blobs wrapped in overflow-hidden container */}
+        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+          <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 left-12 w-24 h-24 rounded-full bg-teal-400/20 blur-xl pointer-events-none" />
+        </div>
 
         <div className="relative flex items-center justify-between gap-6">
           <div>
