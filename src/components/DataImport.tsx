@@ -1460,11 +1460,23 @@ const DataImport: React.FC = () => {
 
           {/* Existing records */}
           {cardDataList.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900">
+            <div className="bg-white dark:bg-[hsl(222,47%,9%)] rounded-xl border border-gray-200 dark:border-[hsl(222,47%,18%)] shadow-sm">
+              <div className="px-5 py-3 border-b border-gray-100 dark:border-[hsl(222,47%,18%)] flex items-center justify-between">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                   Existing Records ({cardDataList.length})
                 </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete all imported records? This action cannot be undone.')) {
+                      setCardDataList([]);
+                      showToast('All records cleared successfully', 'success');
+                    }
+                  }}
+                  className="px-2.5 py-1 text-[10px] font-semibold text-red-650 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 rounded border border-red-200 dark:border-red-900/50 transition-colors"
+                >
+                  Clear All
+                </button>
               </div>
               <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
                 {cardDataList.map((card, idx) => (
