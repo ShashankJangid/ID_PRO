@@ -3,6 +3,38 @@ import { QRCodeCanvas } from 'qrcode.react';
 import type { CardTemplate, CardData, CardElement, Organization, QRFieldKey } from '@/types';
 import { getFieldValue } from '@/store';
 
+/** Helper to measure text width using a HTML5 canvas */
+function measureTextWidth(text: string, font: string): number {
+  if (typeof document === 'undefined') return 0;
+  const canvas = (measureTextWidth as any).canvas || ((measureTextWidth as any).canvas = document.createElement('canvas'));
+  const context = canvas.getContext('2d');
+  if (!context) return 0;
+  context.font = font;
+  return context.measureText(text).width;
+}
+
+/** Helper to scale down font size until it fits container width */
+function getFittedFontSize(
+  text: string,
+  maxWidth: number,
+  originalSize: number,
+  fontWeight: string,
+  fontFamily: string
+): number {
+  if (!maxWidth || maxWidth <= 0 || !text) return originalSize;
+  let size = originalSize;
+  const minSize = 6; // Do not go below 6px
+  while (size > minSize) {
+    const fontStr = `${fontWeight} ${size}px ${fontFamily}`;
+    const measuredWidth = measureTextWidth(text, fontStr);
+    if (measuredWidth <= maxWidth) {
+      return size;
+    }
+    size -= 0.5; // step down by 0.5px
+  }
+  return minSize;
+}
+
 interface CardRendererProps {
   template: CardTemplate;
   cardData: CardData;
@@ -116,8 +148,8 @@ function renderElement(
     left: el.x,
     top: el.y,
     width: el.width,
-    height: el.type === 'text' ? undefined : el.height,
-    minHeight: el.type === 'text' ? el.height + 6 : undefined,
+    height: el.type === 'text' ? 'auto' : el.height,
+    minHeight: el.type === 'text' ? el.height : undefined,
     zIndex: el.zIndex || 1,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
     overflow: el.type === 'text' ? 'visible' : 'hidden',
@@ -130,19 +162,43 @@ function renderElement(
 
   switch (el.type) {
     case 'text': {
+      const isAutoScalingField = el.field === 'name' || el.field === 'role';
+      const originalFontSize = s.fontSize || 14;
+      const fontFamily = s.fontFamily || 'Inter, sans-serif';
+      const fontWeight = s.fontWeight || '400';
+
+      const paddingX = s.backgroundColor ? 16 : 0;
+      const maxWidth = el.width ? el.width - paddingX : 0;
+
+      const fittedFontSize = isAutoScalingField && maxWidth > 0
+        ? getFittedFontSize(displayText, maxWidth, originalFontSize, fontWeight, fontFamily)
+        : originalFontSize;
+
+      const resolveLineHeight = () => {
+        const lh = s.lineHeight;
+        if (!lh) return `${Math.round(fittedFontSize * 1.4)}px`;
+        const lhStr = String(lh).trim();
+        if (lhStr.endsWith('px')) return lhStr;
+        const val = parseFloat(lhStr);
+        if (isNaN(val)) return lhStr; // fallback for keywords like 'normal'
+        // If it's a relative value (like 1.4 or 120%), convert to px
+        const scaleFactor = lhStr.endsWith('%') ? val / 100 : val;
+        return `${Math.round(fittedFontSize * scaleFactor)}px`;
+      };
+
       const textStyle: React.CSSProperties = {
         ...baseStyle,
-        fontSize: s.fontSize || 14,
-        fontFamily: s.fontFamily || 'Inter, sans-serif',
-        fontWeight: s.fontWeight || '400',
+        fontSize: fittedFontSize,
+        fontFamily: fontFamily,
+        fontWeight: fontWeight,
         color: s.color || '#000',
         textAlign: (s.textAlign as any) || 'left',
         letterSpacing: s.letterSpacing,
-        lineHeight: s.lineHeight || 1.4,
+        lineHeight: resolveLineHeight(),
         textTransform: s.textTransform || 'none',
         display: 'block',
-        wordBreak: 'break-word',
-        whiteSpace: 'pre-wrap',
+        wordBreak: isAutoScalingField ? 'keep-all' : 'break-word',
+        whiteSpace: isAutoScalingField ? 'nowrap' : 'pre-wrap',
         backgroundColor: s.backgroundColor || 'transparent',
         borderRadius: s.borderRadius,
         padding: s.backgroundColor ? '4px 8px' : 0,
@@ -211,7 +267,6 @@ function renderElement(
 
     case 'qr': {
       const qrValue = buildQRData(el, cardData, org);
-      console.log('QR Value:', qrValue);
       return (
         <div
           key={el.id}
@@ -301,7 +356,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({
   );
 
   return (
-    <div className={className} style={cardStyle}>
+    <div className={`id-card-render ${className}`.trim()} style={cardStyle}>
       {/* Background — Canva Embed Iframe or Static Image */}
       {canvaEmbedUrl ? (
         <iframe

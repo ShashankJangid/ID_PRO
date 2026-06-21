@@ -1,0 +1,33 @@
+/* ============================================================
+   EXPORT / html2canvas text alignment fixes
+   Add these rules to Card_Gen/src/App.css
+   ============================================================ */
+
+/* Ensure card container resets all inherited text metrics */
+.id-card-render,
+.id-card-render * {
+  box-sizing: border-box;
+}
+
+/* Text elements in card: always align from top-left, no browser baseline shift */
+.id-card-render div[style*="position: absolute"],
+.id-card-render div[style*="position:absolute"] {
+  margin: 0 !important;
+  padding: 0;
+}
+
+/* Prevent Tailwind's base styles from shifting card text */
+.card-export-root {
+  all: initial;
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  line-height: normal;
+  color: #000;
+}
+
+/* ============================================================
+   Designer canvas: stop overflow:hidden from clipping text
+   ============================================================ */
+#designer-canvas [style*="position: absolute"] {
+  overflow: visible;
+}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Eye,
@@ -34,9 +34,55 @@ const PreviewExport: React.FC = () => {
   const [exportProgress, setExportProgress] = useState(0);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+
+  // Initialize selected indices to include all cards by default when the card list loads
+  useEffect(() => {
+    setSelectedIndices(new Set(cardDataList.map((_, i) => i)));
+  }, [cardDataList]);
 
   const template = getActiveTemplate();
   const activeCard = cardDataList[activeCardIndex];
+
+  const toggleSelect = (i: number) => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) {
+        next.delete(i);
+      } else {
+        next.add(i);
+      }
+      return next;
+    });
+  };
+
+  const filteredCards = searchQuery
+    ? cardDataList.filter(
+        (c) =>
+          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.code.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : cardDataList;
+
+  const isAllFilteredSelected = filteredCards.length > 0 && filteredCards.every((card) => {
+    const idx = cardDataList.indexOf(card);
+    return selectedIndices.has(idx);
+  });
+
+  const toggleSelectAllFiltered = () => {
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      const filteredIndices = filteredCards.map((card) => cardDataList.indexOf(card));
+      if (isAllFilteredSelected) {
+        // Deselect all filtered
+        filteredIndices.forEach((idx) => next.delete(idx));
+      } else {
+        // Select all filtered
+        filteredIndices.forEach((idx) => next.add(idx));
+      }
+      return next;
+    });
+  };
 
   // Helper: Convert template pixels to mm for PDF export
   const pixelsToMm = (pixels: number, dpi: number = 96) => {
@@ -52,14 +98,6 @@ const PreviewExport: React.FC = () => {
       cardH: pixelsToMm(template.cardHeight, dpi),
     };
   };
-
-  const filteredCards = searchQuery
-    ? cardDataList.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.code.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : cardDataList;
 
   // ─── Capture card to canvas ───
   const captureCard = useCallback(
@@ -219,27 +257,36 @@ const PreviewExport: React.FC = () => {
             clonedContainer.style.overflow = 'hidden';
           }
 
-          // Force all text elements in the clone to have no extra margin/padding
+
+          // Force all positioned elements in the clone to zero margin and box-sizing
+          // and ensure text elements have stable line-height (prevents the ~15px shift)
           const defaultView = clonedDoc.defaultView || window;
           const allDivs = clonedDoc.querySelectorAll('div, span, p, img');
           allDivs.forEach((el) => {
             const htmlEl = el as HTMLElement;
-            // Only touch elements that are positioned (our card elements)
-            const style = defaultView.getComputedStyle(htmlEl);
-            if (style.position === 'absolute') {
+            const computedStyle = defaultView.getComputedStyle(htmlEl);
+            if (computedStyle.position === 'absolute') {
               htmlEl.style.margin = '0';
               htmlEl.style.boxSizing = 'border-box';
-
-              // Compensate for html2canvas vertical baseline rendering shift
+              htmlEl.style.verticalAlign = 'top';
               if (htmlEl.getAttribute('data-element-type') === 'text') {
-                const currentTop = parseFloat(htmlEl.style.top || '0');
-                if (!isNaN(currentTop)) {
-                  htmlEl.style.top = `${currentTop - 3.5}px`;
+                // Prevent html2canvas from applying extra line-height from the
+                // browser's default UA stylesheet which causes the ~15px shift
+                htmlEl.style.overflow = 'visible';
+                // Preserve the existing computed line-height from the inline style
+                // (already set correctly by CardRenderer) — just ensure it's explicit
+                const existingLH = htmlEl.style.lineHeight;
+                if (!existingLH || existingLH === 'normal') {
+                  const fontSize = parseFloat(computedStyle.fontSize) || 14;
+                  htmlEl.style.lineHeight = `${Math.round(fontSize * 1.4)}px`;
                 }
+                htmlEl.style.paddingTop = htmlEl.style.paddingTop || '0';
+                htmlEl.style.paddingBottom = htmlEl.style.paddingBottom || '0';
               }
             }
           });
         },
+
       });
 
       if (root) root.unmount();
@@ -314,9 +361,18 @@ const PreviewExport: React.FC = () => {
     }
   };
 
-  // ─── Export All Cards ───
+  // ─── Export Selected Cards ───
   const exportAll = async (format: ExportFormat) => {
     if (!template || cardDataList.length === 0) return;
+
+    // Filter selected cards
+    const cardsToExport = cardDataList.filter((_, idx) => selectedIndices.has(idx));
+
+    if (cardsToExport.length === 0) {
+      showToast('No cards selected for export.', 'error');
+      return;
+    }
+
     setExporting(true);
     setExportProgress(0);
 
@@ -325,30 +381,30 @@ const PreviewExport: React.FC = () => {
         const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
 
-        for (let i = 0; i < cardDataList.length; i++) {
-          const card = cardDataList[i];
+        for (let i = 0; i < cardsToExport.length; i++) {
+          const card = cardsToExport[i];
           const frontCanvas = await captureCard(card, 'front');
           const backCanvas = await captureCard(card, 'back');
           if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
           pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
           pdf.addPage([cardW, cardH], 'portrait');
           pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-          setExportProgress(Math.round(((i + 1) / cardDataList.length) * 100));
+          setExportProgress(Math.round(((i + 1) / cardsToExport.length) * 100));
         }
         pdf.save('all_id_cards.pdf');
       } else {
-        for (let i = 0; i < cardDataList.length; i++) {
-          const card = cardDataList[i];
+        for (let i = 0; i < cardsToExport.length; i++) {
+          const card = cardsToExport[i];
           const frontCanvas = await captureCard(card, 'front');
           const link = document.createElement('a');
           link.download = `${card.code || 'card'}_${i + 1}_front.png`;
           link.href = frontCanvas.toDataURL('image/png');
           link.click();
           await new Promise((r) => setTimeout(r, 300));
-          setExportProgress(Math.round(((i + 1) / cardDataList.length) * 100));
+          setExportProgress(Math.round(((i + 1) / cardsToExport.length) * 100));
         }
       }
-      showToast(`Exported ${cardDataList.length} cards!`, 'success');
+      showToast(`Exported ${cardsToExport.length} cards!`, 'success');
     } catch (err) {
       showToast('Bulk export failed: ' + (err as Error).message, 'error');
     } finally {
@@ -384,26 +440,57 @@ const PreviewExport: React.FC = () => {
               className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
             />
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            {filteredCards.length} of {cardDataList.length} cards
-          </p>
+          <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 px-1">
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={filteredCards.length > 0 && isAllFilteredSelected}
+                ref={(el) => {
+                  if (el) {
+                    const anySelected = filteredCards.some((c) => selectedIndices.has(cardDataList.indexOf(c)));
+                    const allSelected = filteredCards.every((c) => selectedIndices.has(cardDataList.indexOf(c)));
+                    el.indeterminate = anySelected && !allSelected;
+                  }
+                }}
+                onChange={toggleSelectAllFiltered}
+                className="w-3.5 h-3.5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+              />
+              <span>Select All Matching</span>
+            </label>
+            <span>
+              {cardDataList.filter((_, idx) => selectedIndices.has(idx)).length} of {cardDataList.length} selected
+            </span>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredCards.map((card, idx) => {
             const originalIdx = cardDataList.indexOf(card);
+            const isSelected = selectedIndices.has(originalIdx);
             return (
-              <button
+              <div
                 key={idx}
-                onClick={() => setActiveCardIndex(originalIdx)}
-                className={`w-full px-4 py-2.5 text-left border-b border-gray-50 transition-colors ${
-                  originalIdx === activeCardIndex ? 'bg-emerald-50 border-l-4 border-l-emerald-500' : 'hover:bg-gray-50'
+                className={`flex items-center border-b border-gray-50 transition-colors hover:bg-gray-50 ${
+                  originalIdx === activeCardIndex ? 'bg-emerald-50/60 border-l-4 border-l-emerald-500' : ''
                 }`}
               >
-                <p className="text-sm font-medium text-gray-900 truncate">{card.name}</p>
-                <p className="text-xs text-gray-500">
-                  {card.code} • {card.role}
-                </p>
-              </button>
+                <div className="pl-3 pr-2 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelect(originalIdx)}
+                    className="w-3.5 h-3.5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer"
+                  />
+                </div>
+                <button
+                  onClick={() => setActiveCardIndex(originalIdx)}
+                  className="flex-1 px-2 py-2.5 text-left outline-none min-w-0"
+                >
+                  <p className="text-sm font-medium text-gray-900 truncate">{card.name}</p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {card.code} • {card.role}
+                  </p>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -522,7 +609,7 @@ const PreviewExport: React.FC = () => {
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-emerald-200 text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-all"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-              Export All ({cardDataList.length})
+              Export Selected ({cardDataList.filter((_, idx) => selectedIndices.has(idx)).length})
             </button>
           )}
         </div>

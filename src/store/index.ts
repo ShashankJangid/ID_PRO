@@ -50,6 +50,10 @@ interface AppState {
   clearToast: () => void;
   darkMode: boolean;
   setDarkMode: (v: boolean) => void;
+  themeColor: string;
+  setThemeColor: (color: string) => void;
+  themeGradientColor: string;
+  setThemeGradientColor: (color: string) => void;
 }
 
 const defaultOrg: Organization = {
@@ -69,10 +73,10 @@ const defaultOrg: Organization = {
 };
 
 const defaultCardData: CardData = {
-  name: 'John Doe', role: 'Manager', code: 'EMP001',
-  dob: '01-01-1990', blood: 'O+', contact: '9876543210',
-  address: '123 Main St, City', issued: '01-01-2024',
-  valid: '31-12-2025', emergency: '9876543211',
+  name: 'Sample Name', role: 'Designation', code: 'DEMO-001',
+  dob: '01-01-2000', blood: 'A+', contact: '+91-XXXXXXXXXX',
+  address: 'School Address, City', issued: '01-06-2025',
+  valid: '31-05-2026', emergency: '+91-XXXXXXXXXX',
 };
 
 const getIDBDatabase = (): Promise<IDBDatabase> => {
@@ -104,7 +108,7 @@ const idbStorage: StateStorage = {
       if (value === null) {
         const localValue = localStorage.getItem(name);
         if (localValue !== null) {
-          console.log('Migrating localStorage to IndexedDB storage...');
+          // Migrate localStorage → IndexedDB (silent)
           await idbStorage.setItem(name, localValue);
           localStorage.removeItem(name);
           return localValue;
@@ -121,7 +125,7 @@ const idbStorage: StateStorage = {
           req.onerror = () => resolve(null);
         });
         if (oldVal !== null) {
-          console.log('Migrating old global storage to guest storage...');
+          // Migrate old global storage to guest storage (silent)
           await idbStorage.setItem(name, oldVal);
           const tx = db.transaction('keyval', 'readwrite');
           const store = tx.objectStore('keyval');
@@ -322,6 +326,10 @@ export const useAppStore = create<AppState>()(
       clearToast: () => set({ toast: null }),
       darkMode: false,
       setDarkMode: (v) => set({ darkMode: v }),
+      themeColor: '#4165b4',
+      setThemeColor: (color) => set({ themeColor: color, themeGradientColor: color }),
+      themeGradientColor: '#4165b4',
+      setThemeGradientColor: (color) => set({ themeGradientColor: color }),
     }),
     {
       name: 'idcard-studio-storage-guest',
@@ -359,6 +367,8 @@ export const useAppStore = create<AppState>()(
         designerSide: state.designerSide,
         zoom: state.zoom,
         darkMode: state.darkMode,
+        themeColor: state.themeColor,
+        themeGradientColor: state.themeGradientColor,
       }),
     }
   )
@@ -512,17 +522,89 @@ export async function syncStoreWithFirestore(userId: string | null) {
       hasSetup: mergedOrg.name ? true : localState.hasSetup,
     });
 
-    console.log('Firestore sync completed successfully!');
+    // Sync completed successfully
   } catch (e) {
     console.error('Error syncing store with Firestore:', e);
   }
 }
 
 export async function switchStoreUser(userId: string | null) {
-  const name = userId ? `idcard-studio-storage-${userId}` : 'idcard-studio-storage-guest';
-  useAppStore.persist.setOptions({ name });
-  await useAppStore.persist.rehydrate();
   if (userId) {
+    // 1. Fetch guest data to migrate
+    let guestData: any = null;
+    try {
+      const guestDataStr = await idbStorage.getItem('idcard-studio-storage-guest');
+      if (guestDataStr) {
+        guestData = JSON.parse(guestDataStr);
+      }
+    } catch (err) {
+      console.warn('Failed to read guest storage for migration:', err);
+    }
+
+    // 2. Switch to user storage
+    const name = `idcard-studio-storage-${userId}`;
+    useAppStore.persist.setOptions({ name });
+    await useAppStore.persist.rehydrate();
+
+    // 3. Migrate guest state into user state
+    if (guestData && guestData.state) {
+      const localState = useAppStore.getState();
+      const guestTemplates = guestData.state.templates || [];
+      const guestOrg = guestData.state.organization;
+      const guestCards = guestData.state.cardDataList || [];
+
+      let needsSave = false;
+      const newTemplates = [...localState.templates];
+
+      guestTemplates.forEach((gt: CardTemplate) => {
+        if (!gt.isBuiltIn && !newTemplates.some((t) => t.id === gt.id)) {
+          newTemplates.push(gt);
+          needsSave = true;
+        }
+      });
+
+      let newOrg = localState.organization;
+      if (!localState.organization.name && guestOrg && guestOrg.name) {
+        newOrg = guestOrg;
+        needsSave = true;
+      }
+
+      let newCards = localState.cardDataList;
+      const isLocalCardsDefault =
+        localState.cardDataList.length === 0 ||
+        (localState.cardDataList.length === 1 && localState.cardDataList[0].code === 'DEMO-001');
+      const isGuestCardsCustom = guestCards.length > 0 && guestCards[0].code !== 'DEMO-001';
+
+      if (isLocalCardsDefault && isGuestCardsCustom) {
+        newCards = guestCards;
+        needsSave = true;
+      }
+
+      if (needsSave) {
+        useAppStore.setState({
+          templates: newTemplates,
+          organization: newOrg,
+          cardDataList: newCards,
+        });
+
+        // Save migrated data to Firestore
+        newTemplates.forEach((t) => {
+          if (!t.isBuiltIn) {
+            saveTemplateToFirestore(userId, t);
+          }
+        });
+        saveProfileToFirestore(userId, newOrg, newCards);
+      }
+
+      // Clear guest storage after migration so it doesn't merge again next time
+      await idbStorage.removeItem('idcard-studio-storage-guest');
+    }
+
+    // 4. Sync with Firestore
     syncStoreWithFirestore(userId);
+  } else {
+    const name = 'idcard-studio-storage-guest';
+    useAppStore.persist.setOptions({ name });
+    await useAppStore.persist.rehydrate();
   }
 }

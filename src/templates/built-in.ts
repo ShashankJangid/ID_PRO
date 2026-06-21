@@ -1,4 +1,7 @@
 import type { CardTemplate, CardElement, DataField, TextStyleOpts, ShapeStyleOpts } from '@/types';
+import { auth } from '@/lib/firebase';
+import dpsFront from '@/assets/dps_front.jpg';
+import dpsBack from '@/assets/dps_back.png';
 
 // ─── Helper to generate unique IDs ───
 let _idCounter = 0;
@@ -99,6 +102,8 @@ function shape(
       gradient: opts.gradient,
       opacity: opts.opacity ?? 1,
       borderRadius: opts.borderRadius,
+      borderWidth: opts.borderWidth,
+      borderColor: opts.borderColor,
       shadow: opts.shadow,
     },
   };
@@ -124,6 +129,456 @@ function qr(
     style: { backgroundColor: '#ffffff' },
   };
 }
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE 0: WHITE BLANK ID CARD
+// ═══════════════════════════════════════════════════════════
+export const whiteBlankTemplate: CardTemplate = {
+  id: 'builtin_white_blank',
+  name: 'White Blank ID Card',
+  description: 'A clean, blank white template. Perfect for designing from scratch.',
+  category: 'minimal',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#ffffff',
+    }),
+  ],
+  backElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#ffffff',
+    }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE: PREMIUM TECH ID (Neon cyber-dark theme)
+// ═══════════════════════════════════════════════════════════
+export const premiumTechTemplate: CardTemplate = {
+  id: 'builtin_premium_tech',
+  name: 'Premium Tech ID',
+  description: 'Cyber-dark template with glowing neon cyan accents, modern details panel, and sleek tech typography.',
+  category: 'corporate',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#0a0f1d',
+    }),
+    shape('Top Accent Line', 'rectangle', 0, 0, 638, 8, {
+      gradient: 'linear-gradient(90deg, #10b981 0%, #06b6d4 100%)',
+    }),
+    shape('Deco Tech Circle 1', 'circle', 500, 80, 150, 150, {
+      backgroundColor: 'rgba(6, 182, 212, 0.04)',
+    }),
+    shape('Deco Tech Circle 2', 'circle', -50, 450, 200, 200, {
+      backgroundColor: 'rgba(16, 185, 129, 0.03)',
+    }),
+    txt('Org Label', 'orgName', 30, 40, 578, 30, {
+      fontSize: 15,
+      color: '#a7f3d0',
+      fontWeight: '700',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 3,
+      staticText: 'TECH CORPORATION',
+    }),
+    shape('Photo Border Glow', 'circle', 209, 140, 220, 220, {
+      backgroundColor: 'rgba(6, 182, 212, 0.1)',
+      borderRadius: 110,
+      borderWidth: 2,
+      borderColor: '#06b6d4',
+      shadow: '0 0 15px rgba(6, 182, 212, 0.35)',
+    }),
+    img('Employee Photo', 'photo', 219, 150, 200, 200, {
+      borderRadius: 100,
+      objectFit: 'cover',
+      borderWidth: 3,
+      borderColor: '#ffffff',
+    }),
+    txt('Full Name', 'name', 30, 400, 578, 50, {
+      fontSize: 32,
+      color: '#ffffff',
+      fontWeight: '800',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    }),
+    txt('Designation', 'role', 30, 455, 578, 30, {
+      fontSize: 16,
+      color: '#06b6d4',
+      fontWeight: '600',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 4,
+    }),
+    shape('Details Panel BG', 'rounded-rect', 50, 520, 538, 220, {
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+    }),
+    txt('ID Label', undefined, 80, 545, 150, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'EMPLOYEE ID',
+    }),
+    txt('ID Code', 'code', 80, 570, 150, 28, {
+      fontSize: 16,
+      color: '#ffffff',
+      fontWeight: '700',
+      letterSpacing: 1,
+    }),
+    txt('Blood Label', undefined, 250, 545, 100, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'BLOOD GRP',
+    }),
+    txt('Blood Group', 'blood', 250, 570, 100, 28, {
+      fontSize: 16,
+      color: '#ef4444',
+      fontWeight: '700',
+    }),
+    txt('Valid Label', undefined, 390, 545, 160, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'VALID TILL',
+    }),
+    txt('Valid Date', 'valid', 390, 570, 160, 28, {
+      fontSize: 16,
+      color: '#ffffff',
+      fontWeight: '700',
+    }),
+    txt('Contact Label', undefined, 80, 630, 438, 22, {
+      fontSize: 11,
+      color: '#94a3b8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'CONTACT PHONE',
+    }),
+    txt('Contact Number', 'contact', 80, 655, 438, 28, {
+      fontSize: 15,
+      color: '#ffffff',
+      fontWeight: '600',
+    }),
+    qr('QR Code', 'code', 269, 810, 100),
+  ],
+  backElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#0a0f1d',
+    }),
+    shape('Top Accent Line', 'rectangle', 0, 0, 638, 8, {
+      gradient: 'linear-gradient(90deg, #10b981 0%, #06b6d4 100%)',
+    }),
+    txt('Back Title', undefined, 30, 60, 578, 40, {
+      fontSize: 18,
+      color: '#ffffff',
+      fontWeight: '700',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 3,
+      staticText: 'TERMS & INSTRUCTIONS',
+    }),
+    shape('Title Divider', 'rectangle', 244, 110, 150, 2, {
+      backgroundColor: '#06b6d4',
+    }),
+    txt('Term 1', undefined, 60, 160, 518, 50, {
+      fontSize: 12,
+      color: '#94a3b8',
+      staticText: '1. This card remains the property of the organization. If found, please return to security.',
+    }),
+    txt('Term 2', undefined, 60, 220, 518, 50, {
+      fontSize: 12,
+      color: '#94a3b8',
+      staticText: '2. Display this card at all times while present on organization premises.',
+    }),
+    txt('Term 3', undefined, 60, 280, 518, 50, {
+      fontSize: 12,
+      color: '#94a3b8',
+      staticText: '3. Loss of this identification card must be immediately reported to HR Admin.',
+    }),
+    txt('Address Label', undefined, 60, 380, 200, 25, {
+      fontSize: 12,
+      color: '#06b6d4',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'HEAD OFFICE',
+    }),
+    txt('Address Value', 'orgAddress', 60, 410, 518, 60, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '500',
+      staticText: 'Tech HQ, Silicon Valley, CA',
+    }),
+    txt('Emergency Label', undefined, 60, 500, 200, 25, {
+      fontSize: 12,
+      color: '#ef4444',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'EMERGENCY HOTLINE',
+    }),
+    txt('Emergency Value', 'emergency', 60, 530, 518, 30, {
+      fontSize: 18,
+      color: '#ffffff',
+      fontWeight: '700',
+    }),
+    img('Signature 1', 'signature1', 219, 660, 200, 80, {
+      objectFit: 'contain',
+    }),
+    shape('Signature Line', 'rectangle', 219, 745, 200, 2, {
+      backgroundColor: '#334155',
+    }),
+    txt('Signature Label', undefined, 219, 755, 200, 25, {
+      fontSize: 12,
+      color: '#94a3b8',
+      textAlign: 'center',
+      staticText: 'Authorized Signatory',
+    }),
+    shape('Bottom Bar', 'rectangle', 0, 930, 638, 80, {
+      backgroundColor: '#0f172a',
+    }),
+    txt('Website', 'orgWebsite', 30, 955, 578, 30, {
+      fontSize: 14,
+      color: '#06b6d4',
+      fontWeight: '600',
+      textAlign: 'center',
+      letterSpacing: 1,
+      staticText: 'www.techcorp.com',
+    }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE: LUXURY GOLD ID (Charcoal & gold-framed layout)
+// ═══════════════════════════════════════════════════════════
+export const luxuryGoldTemplate: CardTemplate = {
+  id: 'builtin_luxury_gold',
+  name: 'Luxury Gold ID',
+  description: 'Ultra-premium corporate template featuring a matte charcoal backdrop, gold border frames, and refined serifs.',
+  category: 'corporate',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#121212',
+    }),
+    shape('Gold Frame Border', 'rectangle', 25, 25, 588, 960, {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: '#cca43b',
+    }),
+    shape('Top Line Accent', 'rectangle', 244, 40, 150, 2, {
+      backgroundColor: '#cca43b',
+    }),
+    txt('Org Label', 'orgName', 50, 60, 538, 35, {
+      fontSize: 15,
+      color: '#cca43b',
+      fontWeight: '700',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 4,
+      staticText: 'GOLDMAN ASSOCIATES',
+    }),
+    img('Employee Photo', 'photo', 219, 150, 200, 200, {
+      borderRadius: 8,
+      objectFit: 'cover',
+      borderWidth: 3,
+      borderColor: '#cca43b',
+    }),
+    txt('Full Name', 'name', 50, 400, 538, 50, {
+      fontSize: 32,
+      color: '#ffffff',
+      fontWeight: '700',
+      textAlign: 'center',
+      fontFamily: 'Georgia, serif',
+    }),
+    txt('Designation', 'role', 50, 455, 538, 30, {
+      fontSize: 13,
+      color: '#cca43b',
+      fontWeight: '600',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 3,
+    }),
+    txt('ID Code', 'code', 50, 510, 538, 25, {
+      fontSize: 15,
+      color: '#ffffff',
+      fontWeight: '600',
+      textAlign: 'center',
+      letterSpacing: 2,
+    }),
+    shape('Gold Divider', 'rectangle', 219, 560, 200, 1, {
+      backgroundColor: '#cca43b',
+    }),
+    txt('DOB Label', undefined, 70, 600, 150, 22, {
+      fontSize: 11,
+      color: '#888888',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'DATE OF BIRTH',
+    }),
+    txt('DOB Value', 'dob', 70, 625, 180, 28, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '600',
+    }),
+    txt('Blood Label', undefined, 70, 675, 150, 22, {
+      fontSize: 11,
+      color: '#888888',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'BLOOD TYPE',
+    }),
+    txt('Blood Value', 'blood', 70, 700, 180, 28, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '600',
+    }),
+    txt('Valid Label', undefined, 390, 600, 180, 22, {
+      fontSize: 11,
+      color: '#888888',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'VALID UNTIL',
+    }),
+    txt('Valid Value', 'valid', 390, 625, 180, 28, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '600',
+    }),
+    txt('Contact Label', undefined, 390, 675, 180, 22, {
+      fontSize: 11,
+      color: '#888888',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'CONTACT PHONE',
+    }),
+    txt('Contact Value', 'contact', 390, 700, 180, 28, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '600',
+    }),
+    qr('QR Code', 'code', 284, 820, 70),
+  ],
+  backElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#121212',
+    }),
+    shape('Gold Frame Border', 'rectangle', 25, 25, 588, 960, {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: '#cca43b',
+    }),
+    txt('Back Title', undefined, 50, 70, 538, 35, {
+      fontSize: 15,
+      color: '#cca43b',
+      fontWeight: '700',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 3,
+      staticText: 'TERMS & CONDITIONS',
+    }),
+    shape('Gold Line Back', 'rectangle', 244, 115, 150, 2, {
+      backgroundColor: '#cca43b',
+    }),
+    txt('Term 1', undefined, 70, 170, 498, 45, {
+      fontSize: 12,
+      color: '#aaaaaa',
+      staticText: '• This card is an official document of the company. It must be displayed while on premises.',
+    }),
+    txt('Term 2', undefined, 70, 225, 498, 45, {
+      fontSize: 12,
+      color: '#aaaaaa',
+      staticText: '• If lost, the cardholder must immediately notify HR Administration.',
+    }),
+    txt('Address Label', undefined, 70, 320, 200, 25, {
+      fontSize: 12,
+      color: '#cca43b',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'HEAD OFFICE',
+    }),
+    txt('Address Value', 'orgAddress', 70, 345, 498, 60, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '500',
+      staticText: '75 Wall Street, New York, NY',
+    }),
+    txt('Phone Label', undefined, 70, 430, 200, 25, {
+      fontSize: 12,
+      color: '#cca43b',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'TELEPHONE',
+    }),
+    txt('Phone Value', 'orgPhone', 70, 455, 200, 30, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '500',
+    }),
+    txt('Website Label', undefined, 368, 430, 200, 25, {
+      fontSize: 12,
+      color: '#cca43b',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'WEBSITE',
+    }),
+    txt('Website Value', 'orgWebsite', 368, 455, 200, 30, {
+      fontSize: 14,
+      color: '#ffffff',
+      fontWeight: '500',
+      staticText: 'www.goldmanassoc.com',
+    }),
+    img('Signature 1', 'signature1', 70, 680, 200, 80, {
+      objectFit: 'contain',
+    }),
+    shape('Signature Line 1', 'rectangle', 70, 770, 200, 2, {
+      backgroundColor: '#cca43b',
+    }),
+    txt('Sig Label 1', undefined, 70, 785, 200, 25, {
+      fontSize: 12,
+      color: '#888888',
+      textAlign: 'center',
+      staticText: 'Authorized Official',
+    }),
+    img('Signature 2', 'signature2', 368, 680, 200, 80, {
+      objectFit: 'contain',
+    }),
+    shape('Signature Line 2', 'rectangle', 368, 770, 200, 2, {
+      backgroundColor: '#cca43b',
+    }),
+    txt('Sig Label 2', undefined, 368, 785, 200, 25, {
+      fontSize: 12,
+      color: '#888888',
+      textAlign: 'center',
+      staticText: 'Managing Director',
+    }),
+    qr('QR Code', 'code', 284, 860, 70),
+  ],
+};
 
 // ═══════════════════════════════════════════════════════════
 // TEMPLATE 1: CORPORATE PRO (Clean, professional)
@@ -1920,7 +2375,114 @@ export const horizontalCorporateTemplate: CardTemplate = {
 // ═══════════════════════════════════════════════════════════
 // Export all built-in templates
 // ═══════════════════════════════════════════════════════════
+export const dpsIndirapuramTemplate: CardTemplate = {
+  id: 'builtin_dps_indirapuram',
+  name: 'DPS Indirapuram',
+  description: 'Official Delhi Public School Indirapuram card template.',
+  category: 'school',
+  cardWidth: 650,
+  cardHeight: 1024,
+  isBuiltIn: true,
+  backgroundImage: dpsBack,
+  backgroundImageBack: dpsFront,
+  frontElements: [
+    // Photo element placement
+    img('Student/Staff Photo', 'photo', 215, 232, 220, 280, {
+      borderRadius: 0,
+      objectFit: 'cover',
+    }),
+    // Name element placement (centered, bold, black)
+    txt('Name', 'name', 40, 560, 570, 45, {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#000000',
+      textAlign: 'center',
+    }),
+    // Role/Designation element placement (centered, semi-bold, black)
+    txt('Role / Designation', 'role', 40, 615, 570, 35, {
+      fontSize: 20,
+      fontWeight: '600',
+      color: '#000000',
+      textAlign: 'center',
+    }),
+    // Employee Code element placement (centered, semi-bold, black)
+    txt('Code', 'code', 40, 665, 570, 30, {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#000000',
+      textAlign: 'center',
+    }),
+    // Issued Date value (placed inside the left green box: text is white, centered)
+    txt('Issued Date', 'issued', 50, 878, 205, 30, {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#ffffff',
+      textAlign: 'center',
+    }),
+    // Valid To value (placed inside the right green box: text is white, centered)
+    txt('Valid Upto', 'valid', 400, 878, 205, 30, {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#ffffff',
+      textAlign: 'center',
+    }),
+  ],
+  backElements: [
+    // Date of Birth: value next to label (white/light text, left aligned)
+    txt('Date of Birth', 'dob', 335, 102, 260, 30, {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#ffffff',
+      textAlign: 'left',
+    }),
+    // Blood Group: value next to label
+    txt('Blood Group', 'blood', 335, 172, 260, 30, {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#ffffff',
+      textAlign: 'left',
+    }),
+    // Contact No: value next to label
+    txt('Contact Number', 'contact', 335, 242, 260, 30, {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#ffffff',
+      textAlign: 'left',
+    }),
+    // Address: value below label (wrap enabled, size 14)
+    txt('Address', 'address', 225, 312, 370, 75, {
+      fontSize: 14,
+      fontWeight: '500',
+      color: '#ffffff',
+      textAlign: 'left',
+    }),
+    // Admin Head Signature
+    img('Admin Head Signature', 'signature1', 60, 395, 150, 60, {
+      borderRadius: 0,
+      objectFit: 'contain',
+    }),
+    // Principal Signature
+    img('Principal Signature', 'signature2', 440, 395, 150, 60, {
+      borderRadius: 0,
+      objectFit: 'contain',
+    }),
+    // QR Code
+    qr('QR Code', undefined, 275, 415, 100),
+    // Emergency Contact: placed inside the box
+    txt('Emergency Contact', 'emergency', 330, 563, 200, 25, {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#ffffff',
+      textAlign: 'left',
+    }),
+  ],
+};
+
+// ─── Export all built-in templates ───
 export const builtInTemplates: CardTemplate[] = [
+  whiteBlankTemplate,
+  premiumTechTemplate,
+  luxuryGoldTemplate,
   corporateProTemplate,
   schoolClassicTemplate,
   minimalElegantTemplate,
@@ -1931,5 +2493,9 @@ export const builtInTemplates: CardTemplate[] = [
 ];
 
 export function getBuiltInTemplates(): CardTemplate[] {
-  return builtInTemplates.map((t) => ({ ...t }));
+  const templates = [...builtInTemplates];
+  if (auth.currentUser?.email === 'shashankjangidofficial@gmail.com') {
+    templates.push(dpsIndirapuramTemplate);
+  }
+  return templates.map((t) => ({ ...t }));
 }

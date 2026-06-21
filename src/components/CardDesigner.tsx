@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { PenTool, Save } from 'lucide-react';
+import { PenTool, Save, Download } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useDragResize } from '@/hooks/useDragResize';
 import { useDesignerHistory } from '@/hooks/useDesignerHistory';
@@ -8,6 +8,7 @@ import DesignerToolbar from './designer/DesignerToolbar';
 import DesignerCanvas from './designer/DesignerCanvas';
 import PropertiesPanel from './designer/PropertiesPanel';
 import LayersPanel from './designer/LayersPanel';
+import TemplatePropertiesPanel from './designer/TemplatePropertiesPanel';
 import type { CardElement, CardTemplate } from '@/types';
 
 const CardDesigner: React.FC = () => {
@@ -64,16 +65,16 @@ const CardDesigner: React.FC = () => {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const demoCard = cardDataList[0] || {
-    name: 'John Doe',
-    role: 'Manager',
-    code: 'EMP001',
-    dob: '01-01-1990',
-    blood: 'O+',
-    contact: '9876543210',
-    address: '123 Main St',
-    issued: '01-01-2024',
-    valid: '31-12-2025',
-    emergency: '9876543211',
+    name: 'Sample Name',
+    role: 'Designation',
+    code: 'DEMO-001',
+    dob: '01-01-2000',
+    blood: 'A+',
+    contact: '+91-XXXXXXXXXX',
+    address: 'School Address, City',
+    issued: '01-06-2025',
+    valid: '31-05-2026',
+    emergency: '+91-XXXXXXXXXX',
   };
 
   const elements = currentTemplate
@@ -85,7 +86,7 @@ const CardDesigner: React.FC = () => {
   const selectedElement = elements.find((el) => el.id === selectedElementId);
 
   const handleElementUpdate = useCallback(
-    (id: string, updates: Partial<CardElement>) => {
+    (id: string, updates: Partial<CardElement>, commitToHistory = true) => {
       setCurrentTemplate((prev) => {
         if (!prev) return null;
         const newTemplate = { ...prev };
@@ -102,7 +103,7 @@ const CardDesigner: React.FC = () => {
           return newTemplate;
         }
         return prev;
-      });
+      }, commitToHistory);
     },
     [designerSide, setCurrentTemplate]
   );
@@ -206,6 +207,30 @@ const CardDesigner: React.FC = () => {
     reset(currentTemplate);
   };
 
+  const handleDownloadTemplate = (template: CardTemplate) => {
+    try {
+      const exportable = {
+        ...template,
+        isBuiltIn: false,
+        updatedAt: new Date().toISOString(),
+      };
+      const jsonString = JSON.stringify(exportable, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${template.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_template.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Template "${template.name}" exported successfully!`, 'success');
+    } catch (error: any) {
+      console.error('Failed to download template:', error);
+      showToast(`Failed to export template: ${error.message || error}`, 'error');
+    }
+  };
+
   const moveElement = useCallback(
     (id: string, direction: 'up' | 'down') => {
       setCurrentTemplate((prev) => {
@@ -228,6 +253,22 @@ const CardDesigner: React.FC = () => {
           newTemplate.frontElements = sideElements;
         } else {
           newTemplate.backElements = sideElements;
+        }
+        return newTemplate;
+      });
+    },
+    [designerSide, setCurrentTemplate]
+  );
+
+  const reorderElements = useCallback(
+    (newElements: CardElement[]) => {
+      setCurrentTemplate((prev) => {
+        if (!prev) return null;
+        const newTemplate = { ...prev };
+        if (designerSide === 'front') {
+          newTemplate.frontElements = newElements;
+        } else {
+          newTemplate.backElements = newElements;
         }
         return newTemplate;
       });
@@ -390,30 +431,31 @@ const CardDesigner: React.FC = () => {
         onSelectElement={setSelectedElementId}
         onMoveElement={moveElement}
         onDeleteElement={deleteElement}
+        onReorderElements={reorderElements}
       />
 
       {/* Canvas Area */}
-      <div className="flex-1 bg-gray-100 overflow-auto flex flex-col">
+      <div className="flex-1 bg-gray-150/50 dark:bg-[hsl(222,47%,5%)] overflow-auto flex flex-col">
         {/* Top bar */}
-        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between min-w-0 gap-4 flex-shrink-0">
+        <div className="glass-panel border-b border-gray-200/10 px-4 py-2 flex items-center justify-between min-w-0 gap-4 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0 overflow-hidden">
-            <span className="text-sm font-bold text-gray-900 min-w-0 flex-shrink flex items-center gap-1.5" title={currentTemplate.name}>
+            <span className="text-sm font-bold text-gray-900 dark:text-white min-w-0 flex-shrink flex items-center gap-1.5" title={currentTemplate.name}>
               <span className="truncate">{currentTemplate.name}</span>
-              {canUndo && <span className="text-amber-500 text-[10px] whitespace-nowrap bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 flex-shrink-0">(Unsaved)</span>}
+              {canUndo && <span className="text-amber-500 text-[10px] whitespace-nowrap bg-amber-500/10 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-500/20 flex-shrink-0">(Unsaved)</span>}
             </span>
-            <div className="flex bg-gray-100 rounded-lg p-0.5">
+            <div className="flex bg-gray-500/10 rounded-lg p-0.5">
               <button
                 onClick={() => setDesignerSide('front')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                  designerSide === 'front' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  designerSide === 'front' ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 Front
               </button>
               <button
                 onClick={() => setDesignerSide('back')}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                  designerSide === 'back' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  designerSide === 'back' ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 Back
@@ -421,7 +463,7 @@ const CardDesigner: React.FC = () => {
             </div>
 
             {/* Orientation Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-0.5">
+            <div className="flex bg-gray-500/10 rounded-lg p-0.5">
               <button
                 onClick={() => {
                   if (currentTemplate.cardWidth > currentTemplate.cardHeight) {
@@ -457,8 +499,8 @@ const CardDesigner: React.FC = () => {
                     });
                   }
                 }}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                  currentTemplate.cardWidth <= currentTemplate.cardHeight ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  currentTemplate.cardWidth <= currentTemplate.cardHeight ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 Vertical
@@ -498,8 +540,8 @@ const CardDesigner: React.FC = () => {
                     });
                   }
                 }}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                  currentTemplate.cardWidth > currentTemplate.cardHeight ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                  currentTemplate.cardWidth > currentTemplate.cardHeight ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 Horizontal
@@ -507,17 +549,26 @@ const CardDesigner: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+            {/* Always show Download button for current template design */}
+            <button
+              onClick={() => handleDownloadTemplate(currentTemplate)}
+              className="px-3 py-1.5 glass-btn rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5"
+              title="Download Template File"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download Template
+            </button>
             {canUndo && (
               <>
                 <button
                   onClick={handleDiscard}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 glass-btn rounded-lg text-xs font-semibold text-gray-650 dark:text-gray-300 hover:text-red-500 transition-colors"
                 >
                   Discard
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-all active:scale-[0.97] flex items-center gap-1.5"
                 >
                   <Save className="w-3.5 h-3.5" />
                   Save
@@ -557,11 +608,10 @@ const CardDesigner: React.FC = () => {
           cardData={demoCard}
         />
       ) : (
-        <div className="w-72 bg-white border-l border-gray-200 p-6 text-center flex flex-col justify-center items-center">
-          <PenTool className="w-8 h-8 text-gray-300 mb-2" />
-          <p className="text-sm text-gray-500 font-medium">Select an element</p>
-          <p className="text-xs text-gray-400 mt-1">Click on any element in the canvas to edit its properties</p>
-        </div>
+        <TemplatePropertiesPanel
+          currentTemplate={currentTemplate}
+          onUpdateTemplate={(updated) => setCurrentTemplate(updated)}
+        />
       )}
     </div>
   );
