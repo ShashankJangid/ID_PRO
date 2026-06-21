@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Zap,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
