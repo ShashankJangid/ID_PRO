@@ -12,8 +12,7 @@ import {
   Loader2,
   Search,
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+// html2canvas and jspdf are dynamically imported in export functions to reduce bundle size and INP
 import { useAppStore } from '@/store';
 import CardRenderer from './CardRenderer';
 import type { CardData, ExportFormat } from '@/types';
@@ -241,6 +240,7 @@ const PreviewExport: React.FC = () => {
       // Extra paint frame
       await new Promise((r) => requestAnimationFrame(r));
 
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(container, {
         scale: 3,           // 3x for print quality
         useCORS: true,
@@ -358,6 +358,7 @@ const PreviewExport: React.FC = () => {
     if (!activeCard || !template) return;
     setExporting(true);
     setExportProgress(0);
+    const { jsPDF } = await import('jspdf');
 
     try {
       if (format === 'pdf') {
@@ -433,6 +434,7 @@ const PreviewExport: React.FC = () => {
     setExportProgress(0);
 
     try {
+      const { jsPDF } = await import('jspdf');
       if (format === 'pdf') {
         const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
