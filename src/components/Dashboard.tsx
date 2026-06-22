@@ -176,7 +176,7 @@ const Dashboard: React.FC = () => {
                 ${step.done
                   ? 'border-emerald-500/30 dark:border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10'
                   : isCurrent
-                    ? 'border-slate-350 dark:border-white/20 shadow-md ring-1 ring-emerald-500/30 dark:ring-emerald-500/20'
+                    ? 'border-slate-300 dark:border-white/20 shadow-md ring-1 ring-emerald-500/30 dark:ring-emerald-500/20'
                     : 'border-slate-200/50 dark:border-white/5 opacity-80'
                 }
                 hover:shadow-md hover:-translate-y-0.5

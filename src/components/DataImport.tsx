@@ -1490,7 +1490,7 @@ const DataImport: React.FC = () => {
                       showToast('All records cleared successfully', 'success');
                     }
                   }}
-                  className="px-2.5 py-1 text-[10px] font-semibold text-red-650 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 rounded border border-red-200 dark:border-red-900/50 transition-colors"
+                  className="px-2.5 py-1 text-[10px] font-semibold text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/20 rounded border border-red-200 dark:border-red-900/50 transition-colors"
                 >
                   Clear All
                 </button>

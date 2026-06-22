@@ -94,11 +94,11 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
       <div className="p-3 border-b border-gray-200/10 flex items-center justify-between bg-gray-500/5">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          <span className="text-xs font-bold text-gray-700 dark:text-gray-250">Layers ({elements.length})</span>
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Layers ({elements.length})</span>
         </div>
         <button
           onClick={() => setIsCollapsed(true)}
-          className="p-1 hover:bg-gray-500/15 rounded text-gray-400 hover:text-gray-650 dark:hover:text-white transition-colors"
+          className="p-1 hover:bg-gray-500/15 rounded text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
           title="Collapse Panel"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -108,7 +108,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
       {/* Layer List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {elements.length === 0 ? (
-          <div className="text-center py-8 text-gray-450 text-xs">
+          <div className="text-center py-8 text-gray-400 text-xs">
             No elements yet.<br />Add elements from toolbar.
           </div>
         ) : (
@@ -139,11 +139,11 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <GripVertical className="w-3.5 h-3.5 text-gray-300 dark:text-gray-650 cursor-grab group-hover:text-gray-400 flex-shrink-0" />
+                  <GripVertical className="w-3.5 h-3.5 text-gray-300 dark:text-gray-400 cursor-grab group-hover:text-gray-400 flex-shrink-0" />
                   <div className="flex-shrink-0">{getElementIcon(el.type)}</div>
                   <div className="truncate text-xs">
                     {el.label || `New ${el.type}`}
-                    {el.field && <span className="text-[10px] text-gray-400 dark:text-gray-550 font-normal ml-1">({el.field})</span>}
+                    {el.field && <span className="text-[10px] text-gray-400 dark:text-gray-400 font-normal ml-1">({el.field})</span>}
                   </div>
                 </div>
 
@@ -155,7 +155,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                       onMoveElement(el.id, 'up'); // Bring Forward
                     }}
                     disabled={actualIdx === elements.length - 1}
-                    className="p-1 hover:bg-gray-500/15 text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-25 rounded transition-colors"
+                    className="p-1 hover:bg-gray-500/15 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-25 rounded transition-colors"
                     title="Bring Forward"
                   >
                     <ChevronUp className="w-3.5 h-3.5" />
@@ -166,7 +166,7 @@ export const LayersPanel: React.FC<LayersPanelProps> = ({
                       onMoveElement(el.id, 'down'); // Send Backward
                     }}
                     disabled={actualIdx === 0}
-                    className="p-1 hover:bg-gray-500/15 text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-25 rounded transition-colors"
+                    className="p-1 hover:bg-gray-500/15 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white disabled:opacity-25 rounded transition-colors"
                     title="Send Backward"
                   >
                     <ChevronDown className="w-3.5 h-3.5" />

@@ -19,6 +19,8 @@ import CardRenderer from './CardRenderer';
 import type { CardData, ExportFormat } from '@/types';
 import { imageUrlToBase64 } from './DataImport';
 
+const CARD_PREVIEW_STYLE = { boxShadow: '0 4px 24px rgba(0,0,0,0.15)', borderRadius: 12 };
+
 const PreviewExport: React.FC = () => {
   const {
     cardDataList,
@@ -611,7 +613,7 @@ const PreviewExport: React.FC = () => {
                 organization={organization}
                 side={side}
                 scale={1}
-                style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.15)', borderRadius: 12 }}
+                style={CARD_PREVIEW_STYLE}
               />
             </div>
           </div>
@@ -619,8 +621,8 @@ const PreviewExport: React.FC = () => {
       </div>
 
       {/* Right panel - Export controls */}
-      <div className="w-72 bg-white border-l border-gray-200 p-5 overflow-y-auto">
-        <h3 className="text-sm font-bold text-gray-900 mb-4">Export Options</h3>
+      <div className="w-72 bg-white dark:bg-[hsl(222,47%,7%)] border-l border-gray-200 dark:border-[hsl(222,47%,18%)] p-5 overflow-y-auto">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Export Options</h3>
 
         <div className="space-y-2 mb-6">
           {[
@@ -633,14 +635,14 @@ const PreviewExport: React.FC = () => {
               onClick={() => setExportFormat(id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all ${
                 exportFormat === id
-                  ? 'border-emerald-500 bg-emerald-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300'
+                  : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 bg-transparent text-gray-700 dark:text-gray-300'
               }`}
             >
-              <Icon className={`w-5 h-5 ${exportFormat === id ? 'text-emerald-600' : 'text-gray-400'}`} />
+              <Icon className={`w-5 h-5 ${exportFormat === id ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`} />
               <div className="text-left">
-                <p className={`text-sm font-semibold ${exportFormat === id ? 'text-emerald-800' : 'text-gray-700'}`}>{label}</p>
-                <p className="text-[10px] text-gray-500">{desc}</p>
+                <p className={`text-sm font-semibold ${exportFormat === id ? 'text-emerald-800 dark:text-emerald-300' : 'text-gray-700 dark:text-gray-300'}`}>{label}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">{desc}</p>
               </div>
             </button>
           ))}

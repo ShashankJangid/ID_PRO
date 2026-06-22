@@ -490,7 +490,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 <Logo className="w-6 h-6" />
                 <h1 className="text-xl font-bold text-white tracking-wide">Card Gen</h1>
               </div>
-              <p className="text-slate-400 dark:text-emerald-450 text-[10px] mt-0.5 font-semibold uppercase tracking-wider relative z-10">by JS AlphaSoft</p>
+              <p className="text-slate-400 dark:text-emerald-400 text-[10px] mt-0.5 font-semibold uppercase tracking-wider relative z-10">by JS AlphaSoft</p>
             </div>
   
             {/* ── Body ── */}
@@ -750,7 +750,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <button
                 type="button"
                 onClick={() => { setIsPhoneMode(!isPhoneMode); setError(''); setSuccess(''); }}
-                className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-350 hover:underline font-semibold transition-colors"
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline font-semibold transition-colors"
               >
                 {isPhoneMode ? 'Sign In with Email & Password' : 'Sign In with Phone Number'}
               </button>

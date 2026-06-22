@@ -525,7 +525,7 @@ const TemplateGallery: React.FC = () => {
                   <ScaledPreview template={template} demoCard={demoCard} organization={organization} side="front" scale={0.35} />
                 </div>
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors flex items-center justify-center">
-                  <span className="opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-gray-900/90 text-gray-850 dark:text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md backdrop-blur-sm transition-all duration-300">
+                  <span className="opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-gray-900/90 text-gray-800 dark:text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md backdrop-blur-sm transition-all duration-300">
                     Preview Layout
                   </span>
                 </div>
@@ -538,7 +538,7 @@ const TemplateGallery: React.FC = () => {
                       <CatIcon className="w-3 h-3" />{template.category}
                     </span>
                     {template.isBuiltIn && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-150/40 text-gray-600 dark:text-gray-300 border border-gray-200/10">Built-in</span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-100/40 text-gray-600 dark:text-gray-300 border border-gray-200/10">Built-in</span>
                     )}
                     {template.backgroundImage && (
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
@@ -606,7 +606,7 @@ const TemplateGallery: React.FC = () => {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">{previewTemplate.name}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{previewTemplate.description}</p>
               </div>
-              <button onClick={() => setPreviewTemplate(null)} className="p-2 hover:bg-gray-500/10 rounded-lg text-gray-550 dark:text-gray-400 transition-colors">
+              <button onClick={() => setPreviewTemplate(null)} className="p-2 hover:bg-gray-500/10 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -755,7 +755,7 @@ const TemplateGallery: React.FC = () => {
                   e.target.value = '';
                 }} />
                 {uploadJsonError && (
-                  <div className="flex items-center gap-1.5 mt-2 text-red-650 text-xs">
+                  <div className="flex items-center gap-1.5 mt-2 text-red-500 text-xs">
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{uploadJsonError}
                   </div>
                 )}

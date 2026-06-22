@@ -49,7 +49,7 @@ export const TemplatePropertiesPanel: React.FC<TemplatePropertiesPanelProps> = (
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-200/10">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-            <Settings className="w-4 h-4 text-emerald-550" />
+            <Settings className="w-4 h-4 text-emerald-500" />
             Template Settings
           </h3>
         </div>
@@ -107,7 +107,7 @@ export const TemplatePropertiesPanel: React.FC<TemplatePropertiesPanelProps> = (
               <div className="w-9 h-9 bg-gray-500/10 group-hover:bg-emerald-500/20 text-gray-400 group-hover:text-emerald-500 rounded-full flex items-center justify-center transition-all mb-2">
                 <Upload className="w-4 h-4" />
               </div>
-              <span className="text-xs font-semibold text-gray-750 dark:text-gray-200">Upload Image</span>
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-250">Upload Image</span>
               <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Supports PNG, JPG</span>
               <input
                 type="file"
@@ -158,7 +158,7 @@ export const TemplatePropertiesPanel: React.FC<TemplatePropertiesPanelProps> = (
               <div className="w-9 h-9 bg-gray-500/10 group-hover:bg-emerald-500/20 text-gray-400 group-hover:text-emerald-500 rounded-full flex items-center justify-center transition-all mb-2">
                 <Upload className="w-4 h-4" />
               </div>
-              <span className="text-xs font-semibold text-gray-750 dark:text-gray-200">Upload Image</span>
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-250">Upload Image</span>
               <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Supports PNG, JPG</span>
               <input
                 type="file"
@@ -175,7 +175,7 @@ export const TemplatePropertiesPanel: React.FC<TemplatePropertiesPanelProps> = (
           <span className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Canvas Info
           </span>
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-650 dark:text-gray-300 bg-gray-500/5 rounded-lg p-2.5 border border-gray-200/5">
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300 bg-gray-500/5 rounded-lg p-2.5 border border-gray-200/5">
             <div>
               <span className="block text-[10px] text-gray-400 dark:text-gray-500 font-medium">Width</span>
               <span className="font-semibold text-gray-700 dark:text-gray-200">{currentTemplate.cardWidth} px</span>
