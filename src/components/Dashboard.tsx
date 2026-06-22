@@ -183,9 +183,17 @@ const Dashboard: React.FC = () => {
               `}
             >
               {/* Main row ─ always visible, clickable to expand */}
-              <button
-                className="w-full flex items-center gap-4 p-4 text-left"
+              <div
+                className="w-full flex items-center gap-4 p-4 text-left cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl"
                 onClick={() => setExpandedStep(isExpanded ? null : step.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedStep(isExpanded ? null : step.id);
+                  }
+                }}
                 aria-expanded={isExpanded}
               >
                 {/* Step number / icon */}
@@ -236,7 +244,7 @@ const Dashboard: React.FC = () => {
                     : <ChevronDown className="w-4 h-4 text-gray-400 dark:text-[hsl(215,16%,40%)]" />
                   }
                 </div>
-              </button>
+              </div>
 
               {/* Expandable description */}
               {isExpanded && (
