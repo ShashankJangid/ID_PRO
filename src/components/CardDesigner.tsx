@@ -452,7 +452,7 @@ const CardDesigner: React.FC = () => {
       />
 
       {/* Canvas Area */}
-      <div className="flex-1 bg-gray-150/50 dark:bg-[hsl(222,47%,5%)] overflow-auto flex flex-col">
+      <div className="flex-1 bg-gray-100/50 dark:bg-[hsl(222,47%,5%)] overflow-auto flex flex-col">
         {/* Top bar */}
         <div className="glass-panel border-b border-gray-200/10 px-4 py-2 flex items-center justify-between min-w-0 gap-4 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0 overflow-hidden">
@@ -579,7 +579,7 @@ const CardDesigner: React.FC = () => {
               <>
                 <button
                   onClick={handleDiscard}
-                  className="px-3 py-1.5 glass-btn rounded-lg text-xs font-semibold text-gray-650 dark:text-gray-300 hover:text-red-500 transition-colors"
+                  className="px-3 py-1.5 glass-btn rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-red-500 transition-colors"
                 >
                   Discard
                 </button>

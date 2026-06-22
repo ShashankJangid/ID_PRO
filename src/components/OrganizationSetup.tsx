@@ -243,7 +243,7 @@ const OrganizationSetup: React.FC = () => {
               {qrFields.length > 0 && (
                 <div className="mt-3 p-3 bg-slate-500/5 dark:bg-white/5 rounded-lg border border-slate-200/50 dark:border-white/5">
                   <p className="text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase mb-1">QR Preview Format</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-350 font-mono">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-mono">
                     {qrFields.map(k => k).join(' | ')}
                   </p>
                 </div>
@@ -272,6 +272,12 @@ const OrganizationSetup: React.FC = () => {
                 <p className="text-xs text-gray-400 py-4 text-center">No custom fields yet.</p>
               ) : (
                 <div className="space-y-2">
+                  <div className="flex items-center gap-3 px-1 text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                    <span className="w-28">Field Key</span>
+                    <span className="flex-1">Display Label (shown in Designer)</span>
+                    <span className="w-28">Default Value</span>
+                    <span className="w-8"></span>
+                  </div>
                   {customFields.map((field, idx) => (
                     <div key={idx} className="flex items-center gap-3">
                       <input
@@ -297,7 +303,7 @@ const OrganizationSetup: React.FC = () => {
                       />
                       <button
                         onClick={() => removeCustomField(idx)}
-                        className="p-2 text-red-400 hover:text-red-650 hover:bg-red-500/10 rounded-lg transition-colors"
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -313,7 +319,7 @@ const OrganizationSetup: React.FC = () => {
         <div className="flex justify-end pt-2 pb-8">
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-3 glass-btn bg-emerald-600/90 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:scale-[1.01] border-transparent shadow-lg shadow-emerald-250/20 transition-all"
+            className="flex items-center gap-2 px-6 py-3 glass-btn bg-emerald-600/90 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:scale-[1.01] border-transparent shadow-lg shadow-emerald-500/20 transition-all"
           >
             <Save className="w-4 h-4" />
             Save Organization
