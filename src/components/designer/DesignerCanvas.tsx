@@ -96,7 +96,7 @@ const DesignerCanvas: React.FC<DesignerCanvasProps> = ({
             <div
               key={el.id}
               onMouseDown={(e) => onMouseDown(e, el.id)}
-              className={`absolute cursor-move transition-all duration-75 ${
+              className={`absolute cursor-move ${
                 isSelected
                   ? 'ring-2 ring-emerald-500 bg-emerald-500/10'
                   : 'hover:bg-white/5'
