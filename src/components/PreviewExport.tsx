@@ -228,7 +228,22 @@ const PreviewExport: React.FC = () => {
           })
         );
         // Wait for React to paint + fonts + images
-        setTimeout(resolve, 800);
+        let checks = 0;
+        const checkReady = () => {
+          const hasCard = container.querySelector('.id-card-render');
+          const imgs = Array.from(container.querySelectorAll('img'));
+          const allDone = imgs.every((img) => img.complete);
+
+          if (hasCard && allDone) {
+            resolve();
+          } else if (checks > 40) { // 400ms max timeout fallback
+            resolve();
+          } else {
+            checks++;
+            setTimeout(checkReady, 10);
+          }
+        };
+        setTimeout(checkReady, 15);
       });
 
       // Fonts
