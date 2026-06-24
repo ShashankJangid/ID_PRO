@@ -13,6 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 // html2canvas and jspdf are dynamically imported in export functions to reduce bundle size and INP
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '@/store';
 import CardRenderer from './CardRenderer';
 import type { CardData, ExportFormat } from '@/types';
@@ -30,7 +31,18 @@ const PreviewExport: React.FC = () => {
     showToast,
     updateActiveCard,
     setCardDataList,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow((s) => ({
+      cardDataList: s.cardDataList,
+      activeCardIndex: s.activeCardIndex,
+      setActiveCardIndex: s.setActiveCardIndex,
+      getActiveTemplate: s.getActiveTemplate,
+      organization: s.organization,
+      showToast: s.showToast,
+      updateActiveCard: s.updateActiveCard,
+      setCardDataList: s.setCardDataList,
+    }))
+  );
 
   const [side, setSide] = useState<'front' | 'back'>('front');
   const [exporting, setExporting] = useState(false);
