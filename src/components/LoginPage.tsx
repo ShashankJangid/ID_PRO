@@ -308,21 +308,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           backgroundSize: '48px 48px',
         }}
       />
-      {/* Ambient background decorative elements (glowing liquid blobs for Glassmorphism) */}
-      <div aria-hidden className="pointer-events-none select-none absolute inset-0 z-0 overflow-hidden">
-        <div 
-          className="absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] animate-blob"
-          style={{ background: darkMode ? 'hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.08)' : 'hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.04)' }} 
-        />
-        <div 
-          className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full blur-[130px] animate-blob animation-delay-2000"
-          style={{ background: darkMode ? 'hsla(calc(var(--primary-h, 160) + 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.07)' : 'hsla(calc(var(--primary-h, 160) + 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.03)' }} 
-        />
-        <div 
-          className="absolute top-[40%] left-[50%] w-[35vw] h-[35vw] rounded-full blur-[110px] animate-blob animation-delay-4000"
-          style={{ background: darkMode ? 'hsla(calc(var(--primary-h, 160) - 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.06)' : 'hsla(calc(var(--primary-h, 160) - 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.02)' }} 
-        />
-      </div>
+
       {/* Invisible reCAPTCHA anchor */}
       <div id="recaptcha-container" />
 

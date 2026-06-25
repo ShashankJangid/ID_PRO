@@ -11,15 +11,97 @@ import {
   Package,
   Loader2,
   Search,
+  Trash2,
 } from 'lucide-react';
 // html2canvas and jspdf are dynamically imported in export functions to reduce bundle size and INP
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '@/store';
-import CardRenderer from './CardRenderer';
+import CardRenderer, { getImageUrl } from './CardRenderer';
 import type { CardData, ExportFormat } from '@/types';
 import { imageUrlToBase64 } from './DataImport';
 
 const CARD_PREVIEW_STYLE = { boxShadow: '0 4px 24px rgba(0,0,0,0.15)', borderRadius: 12 };
+
+// Concurrency-capped runner helper
+async function runWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let currentIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (currentIndex < items.length) {
+      const index = currentIndex++;
+      const item = items[index];
+      results[index] = await fn(item, index);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+// Preload a single image into memory and decode it asynchronously
+const preloadImage = (url: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (img.decode) {
+        img.decode()
+          .then(() => resolve(img))
+          .catch(() => resolve(img)); // fallback resolve if decode fails
+      } else {
+        resolve(img);
+      }
+    };
+    img.onerror = () => {
+      resolve(img); // resolve to prevent blocking export on broken assets
+    };
+    img.src = url;
+  });
+};
+
+// Scan the template and organization to preload all static assets exactly once
+const preloadStaticAssets = async (
+  template: any,
+  organization: any
+): Promise<Map<string, HTMLImageElement>> => {
+  const cache = new Map<string, HTMLImageElement>();
+  const urlsToPreload = new Set<string>();
+
+  if (template.backgroundImage) {
+    urlsToPreload.add(template.backgroundImage);
+  }
+  if (template.backgroundImageBack) {
+    urlsToPreload.add(template.backgroundImageBack);
+  }
+
+  const checkElements = (elements: any[]) => {
+    for (const el of elements) {
+      if (el.type === 'image' && el.imageSource !== 'photo') {
+        const url = getImageUrl(el, {} as CardData, organization);
+        if (url) {
+          urlsToPreload.add(url);
+        }
+      }
+    }
+  };
+
+  checkElements(template.frontElements || []);
+  checkElements(template.backElements || []);
+
+  const urls = Array.from(urlsToPreload);
+  const images = await Promise.all(urls.map((url) => preloadImage(url)));
+  for (let i = 0; i < urls.length; i++) {
+    cache.set(urls[i], images[i]);
+  }
+
+  return cache;
+};
 
 const PreviewExport: React.FC = () => {
   const {
@@ -48,6 +130,7 @@ const PreviewExport: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
+  const [pdfQuality, setPdfQuality] = useState<'compressed' | 'original'>('compressed');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
@@ -168,14 +251,17 @@ const PreviewExport: React.FC = () => {
 
   // ─── Capture card to canvas ───
   const captureCard = useCallback(
-    async (card: CardData, cardSide: 'front' | 'back'): Promise<HTMLCanvasElement> => {
+    async (
+      card: CardData,
+      cardSide: 'front' | 'back'
+    ): Promise<HTMLCanvasElement> => {
       if (!template) throw new Error('No template');
 
-      // Off-screen container at EXACT card size — positioned absolutely at top-left
-      // of document body but invisible (opacity 0) to avoid user-visible flicker.
-      const wrapper = document.createElement('div');
-      wrapper.id = 'export-capture-wrapper';
-      wrapper.style.cssText = [
+      // Create an off-screen iframe to completely isolate the rendering context.
+      // This guarantees html2canvas does not see any host document styles (like Tailwind, Vite CSS),
+      // preventing the parser from crashing with "unexpected EOF" and resolving all race conditions.
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = [
         'position:absolute',
         'left:0',
         'top:0',
@@ -187,33 +273,67 @@ const PreviewExport: React.FC = () => {
         'z-index:-9999',
         'pointer-events:none',
         'opacity:0',
-        'overflow:hidden',
-        // Reset any global CSS that could shift text
-        'line-height:normal',
-        'font-size:16px',
+        'visibility:hidden',
       ].join(';');
-      document.body.appendChild(wrapper);
+      document.body.appendChild(iframe);
 
-      // Inner container — exact card pixel dimensions, no transform
-      const container = document.createElement('div');
-      container.id = 'export-capture-container';
-      container.style.cssText = [
-        `width:${template.cardWidth}px`,
-        `height:${template.cardHeight}px`,
-        'overflow:hidden',
-        'position:relative',
-        'background:#ffffff',
-        'margin:0',
-        'padding:0',
-        'border:none',
-        // Reset inherited styles that cause text shift
-        'line-height:normal',
-        'font-size:16px',
-        'font-family:Inter,sans-serif',
-      ].join(';');
-      wrapper.appendChild(container);
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        iframe.remove();
+        throw new Error('Could not access iframe document');
+      }
 
-      // Render CardRenderer with scale=1 (no transform)
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Export</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              overflow: hidden;
+              background: transparent;
+            }
+            .id-card-render, .id-card-render * {
+              box-sizing: border-box !important;
+            }
+            .id-card-render > div, .id-card-render > img {
+              margin: 0 !important;
+              padding: 0;
+            }
+            .card-export-root {
+              font-family: Inter, sans-serif;
+              font-size: 16px;
+              line-height: normal;
+              color: #000;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="export-capture-container" style="width: ${template.cardWidth}px; height: ${template.cardHeight}px; position: relative; overflow: hidden; background: #ffffff;"></div>
+        </body>
+        </html>
+      `);
+      iframeDoc.close();
+
+      // Copy loaded fonts so text metrics stay consistent
+      if (document.fonts && iframeDoc.fonts) {
+        document.fonts.forEach((font) => {
+          try {
+            iframeDoc.fonts.add(font);
+          } catch (_) {}
+        });
+      }
+
+      const container = iframeDoc.getElementById('export-capture-container')!;
+
+      // Render CardRenderer inside the iframe container
       let root: any = null;
       await new Promise<void>((resolve) => {
         root = createRoot(container);
@@ -227,7 +347,7 @@ const PreviewExport: React.FC = () => {
             style: { boxShadow: 'none', borderRadius: 0, transform: 'none' },
           })
         );
-        // Wait for React to paint + fonts + images
+        
         let checks = 0;
         const checkReady = () => {
           const hasCard = container.querySelector('.id-card-render');
@@ -246,10 +366,10 @@ const PreviewExport: React.FC = () => {
         setTimeout(checkReady, 15);
       });
 
-      // Fonts
-      if (document.fonts) await document.fonts.ready;
+      // Await fonts ready inside the iframe context
+      if (iframeDoc.fonts) await iframeDoc.fonts.ready;
 
-      // Images
+      // Await any inner images loading
       const imgs = Array.from(container.querySelectorAll('img'));
       await Promise.all(
         imgs.map(
@@ -267,117 +387,66 @@ const PreviewExport: React.FC = () => {
       // Extra paint frame
       await new Promise((r) => requestAnimationFrame(r));
 
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(container, {
-        scale: 3,           // 3x for print quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: template.cardWidth,
-        height: template.cardHeight,
-        logging: false,
-        // Since clonedWrapper is isolated at 0,0 and scroll is 0, crop at exactly 0,0
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        // Disable foreignObject — more reliable cross-browser text rendering
-        foreignObjectRendering: false,
-        // Remove any proxy
-        proxy: undefined,
-        imageTimeout: 15000,
-        onclone: (clonedDoc) => {
-          // Reset body and html element styles to avoid browser default margin/padding/scrollbar shifts
-          if (clonedDoc.body) {
-            clonedDoc.body.style.margin = '0';
-            clonedDoc.body.style.padding = '0';
-            clonedDoc.body.style.overflow = 'hidden';
-            clonedDoc.body.style.position = 'relative';
-          }
-          if (clonedDoc.documentElement) {
-            clonedDoc.documentElement.style.margin = '0';
-            clonedDoc.documentElement.style.padding = '0';
-            clonedDoc.documentElement.style.overflow = 'hidden';
-          }
-
-          // Copy loaded fonts from parent document to clone to prevent font fallback metrics mismatch
-          if (document.fonts && clonedDoc.fonts) {
-            document.fonts.forEach((font) => {
-              clonedDoc.fonts.add(font);
-            });
-          }
-
-          // Clear everything else from the cloned document's body to prevent layout pollution/scrollbars
-          const clonedWrapper = clonedDoc.getElementById('export-capture-wrapper');
-          if (clonedWrapper && clonedDoc.body) {
-            clonedDoc.body.innerHTML = '';
-            clonedDoc.body.appendChild(clonedWrapper);
-
-            // Re-style clonedWrapper to occupy the exact origin 0,0 perfectly
-            clonedWrapper.style.position = 'absolute';
-            clonedWrapper.style.left = '0';
-            clonedWrapper.style.top = '0';
-            clonedWrapper.style.width = `${template.cardWidth}px`;
-            clonedWrapper.style.height = `${template.cardHeight}px`;
-            clonedWrapper.style.opacity = '1';
-            clonedWrapper.style.zIndex = '1';
-            clonedWrapper.style.visibility = 'visible';
-            clonedWrapper.style.display = 'block';
-            clonedWrapper.style.margin = '0';
-            clonedWrapper.style.padding = '0';
-            clonedWrapper.style.border = 'none';
-            clonedWrapper.style.overflow = 'hidden';
-          }
-
-          const clonedContainer = clonedDoc.getElementById('export-capture-container');
-          if (clonedContainer) {
-            clonedContainer.style.position = 'absolute';
-            clonedContainer.style.left = '0';
-            clonedContainer.style.top = '0';
-            clonedContainer.style.margin = '0';
-            clonedContainer.style.padding = '0';
-            clonedContainer.style.border = 'none';
-            clonedContainer.style.overflow = 'hidden';
-          }
-
-
-          // Force all positioned elements in the clone to zero margin and box-sizing
-          // and ensure text elements have stable line-height (prevents the ~15px shift)
-          const defaultView = clonedDoc.defaultView || window;
-          const allDivs = clonedDoc.querySelectorAll('div, span, p, img');
-          allDivs.forEach((el) => {
-            const htmlEl = el as HTMLElement;
-            const computedStyle = defaultView.getComputedStyle(htmlEl);
-            if (computedStyle.position === 'absolute') {
-              htmlEl.style.margin = '0';
-              htmlEl.style.boxSizing = 'border-box';
-              htmlEl.style.verticalAlign = 'top';
-              if (htmlEl.getAttribute('data-element-type') === 'text') {
-                // Prevent html2canvas from applying extra line-height from the
-                // browser's default UA stylesheet which causes the ~15px shift
-                htmlEl.style.overflow = 'visible';
-                // Preserve the existing computed line-height from the inline style
-                // (already set correctly by CardRenderer) — just ensure it's explicit
-                const existingLH = htmlEl.style.lineHeight;
-                if (!existingLH || existingLH === 'normal') {
-                  const fontSize = parseFloat(computedStyle.fontSize) || 14;
-                  htmlEl.style.lineHeight = `${Math.round(fontSize * 1.4)}px`;
-                }
-                htmlEl.style.paddingTop = htmlEl.style.paddingTop || '0';
-                htmlEl.style.paddingBottom = htmlEl.style.paddingBottom || '0';
-              }
+      let canvas: HTMLCanvasElement | undefined;
+      try {
+        const { default: html2canvas } = await import('html2canvas');
+        canvas = await html2canvas(container, {
+          scale: pdfQuality === 'compressed' ? 2 : 3,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: template.cardWidth,
+          height: template.cardHeight,
+          logging: false,
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0,
+          foreignObjectRendering: false,
+          proxy: undefined,
+          imageTimeout: 15000,
+          onclone: (clonedDoc) => {
+            // Body/html resets inside cloned iframe
+            if (clonedDoc.body) {
+              clonedDoc.body.style.cssText = 'margin:0;padding:0;overflow:hidden;position:relative';
             }
-          });
-        },
+            if (clonedDoc.documentElement) {
+              clonedDoc.documentElement.style.cssText = 'margin:0;padding:0;overflow:hidden';
+            }
 
-      });
-
-      if (root) root.unmount();
-      document.body.removeChild(wrapper);
+            // Resolve line-heights to px to prevent the ~15px vertical shift on text elements
+            const dv = clonedDoc.defaultView || window;
+            clonedDoc.querySelectorAll('[data-element-type="text"]').forEach((el) => {
+              const h = el as HTMLElement;
+              const cs = dv.getComputedStyle(h);
+              if (cs.position !== 'absolute') return;
+              h.style.margin = '0';
+              h.style.boxSizing = 'border-box';
+              h.style.verticalAlign = 'top';
+              h.style.overflow = 'visible';
+              const lh = h.style.lineHeight;
+              const fs = parseFloat(cs.fontSize) || 14;
+              if (!lh || lh === 'normal') {
+                h.style.lineHeight = `${Math.round(fs * 1.4)}px`;
+              } else if (!lh.endsWith('px')) {
+                const n = parseFloat(lh);
+                h.style.lineHeight = isNaN(n)
+                  ? `${Math.round(fs * 1.4)}px`
+                  : `${Math.round(fs * (lh.endsWith('%') ? n / 100 : n))}px`;
+              }
+              h.style.paddingTop = h.style.paddingTop || '0';
+              h.style.paddingBottom = h.style.paddingBottom || '0';
+            });
+          },
+        });
+      } finally {
+        if (root) root.unmount();
+        iframe.remove();
+      }
 
       return canvas;
     },
-    [template, organization]
+    [template, organization, pdfQuality]
   );
 
   // ─── Export Single Card ───
@@ -388,46 +457,79 @@ const PreviewExport: React.FC = () => {
     const { jsPDF } = await import('jspdf');
 
     try {
+      // 1. Await fonts ready once globally
+      if (document.fonts) await document.fonts.ready;
+
+      // 2. Preload assets
+      await preloadStaticAssets(template, organization);
+
+      const hasBackSide = !!(template.backElements && template.backElements.length > 0);
+      const isCompressed = pdfQuality === 'compressed';
+      const imgType = isCompressed ? 'JPEG' : 'PNG';
+
       if (format === 'pdf') {
         const frontCanvas = await captureCard(activeCard, 'front');
         setExportProgress(50);
-        const backCanvas = await captureCard(activeCard, 'back');
-        setExportProgress(80);
+        let backCanvas: HTMLCanvasElement | null = null;
+        if (hasBackSide) {
+          backCanvas = await captureCard(activeCard, 'back');
+          setExportProgress(80);
+        }
 
         const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
-        pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-        pdf.addPage([cardW, cardH], 'portrait');
-        pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
+        
+        const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+        pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+        
+        if (hasBackSide && backCanvas) {
+          pdf.addPage([cardW, cardH], 'portrait');
+          const backDataUrl = isCompressed ? backCanvas.toDataURL('image/jpeg', 0.82) : backCanvas.toDataURL('image/png');
+          pdf.addImage(backDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+        }
         pdf.save(`${activeCard.code || 'id_card'}.pdf`);
       } else if (format === 'png') {
         const frontCanvas = await captureCard(activeCard, 'front');
         setExportProgress(50);
-        const backCanvas = await captureCard(activeCard, 'back');
-        setExportProgress(80);
+        let backCanvas: HTMLCanvasElement | null = null;
+        if (hasBackSide) {
+          backCanvas = await captureCard(activeCard, 'back');
+          setExportProgress(80);
+        }
 
         const link = document.createElement('a');
         link.download = `${activeCard.code || 'id_card'}_front.png`;
         link.href = frontCanvas.toDataURL('image/png');
         link.click();
 
-        setTimeout(() => {
-          const link2 = document.createElement('a');
-          link2.download = `${activeCard.code || 'id_card'}_back.png`;
-          link2.href = backCanvas.toDataURL('image/png');
-          link2.click();
-        }, 200);
+        if (hasBackSide && backCanvas) {
+          setTimeout(() => {
+            const link2 = document.createElement('a');
+            link2.download = `${activeCard.code || 'id_card'}_back.png`;
+            link2.href = backCanvas!.toDataURL('image/png');
+            link2.click();
+          }, 100);
+        }
       } else if (format === 'print') {
         const frontCanvas = await captureCard(activeCard, 'front');
         setExportProgress(50);
-        const backCanvas = await captureCard(activeCard, 'back');
-        setExportProgress(80);
+        let backCanvas: HTMLCanvasElement | null = null;
+        if (hasBackSide) {
+          backCanvas = await captureCard(activeCard, 'back');
+          setExportProgress(80);
+        }
 
         const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
-        pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-        pdf.addPage([cardW, cardH], 'portrait');
-        pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
+        
+        const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+        pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+        
+        if (hasBackSide && backCanvas) {
+          pdf.addPage([cardW, cardH], 'portrait');
+          const backDataUrl = isCompressed ? backCanvas.toDataURL('image/jpeg', 0.82) : backCanvas.toDataURL('image/png');
+          pdf.addImage(backDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+        }
         pdf.autoPrint();
         const blob = pdf.output('blob');
         const url = URL.createObjectURL(blob);
@@ -446,7 +548,7 @@ const PreviewExport: React.FC = () => {
   };
 
   // ─── Export Selected Cards ───
-  const exportAll = async (format: ExportFormat) => {
+  const exportAll = async (format: ExportFormat, separatePdf: boolean = false) => {
     if (!template || cardDataList.length === 0) return;
 
     // Filter selected cards
@@ -461,40 +563,217 @@ const PreviewExport: React.FC = () => {
     setExportProgress(0);
 
     try {
+      // 1. Await fonts ready once globally
+      if (document.fonts) await document.fonts.ready;
+
+      // 2. Preload assets
+      await preloadStaticAssets(template, organization);
+
       const { jsPDF } = await import('jspdf');
+
+      const hasBackSide = !!(template.backElements && template.backElements.length > 0);
+      const isCompressed = pdfQuality === 'compressed';
+      const imgType = isCompressed ? 'JPEG' : 'PNG';
+
+      // 3. Construct concurrency tasks
+      type CaptureTask = {
+        card: CardData;
+        side: 'front' | 'back';
+        cardIndex: number;
+      };
+
+      const tasks: CaptureTask[] = [];
+      cardsToExport.forEach((card, index) => {
+        tasks.push({ card, side: 'front', cardIndex: index });
+        if (hasBackSide) {
+          tasks.push({ card, side: 'back', cardIndex: index });
+        }
+      });
+
+      // 4. Capture all canvases concurrently (limit 3)
+      let completedTasks = 0;
+      const taskResults = await runWithConcurrency(tasks, 3, async (task) => {
+        const canvas = await captureCard(task.card, task.side);
+        completedTasks++;
+        setExportProgress(Math.round((completedTasks / tasks.length) * 100));
+        return { canvas, side: task.side, cardIndex: task.cardIndex };
+      });
+
+      // 5. Assemble format-specific outputs sequentially
       if (format === 'pdf') {
+        const { cardW, cardH } = getPdfDimensions();
+
+        if (separatePdf) {
+          // Download PDFs one-by-one
+          for (let i = 0; i < cardsToExport.length; i++) {
+            const card = cardsToExport[i];
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
+
+            if (hasBackSide) {
+              const frontCanvas = taskResults[i * 2].canvas;
+              const backCanvas = taskResults[i * 2 + 1].canvas;
+              
+              const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+              const backDataUrl = isCompressed ? backCanvas.toDataURL('image/jpeg', 0.82) : backCanvas.toDataURL('image/png');
+              
+              pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+              pdf.addPage([cardW, cardH], 'portrait');
+              pdf.addImage(backDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+            } else {
+              const frontCanvas = taskResults[i].canvas;
+              const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+              pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+            }
+
+            pdf.save(`${card.code || 'id_card'}_${card.name || i + 1}.pdf`);
+            // Small delay to prevent browser throttling/skipping downloads
+            await new Promise((r) => setTimeout(r, 150));
+          }
+        } else {
+          // Single PDF
+          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
+
+          if (hasBackSide) {
+            for (let i = 0; i < cardsToExport.length; i++) {
+              const frontCanvas = taskResults[i * 2].canvas;
+              const backCanvas = taskResults[i * 2 + 1].canvas;
+              
+              const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+              const backDataUrl = isCompressed ? backCanvas.toDataURL('image/jpeg', 0.82) : backCanvas.toDataURL('image/png');
+
+              if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
+              pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+              pdf.addPage([cardW, cardH], 'portrait');
+              pdf.addImage(backDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+            }
+          } else {
+            // Front only
+            for (let i = 0; i < cardsToExport.length; i++) {
+              const frontCanvas = taskResults[i].canvas;
+              const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+
+              if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
+              pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+            }
+          }
+          pdf.save('all_id_cards.pdf');
+        }
+      } else if (format === 'png') {
+        // PNG export
+        for (let i = 0; i < taskResults.length; i++) {
+          const { canvas, side, cardIndex } = taskResults[i];
+          const card = cardsToExport[cardIndex];
+          const link = document.createElement('a');
+          link.download = `${card.code || 'card'}_${cardIndex + 1}_${side}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          // Delay to prevent browser throttling/skipping downloads
+          await new Promise((r) => setTimeout(r, 100));
+        }
+      } else if (format === 'print') {
         const { cardW, cardH } = getPdfDimensions();
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [cardW, cardH] });
 
-        for (let i = 0; i < cardsToExport.length; i++) {
-          const card = cardsToExport[i];
-          const frontCanvas = await captureCard(card, 'front');
-          const backCanvas = await captureCard(card, 'back');
-          if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
-          pdf.addImage(frontCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-          pdf.addPage([cardW, cardH], 'portrait');
-          pdf.addImage(backCanvas.toDataURL('image/png'), 'PNG', 0, 0, cardW, cardH);
-          setExportProgress(Math.round(((i + 1) / cardsToExport.length) * 100));
+        if (hasBackSide) {
+          for (let i = 0; i < cardsToExport.length; i++) {
+            const frontCanvas = taskResults[i * 2].canvas;
+            const backCanvas = taskResults[i * 2 + 1].canvas;
+            
+            const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+            const backDataUrl = isCompressed ? backCanvas.toDataURL('image/jpeg', 0.82) : backCanvas.toDataURL('image/png');
+
+            if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
+            pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+            pdf.addPage([cardW, cardH], 'portrait');
+            pdf.addImage(backDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+          }
+        } else {
+          // Front only
+          for (let i = 0; i < cardsToExport.length; i++) {
+            const frontCanvas = taskResults[i].canvas;
+            const frontDataUrl = isCompressed ? frontCanvas.toDataURL('image/jpeg', 0.82) : frontCanvas.toDataURL('image/png');
+
+            if (i > 0) pdf.addPage([cardW, cardH], 'portrait');
+            pdf.addImage(frontDataUrl, imgType, 0, 0, cardW, cardH, undefined, isCompressed ? 'FAST' : undefined);
+          }
         }
-        pdf.save('all_id_cards.pdf');
-      } else {
-        for (let i = 0; i < cardsToExport.length; i++) {
-          const card = cardsToExport[i];
-          const frontCanvas = await captureCard(card, 'front');
-          const link = document.createElement('a');
-          link.download = `${card.code || 'card'}_${i + 1}_front.png`;
-          link.href = frontCanvas.toDataURL('image/png');
-          link.click();
-          await new Promise((r) => setTimeout(r, 300));
-          setExportProgress(Math.round(((i + 1) / cardsToExport.length) * 100));
-        }
+
+        pdf.autoPrint();
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       }
+
       showToast(`Exported ${cardsToExport.length} cards!`, 'success');
     } catch (err) {
       showToast('Bulk export failed: ' + (err as Error).message, 'error');
     } finally {
       setExporting(false);
       setExportProgress(0);
+    }
+  };
+
+  // ─── Delete Individual Card ───
+  const deleteCard = (originalIdx: number) => {
+    if (cardDataList.length <= 1) {
+      showToast('Cannot delete the last card.', 'error');
+      return;
+    }
+    const list = cardDataList.filter((_, i) => i !== originalIdx);
+    setCardDataList(list);
+
+    // Adjust activeCardIndex
+    if (activeCardIndex >= list.length) {
+      setActiveCardIndex(Math.max(0, list.length - 1));
+    }
+
+    // Adjust selectedIndices
+    setSelectedIndices((prev) => {
+      const next = new Set<number>();
+      prev.forEach((idx) => {
+        if (idx < originalIdx) {
+          next.add(idx);
+        } else if (idx > originalIdx) {
+          next.add(idx - 1);
+        }
+      });
+      return next;
+    });
+
+    showToast('Record deleted', 'info');
+  };
+
+  // ─── Remove Selected Cards ───
+  const removeSelectedCards = () => {
+    const selectedCount = cardDataList.filter((_, idx) => selectedIndices.has(idx)).length;
+    if (selectedCount === 0) {
+      showToast('No cards selected to remove.', 'error');
+      return;
+    }
+    if (selectedCount === cardDataList.length) {
+      if (window.confirm('Are you sure you want to remove ALL records? You must have at least one record.')) {
+        // Keep a default record
+        const defaultCard: CardData = {
+          name: 'Sample Name', role: 'Designation', code: 'DEMO-001',
+          dob: '01-01-2000', blood: 'A+', contact: '+91-XXXXXXXXXX',
+          address: 'School Address, City', issued: '01-06-2025',
+          valid: '31-05-2026', emergency: '+91-XXXXXXXXXX',
+        };
+        setCardDataList([defaultCard]);
+        setActiveCardIndex(0);
+        setSelectedIndices(new Set([0]));
+        showToast('All records cleared and reset to sample.', 'success');
+      }
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to remove the ${selectedCount} selected records?`)) {
+      const list = cardDataList.filter((_, idx) => !selectedIndices.has(idx));
+      setCardDataList(list);
+      setActiveCardIndex(0);
+      setSelectedIndices(new Set());
+      showToast(`Removed ${selectedCount} records.`, 'success');
     }
   };
 
@@ -546,6 +825,48 @@ const PreviewExport: React.FC = () => {
               {cardDataList.filter((_, idx) => selectedIndices.has(idx)).length} of {cardDataList.length} selected
             </span>
           </div>
+          <div className="mt-3 flex items-center justify-between gap-1.5 border-t border-gray-100 pt-2 text-[10px]">
+            <button
+              onClick={() => {
+                const halfCount = Math.ceil(cardDataList.length / 2);
+                const next = new Set<number>();
+                for (let i = 0; i < halfCount; i++) {
+                  next.add(i);
+                }
+                setSelectedIndices(next);
+              }}
+              className="px-1.5 py-1 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded border border-gray-200 dark:border-gray-800 font-medium transition-colors"
+            >
+              Select Half ({Math.ceil(cardDataList.length / 2)})
+            </button>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-400">First:</span>
+              <input
+                type="number"
+                min={0}
+                max={cardDataList.length}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (isNaN(val) || val < 0) return;
+                  const next = new Set<number>();
+                  const limit = Math.min(val, cardDataList.length);
+                  for (let i = 0; i < limit; i++) {
+                    next.add(i);
+                  }
+                  setSelectedIndices(next);
+                }}
+                placeholder="N"
+                className="w-10 px-1 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
+              />
+            </div>
+            <button
+              onClick={removeSelectedCards}
+              className="px-1.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-200 font-medium transition-colors"
+              title="Remove selected cards"
+            >
+              Remove Selected
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredCards.map((card, idx) => {
@@ -554,7 +875,7 @@ const PreviewExport: React.FC = () => {
             return (
               <div
                 key={idx}
-                className={`flex items-center border-b border-gray-50 transition-colors hover:bg-gray-50 ${
+                className={`flex items-center border-b border-gray-50 transition-colors hover:bg-gray-50 group ${
                   originalIdx === activeCardIndex ? 'bg-emerald-50/60 border-l-4 border-l-emerald-500' : ''
                 }`}
               >
@@ -574,6 +895,18 @@ const PreviewExport: React.FC = () => {
                   <p className="text-xs text-gray-500 truncate">
                     {card.code} • {card.role}
                   </p>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Are you sure you want to remove ${card.name || 'this card'}?`)) {
+                      deleteCard(originalIdx);
+                    }
+                  }}
+                  className="p-1.5 mr-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  title="Remove card"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             );
@@ -677,6 +1010,36 @@ const PreviewExport: React.FC = () => {
           ))}
         </div>
 
+        {(exportFormat === 'pdf' || exportFormat === 'print') && (
+          <div className="mb-6 pt-4 border-t border-gray-100 dark:border-[hsl(222,47%,18%)]">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-3">PDF Size / Quality</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setPdfQuality('compressed')}
+                className={`px-3 py-2.5 rounded-xl border text-[11px] font-semibold transition-all flex flex-col items-center justify-center leading-tight ${
+                  pdfQuality === 'compressed'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300'
+                    : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
+              >
+                <span>Standard (JPEG)</span>
+                <span className="text-[9px] font-normal opacity-70 mt-0.5">Compressed (&lt; 1MB)</span>
+              </button>
+              <button
+                onClick={() => setPdfQuality('original')}
+                className={`px-3 py-2.5 rounded-xl border text-[11px] font-semibold transition-all flex flex-col items-center justify-center leading-tight ${
+                  pdfQuality === 'original'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300'
+                    : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
+              >
+                <span>HD Print (PNG)</span>
+                <span className="text-[9px] font-normal opacity-70 mt-0.5">Uncompressed (~3MB)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <button
             onClick={() => exportSingle(exportFormat)}
@@ -684,17 +1047,34 @@ const PreviewExport: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all"
           >
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Export Current Card
+            {exportFormat === 'pdf'
+              ? `Export Current Card (${pdfQuality === 'compressed' ? 'Small PDF' : 'HD PDF'})`
+              : 'Export Current Card'}
           </button>
 
           {cardDataList.length > 1 && (
             <button
-              onClick={() => exportAll(exportFormat)}
+              onClick={() => exportAll(exportFormat, false)}
               disabled={exporting}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-emerald-200 text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-50 disabled:opacity-50 transition-all"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-              Export Selected ({cardDataList.filter((_, idx) => selectedIndices.has(idx)).length})
+              {exportFormat === 'pdf'
+                ? `Export Selected (${pdfQuality === 'compressed' ? 'Single Small PDF' : 'Single HD PDF'})`
+                : `Export Selected (${cardDataList.filter((_, idx) => selectedIndices.has(idx)).length})`}
+            </button>
+          )}
+
+          {cardDataList.length > 1 && exportFormat === 'pdf' && (
+            <button
+              onClick={() => exportAll('pdf', true)}
+              disabled={exporting}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl text-sm font-semibold disabled:opacity-50 transition-all"
+            >
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {pdfQuality === 'compressed'
+                ? `Export Small PDFs One-by-One (${cardDataList.filter((_, idx) => selectedIndices.has(idx)).length})`
+                : `Export HD PDFs One-by-One (${cardDataList.filter((_, idx) => selectedIndices.has(idx)).length})`}
             </button>
           )}
         </div>
