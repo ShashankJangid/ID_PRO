@@ -23,8 +23,6 @@ import {
   ArrowLeft,
   CheckCircle2,
 } from 'lucide-react';
-import iitjLogo from '@/assets/iitj_logo.png';
-import dpsLogo from '@/assets/dps_logo.png';
 import RobotAvatar from './shared/RobotAvatar';
 import Logo from './shared/Logo';
 
@@ -371,67 +369,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   {f}
                 </span>
               ))}
-            </div>
-          </div>
-
-          <div className="w-full border-t border-slate-800/60 pt-6">
-            <p className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest mb-4">
-              Trusted by Teams At
-            </p>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6">
-              {/* IIT Jodhpur */}
-              <a
-                href="https://www.iitj.ac.in/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center md:items-start gap-1 group no-underline"
-                title="Visit IIT Jodhpur"
-              >
-                <div className="h-16 w-36 flex items-center justify-center bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-slate-200/50 dark:border-white/10 hover:border-emerald-400 hover:shadow-emerald-500/20 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-                  <img
-                    src={iitjLogo}
-                    alt="Indian Institute of Technology Jodhpur"
-                    className="max-h-12 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling;
-                      if (fallback) fallback.classList.remove('hidden');
-                    }}
-                  />
-                  <span className="hidden text-xs font-bold text-slate-800 text-center">IIT Jodhpur</span>
-                </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-emerald-400 transition-colors font-semibold ml-1 flex items-center gap-0.5">
-                  IIT Jodhpur
-                  <svg width="9" height="9" viewBox="0 0 10 10" className="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M1 9L9 1M9 1H3M9 1V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
-              </a>
-
-              {/* DPS Indirapuram */}
-              <a
-                href="http://dpsindirapuram.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center md:items-start gap-1 group no-underline"
-                title="Visit DPS Indirapuram"
-              >
-                <div className="h-16 w-36 flex items-center justify-center bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-slate-200/50 dark:border-white/10 hover:border-emerald-400 hover:shadow-emerald-500/20 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-                  <img
-                    src={dpsLogo}
-                    alt="Delhi Public School Indirapuram"
-                    className="max-h-12 max-w-full object-contain transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling;
-                      if (fallback) fallback.classList.remove('hidden');
-                    }}
-                  />
-                  <span className="hidden text-xs font-bold text-slate-800 text-center">DPS Indirapuram</span>
-                </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-emerald-400 transition-colors font-semibold ml-1 flex items-center gap-0.5">
-                  DPS Indirapuram
-                  <svg width="9" height="9" viewBox="0 0 10 10" className="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M1 9L9 1M9 1H3M9 1V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </span>
-              </a>
             </div>
           </div>
         </div>

@@ -1,7 +1,4 @@
 import type { CardTemplate, CardElement, DataField, TextStyleOpts, ShapeStyleOpts } from '@/types';
-import { auth } from '@/lib/firebase';
-import dpsFront from '@/assets/dps_front.jpg';
-import dpsBack from '@/assets/dps_back.png';
 
 // ─── Helper to generate unique IDs ───
 let _idCounter = 0;
@@ -853,7 +850,7 @@ export const corporateProTemplate: CardTemplate = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// TEMPLATE 2: SCHOOL CLASSIC (Inspired by original DPS design)
+// TEMPLATE 2: SCHOOL CLASSIC
 // ═══════════════════════════════════════════════════════════
 export const schoolClassicTemplate: CardTemplate = {
   id: 'builtin_school_classic',
@@ -2372,112 +2369,6 @@ export const horizontalCorporateTemplate: CardTemplate = {
   ],
 };
 
-// ═══════════════════════════════════════════════════════════
-// Export all built-in templates
-// ═══════════════════════════════════════════════════════════
-export const dpsIndirapuramTemplate: CardTemplate = {
-  id: 'builtin_dps_indirapuram',
-  name: 'DPS Indirapuram',
-  description: 'Official Delhi Public School Indirapuram card template.',
-  category: 'school',
-  cardWidth: 650,
-  cardHeight: 1024,
-  isBuiltIn: true,
-  backgroundImage: dpsBack,
-  backgroundImageBack: dpsFront,
-  frontElements: [
-    // Photo element placement
-    img('Student/Staff Photo', 'photo', 215, 232, 220, 280, {
-      borderRadius: 0,
-      objectFit: 'cover',
-    }),
-    // Name element placement (centered, bold, black)
-    txt('Name', 'name', 40, 560, 570, 45, {
-      fontSize: 28,
-      fontWeight: '700',
-      color: '#000000',
-      textAlign: 'center',
-    }),
-    // Role/Designation element placement (centered, semi-bold, black)
-    txt('Role / Designation', 'role', 40, 615, 570, 35, {
-      fontSize: 20,
-      fontWeight: '600',
-      color: '#000000',
-      textAlign: 'center',
-    }),
-    // Employee Code element placement (centered, semi-bold, black)
-    txt('Code', 'code', 40, 665, 570, 30, {
-      fontSize: 18,
-      fontWeight: '600',
-      color: '#000000',
-      textAlign: 'center',
-    }),
-    // Issued Date value (placed inside the left green box: text is white, centered)
-    txt('Issued Date', 'issued', 50, 878, 205, 30, {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#ffffff',
-      textAlign: 'center',
-    }),
-    // Valid To value (placed inside the right green box: text is white, centered)
-    txt('Valid Upto', 'valid', 400, 878, 205, 30, {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#ffffff',
-      textAlign: 'center',
-    }),
-  ],
-  backElements: [
-    // Date of Birth: value next to label (white/light text, left aligned)
-    txt('Date of Birth', 'dob', 335, 102, 260, 30, {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#ffffff',
-      textAlign: 'left',
-    }),
-    // Blood Group: value next to label
-    txt('Blood Group', 'blood', 335, 172, 260, 30, {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#ffffff',
-      textAlign: 'left',
-    }),
-    // Contact No: value next to label
-    txt('Contact Number', 'contact', 335, 242, 260, 30, {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#ffffff',
-      textAlign: 'left',
-    }),
-    // Address: value below label (wrap enabled, size 14)
-    txt('Address', 'address', 225, 312, 370, 75, {
-      fontSize: 14,
-      fontWeight: '500',
-      color: '#ffffff',
-      textAlign: 'left',
-    }),
-    // Admin Head Signature
-    img('Admin Head Signature', 'signature1', 60, 395, 150, 60, {
-      borderRadius: 0,
-      objectFit: 'contain',
-    }),
-    // Principal Signature
-    img('Principal Signature', 'signature2', 440, 395, 150, 60, {
-      borderRadius: 0,
-      objectFit: 'contain',
-    }),
-    // QR Code
-    qr('QR Code', undefined, 275, 415, 100),
-    // Emergency Contact: placed inside the box
-    txt('Emergency Contact', 'emergency', 330, 563, 200, 25, {
-      fontSize: 13,
-      fontWeight: '600',
-      color: '#ffffff',
-      textAlign: 'left',
-    }),
-  ],
-};
-
 // ─── Export all built-in templates ───
 export const builtInTemplates: CardTemplate[] = [
   whiteBlankTemplate,
@@ -2493,9 +2384,5 @@ export const builtInTemplates: CardTemplate[] = [
 ];
 
 export function getBuiltInTemplates(): CardTemplate[] {
-  const templates = [...builtInTemplates];
-  if (auth.currentUser?.email === 'shashankjangidofficial@gmail.com') {
-    templates.push(dpsIndirapuramTemplate);
-  }
-  return templates.map((t) => ({ ...t }));
+  return builtInTemplates.map((t) => ({ ...t }));
 }
