@@ -7,6 +7,7 @@ import Toast from '@/components/Toast';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import './App.css';
+import './card_export_fix.css';
 
 // Lazy-loaded components:
 const Dashboard = lazy(() => import('@/components/Dashboard'));

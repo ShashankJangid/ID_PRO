@@ -1,6 +1,5 @@
 /* ============================================================
    EXPORT / html2canvas text alignment fixes
-   Add these rules to Card_Gen/src/App.css
    ============================================================ */
 
 /* Ensure card container resets all inherited text metrics */
@@ -9,9 +8,9 @@
   box-sizing: border-box;
 }
 
-/* Text elements in card: always align from top-left, no browser baseline shift */
-.id-card-render div[style*="position: absolute"],
-.id-card-render div[style*="position:absolute"] {
+/* Text and media elements in card: always align from top-left, no browser baseline shift */
+.id-card-render > div,
+.id-card-render > img {
   margin: 0 !important;
   padding: 0;
 }
@@ -26,8 +25,8 @@
 }
 
 /* ============================================================
-   Designer canvas: stop overflow:hidden from clipping text
+   Designer canvas: stop overflow from clipping text
    ============================================================ */
-#designer-canvas [style*="position: absolute"] {
+#designer-canvas .id-card-render > div {
   overflow: visible;
 }

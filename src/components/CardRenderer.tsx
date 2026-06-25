@@ -45,8 +45,9 @@ interface CardRendererProps {
   style?: React.CSSProperties;
 }
 
+
 /** Get image URL for image source */
-function getImageUrl(
+export function getImageUrl(
   el: CardElement,
   cardData: CardData,
   organization: Organization
@@ -179,8 +180,9 @@ function renderElement(
         if (!lh) return `${Math.round(fittedFontSize * 1.4)}px`;
         const lhStr = String(lh).trim();
         if (lhStr.endsWith('px')) return lhStr;
+        if (lhStr === 'normal') return `${Math.round(fittedFontSize * 1.4)}px`;
         const val = parseFloat(lhStr);
-        if (isNaN(val)) return lhStr; // fallback for keywords like 'normal'
+        if (isNaN(val)) return `${Math.round(fittedFontSize * 1.4)}px`;
         // If it's a relative value (like 1.4 or 120%), convert to px
         const scaleFactor = lhStr.endsWith('%') ? val / 100 : val;
         return `${Math.round(fittedFontSize * scaleFactor)}px`;
@@ -212,19 +214,21 @@ function renderElement(
 
     case 'image': {
       if (imgUrl) {
+        const imgStyle = {
+          ...baseStyle,
+          objectFit: (s.objectFit as any) || 'cover',
+          borderRadius: s.borderRadius,
+          border: s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor || '#000'}` : undefined,
+          boxShadow: s.shadow,
+        };
+
         return (
           <img
             key={el.id}
             src={imgUrl}
             alt={el.label}
             crossOrigin="anonymous"
-            style={{
-              ...baseStyle,
-              objectFit: (s.objectFit as any) || 'cover',
-              borderRadius: s.borderRadius,
-              border: s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor || '#000'}` : undefined,
-              boxShadow: s.shadow,
-            }}
+            style={imgStyle}
           />
         );
       }
@@ -355,10 +359,9 @@ const CardRenderer: React.FC<CardRendererProps> = ({
     [template.cardWidth, template.cardHeight, scale, style]
   );
 
-  return (
-    <div className={`id-card-render ${className}`.trim()} style={cardStyle}>
-      {/* Background — Canva Embed Iframe or Static Image */}
-      {canvaEmbedUrl ? (
+  const renderBackground = () => {
+    if (canvaEmbedUrl) {
+      return (
         <iframe
           src={canvaEmbedUrl}
           style={{
@@ -374,26 +377,41 @@ const CardRenderer: React.FC<CardRendererProps> = ({
           }}
           title="Canva Design"
         />
-      ) : bgImage ? (
+      );
+    }
+
+    if (bgImage) {
+      const bgStyle: React.CSSProperties = {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'fill',
+        zIndex: 0,
+        pointerEvents: 'none',
+        display: 'block',
+        margin: 0,
+        padding: 0,
+      };
+
+      return (
         <img
           src={bgImage}
           alt="card background"
           crossOrigin="anonymous"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'fill',
-            zIndex: 0,
-            pointerEvents: 'none',
-            display: 'block',
-            margin: 0,
-            padding: 0,
-          }}
+          style={bgStyle}
         />
-      ) : null}
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className={`id-card-render ${className}`.trim()} style={cardStyle}>
+      {/* Background — Canva Embed Iframe, Cached Background, or Static Image */}
+      {renderBackground()}
       {elements.map((el) => renderElement(el, cardData, organization))}
     </div>
   );

@@ -126,21 +126,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
 
   return (
     <div ref={bgRef} className="flex h-screen w-screen bg-slate-50 dark:bg-black overflow-hidden transition-colors duration-300 relative">
-      {/* Ambient background decorative elements (glowing liquid blobs for Glassmorphism) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <div 
-          className="absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full blur-[120px] animate-blob"
-          style={{ background: 'hsla(var(--primary-h, 160), var(--primary-s, 84%), var(--primary-l, 39%), 0.08)' }} 
-        />
-        <div 
-          className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full blur-[130px] animate-blob animation-delay-2000"
-          style={{ background: 'hsla(calc(var(--primary-h, 160) + 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.07)' }} 
-        />
-        <div 
-          className="absolute top-[40%] left-[50%] w-[35vw] h-[35vw] rounded-full blur-[110px] animate-blob animation-delay-4000"
-          style={{ background: 'hsla(calc(var(--primary-h, 160) - 40), var(--primary-s, 84%), var(--primary-l, 39%), 0.06)' }} 
-        />
-      </div>
 
       {/* Sidebar Wrapper */}
       <div className="relative flex-shrink-0 z-10 flex">

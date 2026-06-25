@@ -184,8 +184,8 @@ aside {
   box-sizing: border-box !important;
 }
 
-.id-card-render div[style*="position: absolute"],
-.id-card-render div[style*="position:absolute"] {
+.id-card-render > div,
+.id-card-render > img {
   margin: 0 !important;
   padding: 0;
 }
