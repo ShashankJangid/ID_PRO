@@ -119,8 +119,8 @@ const OrganizationSetup: React.FC = () => {
           {expandedSections.basic && (
             <div className="grid grid-cols-2 gap-4 mt-4">
               {[
-                { field: 'name', label: 'Organization Name *', placeholder: 'e.g., Delhi Public School', full: false },
-                { field: 'tagline', label: 'Tagline / Subtitle', placeholder: 'e.g., Excellence in Education', full: false },
+                { field: 'name', label: 'Organization Name *', placeholder: 'e.g., Acme Corporation', full: false },
+                { field: 'tagline', label: 'Tagline / Subtitle', placeholder: 'e.g., Innovation & Trust', full: false },
                 { field: 'phone', label: 'Phone', placeholder: '+91-XXXXXXXXXX', full: false },
                 { field: 'email', label: 'Email', placeholder: 'contact@organization.com', full: false },
                 { field: 'website', label: 'Website', placeholder: 'www.organization.com', full: false },

@@ -1,7 +1,7 @@
 import { getFieldValue } from './src/store/index.ts';
 
-const org = { name: 'DELHI PUBLIC SCHOOL INDIRAPURAM', address: '526/1, AHINSA KHAND-II, INDIRAPURAM', phone: '01204660000', email: 'info@dpsindirapuram.com' };
-const cardData = { name: 'MS. SHALOO TANDAN', role: 'SENIOR MISTRESS', contact: '9811748518' };
+const org = { name: 'ACME CORPORATION', address: '123 Main Street, Tech City', phone: '012-345-6789', email: 'info@acme.com' };
+const cardData = { name: 'JOHN DOE', role: 'SOFTWARE ENGINEER', contact: '9876543210' };
 const el = { qrFields: ['name', 'role', 'orgName', 'orgAddress', 'contact', 'orgPhone', 'orgEmail'] };
 
 const fields = el.qrFields;
