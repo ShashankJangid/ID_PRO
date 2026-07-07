@@ -4,7 +4,4 @@ dist
 .gitignore
 .vscode
 README.md
-Dockerfile
-nginx.conf
-.dockerignore
 npm-debug.log
