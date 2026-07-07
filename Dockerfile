@@ -2,7 +2,8 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Install ALL dependencies including devDependencies (tsc, vite etc. are needed for build)
+RUN npm ci --include=dev
 COPY . .
 RUN npm run build
 
