@@ -75,7 +75,7 @@ const defaultOrg: Organization = {
 const defaultCardData: CardData = {
   name: 'Sample Name', role: 'Designation', code: 'DEMO-001',
   dob: '01-01-2000', blood: 'A+', contact: '+91-XXXXXXXXXX',
-  address: 'School Address, City', issued: '01-06-2025',
+  address: '123 Innovation Way, Tech City', issued: '01-06-2025',
   valid: '31-05-2026', emergency: '+91-XXXXXXXXXX',
 };
 
@@ -197,6 +197,16 @@ const deleteTemplateFromFirestore = async (userId: string, templateId: string) =
   }
 };
 
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func(...args);
+    }, wait);
+  };
+}
+
 const saveProfileToFirestore = async (userId: string, org: Organization, cards: CardData[]) => {
   try {
     const docRef = doc(db, 'users', userId);
@@ -210,6 +220,8 @@ const saveProfileToFirestore = async (userId: string, org: Organization, cards: 
   }
 };
 
+const debouncedSaveProfileToFirestore = debounce(saveProfileToFirestore, 1000);
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -221,7 +233,7 @@ export const useAppStore = create<AppState>()(
           const newOrg = { ...state.organization, ...org };
           const userId = auth.currentUser?.uid;
           if (userId) {
-            saveProfileToFirestore(userId, newOrg, state.cardDataList);
+            debouncedSaveProfileToFirestore(userId, newOrg, state.cardDataList);
           }
           return { organization: newOrg };
         }),
@@ -275,7 +287,7 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const userId = auth.currentUser?.uid;
           if (userId) {
-            saveProfileToFirestore(userId, state.organization, list);
+            debouncedSaveProfileToFirestore(userId, state.organization, list);
           }
           return { cardDataList: list, activeCardIndex: 0 };
         }),
@@ -284,7 +296,7 @@ export const useAppStore = create<AppState>()(
           const newList = [...state.cardDataList, data];
           const userId = auth.currentUser?.uid;
           if (userId) {
-            saveProfileToFirestore(userId, state.organization, newList);
+            debouncedSaveProfileToFirestore(userId, state.organization, newList);
           }
           return { cardDataList: newList };
         }),
@@ -296,7 +308,7 @@ export const useAppStore = create<AppState>()(
           }
           const userId = auth.currentUser?.uid;
           if (userId) {
-            saveProfileToFirestore(userId, state.organization, list);
+            debouncedSaveProfileToFirestore(userId, state.organization, list);
           }
           return { cardDataList: list };
         }),

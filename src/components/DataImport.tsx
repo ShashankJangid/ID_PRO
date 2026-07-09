@@ -162,9 +162,69 @@ export function flattenObject(obj: any, prefix = ''): Record<string, any> {
   return result;
 }
 
+// Sanitize and validate target URL for SSRF protection
+export function validateTargetUrl(urlString: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlString);
+  } catch (e) {
+    throw new Error('The target URL is invalid or not an absolute URL.');
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('URL must use http: or https: protocol.');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  
+  if (!hostname || hostname.trim() === '') {
+    throw new Error('The target URL is invalid or has an empty hostname.');
+  }
+
+  const isLocal =
+    hostname === 'localhost' ||
+    hostname.startsWith('127.') ||
+    hostname === '[::1]' ||
+    hostname === '0.0.0.0' ||
+    hostname === '[::]' ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname) ||
+    hostname === '169.254.169.254' ||
+    hostname.startsWith('169.254.');
+
+  if (isLocal) {
+    const proceed = window.confirm(
+      `Security Warning: The target URL "${urlString}" points to a local or private address. Making requests to internal network resources can be unsafe (SSRF). Do you want to proceed?`
+    );
+    if (!proceed) {
+      throw new Error('Request cancelled by user due to private IP warning.');
+    }
+  } else {
+    // Known trusted public endpoints
+    const trustedDomains = [
+      'jsonplaceholder.typicode.com',
+      'reqres.in',
+      'api.github.com',
+    ];
+    const isTrusted = trustedDomains.some(d => hostname === d || hostname.endsWith('.' + d));
+    if (!isTrusted) {
+      const proceed = window.confirm(
+        `Security Warning: You are making a request to an arbitrary external URL "${urlString}". Please verify that this endpoint is trusted and secure. Do you want to proceed?`
+      );
+      if (!proceed) {
+        throw new Error('Request cancelled by user due to untrusted domain warning.');
+      }
+    }
+  }
+}
+
 // Download image from URL and convert it to base64 Data URL
 export async function imageUrlToBase64(url: string): Promise<string> {
-  // First try: Direct fetch
+  // Validate target URL against SSRF before fetching
+  validateTargetUrl(url);
+
+  // Direct fetch only
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -172,27 +232,13 @@ export async function imageUrlToBase64(url: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error('Failed to read image blob'));
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.warn('Direct fetch failed, trying CORS proxy:', err);
-    // Second try: CORS proxy
-    try {
-      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Proxy HTTP error! status: ${res.status}`);
-      const blob = await res.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch (proxyErr) {
-      console.error('Failed to convert image to base64 via proxy:', proxyErr);
-      return url; // Fallback to raw URL if both fail
-    }
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('Direct image fetch failed:', errMsg);
+    throw new Error(errMsg);
   }
 }
 
@@ -376,20 +422,29 @@ const DataImport: React.FC = () => {
     reader.readAsBinaryString(file);
   };
 
+  // Removed local validateTargetUrl in favor of module-scope validateTargetUrl
+
   const handleFetchERP = async () => {
     setApiError('');
-    if (!curlInput.trim()) {
+    const input = curlInput.trim();
+    if (!input) {
       setApiError('Please paste your curl command first.');
       return;
     }
 
     setApiLoading(true);
+    // Clear input immediately to prevent shoulder surfing
+    setCurlInput('');
+
     try {
-      const { url, options } = parseCurl(curlInput);
+      const { url, options } = parseCurl(input);
 
       if (!url) {
         throw new Error('Could not extract URL from the curl command.');
       }
+
+      // Sanitize and validate target URL
+      validateTargetUrl(url);
 
       const response = await fetch(url, {
         method: options.method,
@@ -450,8 +505,11 @@ const DataImport: React.FC = () => {
       setStep('map');
       showToast(`Fetched ${dataRows.length} records successfully!`, 'success');
     } catch (err: any) {
-      console.error(err);
-      setApiError(err.message || 'An error occurred while fetching data.');
+      // Ensure input is cleared in case of validation exception/cancellation/failure
+      setCurlInput('');
+      const errMsg = err?.message || 'An error occurred while fetching data.';
+      console.error('Fetch ERP failed:', errMsg);
+      setApiError(errMsg);
     } finally {
       setApiLoading(false);
     }
@@ -513,18 +571,25 @@ const DataImport: React.FC = () => {
 
   const handleBothFetchERP = async () => {
     setApiError('');
-    if (!curlInput.trim()) {
+    const input = curlInput.trim();
+    if (!input) {
       setApiError('Please paste your curl command first.');
       return;
     }
 
     setApiLoading(true);
+    // Clear input immediately to prevent shoulder surfing
+    setCurlInput('');
+
     try {
-      const { url, options } = parseCurl(curlInput);
+      const { url, options } = parseCurl(input);
 
       if (!url) {
         throw new Error('Could not extract URL from the curl command.');
       }
+
+      // Sanitize and validate target URL
+      validateTargetUrl(url);
 
       const response = await fetch(url, {
         method: options.method,
@@ -578,8 +643,11 @@ const DataImport: React.FC = () => {
 
       showToast(`Fetched ${dataRows.length} records from ERP!`, 'success');
     } catch (err: any) {
-      console.error(err);
-      setApiError(err.message || 'An error occurred while fetching data.');
+      // Ensure input is cleared in case of validation exception/cancellation/failure
+      setCurlInput('');
+      const errMsg = err?.message || 'An error occurred while fetching data.';
+      console.error('Both Fetch ERP failed:', errMsg);
+      setApiError(errMsg);
     } finally {
       setApiLoading(false);
     }
@@ -1134,9 +1202,6 @@ const DataImport: React.FC = () => {
                 <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 rounded-xl px-4 py-3 text-xs space-y-1">
                   <p className="font-bold">Fetch Failed:</p>
                   <p>{apiError}</p>
-                  <p className="text-[10px] text-red-500 dark:text-red-400/80 mt-1">
-                    💡 <strong>Tip:</strong> If it's a CORS policy block, use a browser extension like "CORS Unblock" or start Chrome with web security disabled to bypass restrictions during local development.
-                  </p>
                 </div>
               )}
 

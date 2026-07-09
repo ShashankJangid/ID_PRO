@@ -160,6 +160,7 @@ const ImageCollectionSection: React.FC<ImageCollectionSectionProps> = ({
                     value={item.label}
                     onChange={(e) => onUpdate(idx, { label: e.target.value })}
                     placeholder={labelPlaceholder}
+                    maxLength={100}
                     className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-emerald-500 outline-none bg-white"
                   />
                 </div>

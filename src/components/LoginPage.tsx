@@ -189,6 +189,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError('');
     setSuccess('');
 
+    if (email.length > 255) return setError('Email cannot exceed 255 characters.');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return setError('Please enter a valid email address.');
+    }
+
     if (emailMode === 'reset') {
       if (!email) return setError('Please enter your email address.');
       setEmailLoading(true);
@@ -205,6 +210,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
 
     if (!email || !password) return setError('Please fill in all fields.');
+    if (password.length > 255) return setError('Password cannot exceed 255 characters.');
+    if (emailMode === 'signup' && confirmPassword.length > 255)
+      return setError('Confirm password cannot exceed 255 characters.');
     if (emailMode === 'signup' && password !== confirmPassword)
       return setError('Passwords do not match.');
     if (password.length < 6) return setError('Password must be at least 6 characters.');
@@ -233,6 +241,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     if (!phone) return setError('Please enter a phone number.');
+    if (phone.length > 20) return setError('Phone number cannot exceed 20 characters.');
     const cleaned = phone.replace(/\s/g, '');
     if (!/^\+\d{7,15}$/.test(cleaned))
       return setError('Enter phone with country code, e.g. +91 98765 43210');
@@ -257,6 +266,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     if (!otp || otp.length < 6) return setError('Enter the 6-digit OTP.');
+    if (otp.length > 20) return setError('OTP cannot exceed 20 characters.');
     if (!confirmation) return;
 
     setPhoneLoading(true);
@@ -453,6 +463,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+91 98765 43210"
                         autoComplete="tel"
+                        maxLength={20}
                         className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
                       />
                     </div>
@@ -544,6 +555,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email address"
                     autoComplete="email"
+                    maxLength={255}
                     className="w-full pl-9 pr-4 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
                     disabled={emailMode === 'reset' && resetSent}
                   />
@@ -561,6 +573,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                       onBlur={() => setIsPasswordFocused(false)}
                       placeholder="Password"
                       autoComplete={emailMode === 'signup' ? 'new-password' : 'current-password'}
+                      maxLength={255}
                       className="w-full pl-9 pr-10 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
                     />
                     <button
@@ -585,6 +598,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                       onBlur={() => setIsPasswordFocused(false)}
                       placeholder="Confirm password"
                       autoComplete="new-password"
+                      maxLength={255}
                       className="w-full pl-9 pr-10 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
                     />
                     <button

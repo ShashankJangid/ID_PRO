@@ -69,8 +69,72 @@ const OrganizationSetup: React.FC = () => {
   };
 
   const handleSave = () => {
+    // Input validation
+    const name = (localOrg.name || '').trim();
+    const tagline = (localOrg.tagline || '').trim();
+    const phone = (localOrg.phone || '').trim();
+    const email = (localOrg.email || '').trim();
+    const website = (localOrg.website || '').trim();
+    const emergencyContact = (localOrg.emergencyContact || '').trim();
+    const address = (localOrg.address || '').trim();
+
+    if (!name) {
+      showToast('Organization Name is required', 'error');
+      return;
+    }
+    if (name.length > 100) {
+      showToast('Organization Name cannot exceed 100 characters', 'error');
+      return;
+    }
+    if (tagline.length > 100) {
+      showToast('Tagline cannot exceed 100 characters', 'error');
+      return;
+    }
+    if (phone.length > 20) {
+      showToast('Phone number cannot exceed 20 characters', 'error');
+      return;
+    }
+    if (emergencyContact.length > 20) {
+      showToast('Emergency Contact cannot exceed 20 characters', 'error');
+      return;
+    }
+    if (email.length > 255) {
+      showToast('Email cannot exceed 255 characters', 'error');
+      return;
+    }
+    if (website.length > 255) {
+      showToast('Website URL cannot exceed 255 characters', 'error');
+      return;
+    }
+    if (address.length > 255) {
+      showToast('Address cannot exceed 255 characters', 'error');
+      return;
+    }
+
+    // Email format check
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+
+    // Website format check
+    if (website) {
+      const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w.-]*)\/?$/i;
+      if (!urlPattern.test(website)) {
+        showToast('Please enter a valid website URL', 'error');
+        return;
+      }
+    }
+
     updateOrganization({
       ...localOrg,
+      name,
+      tagline,
+      phone,
+      email,
+      website,
+      emergencyContact,
+      address,
       logos,
       signatures,
       assets,
@@ -119,14 +183,14 @@ const OrganizationSetup: React.FC = () => {
           {expandedSections.basic && (
             <div className="grid grid-cols-2 gap-4 mt-4">
               {[
-                { field: 'name', label: 'Organization Name *', placeholder: 'e.g., Acme Corporation', full: false },
-                { field: 'tagline', label: 'Tagline / Subtitle', placeholder: 'e.g., Innovation & Trust', full: false },
-                { field: 'phone', label: 'Phone', placeholder: '+91-XXXXXXXXXX', full: false },
-                { field: 'email', label: 'Email', placeholder: 'contact@organization.com', full: false },
-                { field: 'website', label: 'Website', placeholder: 'www.organization.com', full: false },
-                { field: 'emergencyContact', label: 'Emergency Contact', placeholder: 'Emergency phone number', full: false },
-                { field: 'address', label: 'Address', placeholder: 'Full address', full: true },
-              ].map(({ field, label, placeholder, full }) => (
+                { field: 'name', label: 'Organization Name *', placeholder: 'e.g., Acme Corporation', full: false, maxLength: 100 },
+                { field: 'tagline', label: 'Tagline / Subtitle', placeholder: 'e.g., Innovation & Trust', full: false, maxLength: 100 },
+                { field: 'phone', label: 'Phone', placeholder: '+91-XXXXXXXXXX', full: false, maxLength: 20 },
+                { field: 'email', label: 'Email', placeholder: 'contact@organization.com', full: false, maxLength: 255 },
+                { field: 'website', label: 'Website', placeholder: 'www.organization.com', full: false, maxLength: 255 },
+                { field: 'emergencyContact', label: 'Emergency Contact', placeholder: 'Emergency phone number', full: false, maxLength: 20 },
+                { field: 'address', label: 'Address', placeholder: 'Full address', full: true, maxLength: 255 },
+              ].map(({ field, label, placeholder, full, maxLength }) => (
                 <div key={field} className={full ? 'col-span-2' : ''}>
                   <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-1.5">{label}</label>
                   <input
@@ -134,6 +198,7 @@ const OrganizationSetup: React.FC = () => {
                     value={(localOrg as any)[field] || ''}
                     onChange={(e) => handleChange(field, e.target.value)}
                     placeholder={placeholder}
+                    maxLength={maxLength}
                     className="w-full px-3 py-2 glass-input rounded-lg text-sm outline-none transition-all dark:text-white"
                   />
                 </div>
@@ -285,6 +350,7 @@ const OrganizationSetup: React.FC = () => {
                         value={field.key}
                         onChange={(e) => updateCustomField(idx, { key: e.target.value })}
                         placeholder="Field key"
+                        maxLength={100}
                         className="w-28 px-3 py-2 glass-input rounded-lg text-sm outline-none font-mono"
                       />
                       <input
@@ -292,6 +358,7 @@ const OrganizationSetup: React.FC = () => {
                         value={field.label}
                         onChange={(e) => updateCustomField(idx, { label: e.target.value })}
                         placeholder="Display label (shown in Designer)"
+                        maxLength={100}
                         className="flex-1 px-3 py-2 glass-input rounded-lg text-sm outline-none"
                       />
                       <input
@@ -299,6 +366,7 @@ const OrganizationSetup: React.FC = () => {
                         value={field.defaultValue || ''}
                         onChange={(e) => updateCustomField(idx, { defaultValue: e.target.value })}
                         placeholder="Default"
+                        maxLength={100}
                         className="w-28 px-3 py-2 glass-input rounded-lg text-sm outline-none"
                       />
                       <button

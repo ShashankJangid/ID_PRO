@@ -31,13 +31,13 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBmGQOdp9agyTxgcFS_xMXI9pvoBF2fb1E",
-  authDomain: "id-card-login.firebaseapp.com",
-  projectId: "id-card-login",
-  storageBucket: "id-card-login.firebasestorage.app",
-  messagingSenderId: "196978536104",
-  appId: "1:196978536104:web:a14cb81df8218191c31c9d",
-  measurementId: "G-DL9NVBTLX9"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBmGQOdp9agyTxgcFS_xMXI9pvoBF2fb1E",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "id-card-login.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "id-card-login",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "id-card-login.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "196978536104",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:196978536104:web:a14cb81df8218191c31c9d",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-DL9NVBTLX9"
 };
 
 const app = initializeApp(firebaseConfig);

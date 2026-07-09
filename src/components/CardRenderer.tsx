@@ -364,6 +364,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({
       return (
         <iframe
           src={canvaEmbedUrl}
+          sandbox="allow-scripts allow-same-origin"
           style={{
             position: 'absolute',
             top: 0,

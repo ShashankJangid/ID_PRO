@@ -46,6 +46,7 @@ function App() {
   }, [darkMode]);
 
   useEffect(() => {
+    let faviconUrl = '';
     const hexToHSL = (hex: string) => {
       hex = hex.replace(/^#/, '');
       let r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -163,7 +164,7 @@ function App() {
       `.trim();
 
       const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
+      faviconUrl = URL.createObjectURL(blob);
 
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
       if (!link) {
@@ -172,10 +173,16 @@ function App() {
         link.type = 'image/svg+xml';
         document.head.appendChild(link);
       }
-      link.href = url;
+      link.href = faviconUrl;
     };
 
     generateFavicon(themeColor, themeGradientColor);
+
+    return () => {
+      if (faviconUrl) {
+        URL.revokeObjectURL(faviconUrl);
+      }
+    };
   }, [themeColor, themeGradientColor]);
 
   // ─── Auth State ───
@@ -186,17 +193,9 @@ function App() {
     const unsubscribe = onAuthChange(async (u) => {
       if (u) {
         await switchStoreUser(u.uid);
-        const isLoggingIn = sessionStorage.getItem('logging_in') === 'true';
-        if (isLoggingIn) {
-          sessionStorage.removeItem('logging_in');
-          setTimeout(() => {
-            setUser(u);
-            setAuthLoading(false);
-          }, 1200);
-        } else {
-          setUser(u);
-          setAuthLoading(false);
-        }
+        sessionStorage.removeItem('logging_in');
+        setUser(u);
+        setAuthLoading(false);
       } else {
         await switchStoreUser(null);
         setUser(null);
