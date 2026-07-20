@@ -6,8 +6,8 @@ WORKDIR /app
 ENV NODE_ENV=development
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-COPY package*.json ./
-# Install all dependencies (Vite is now in dependencies, so it always installs)
+# Copy ONLY package.json to bypass package-lock.json devDependency flags
+COPY package.json ./
 RUN npm install --no-audit --no-fund
 
 COPY . .
