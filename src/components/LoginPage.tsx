@@ -57,13 +57,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!darkMode) {
-      if (bgRef.current) {
-        bgRef.current.style.background = '#f8fafc';
-      }
-      return;
-    }
-
     // Default center so spotlight is visible before any mouse move
     cursorPos.current = {
       x: window.innerWidth / 2,
@@ -83,21 +76,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       smoothPos.current.y = lerpFn(smoothPos.current.y, cursorPos.current.y, 0.07);
       if (bgRef.current) {
         const { x, y } = smoothPos.current;
-        // Three-layer dark green cursor glow:
-        // 1. Tight bright emerald core  2. Wide forest-green halo  3. Ambient deep teal wash
+        // Dark green background with light green cursor spotlight:
         bgRef.current.style.background = [
-          `radial-gradient(350px circle at ${x}px ${y}px,`,
-          `  rgba(16,185,129, 0.18) 0%,`,
-          `  rgba(5,150,105, 0.10) 40%,`,
+          `radial-gradient(400px circle at ${x}px ${y}px,`,
+          `  rgba(52,211,153, 0.18) 0%,`,
+          `  rgba(16,185,129, 0.09) 45%,`,
           `  transparent 70%),`,
-          `radial-gradient(800px circle at ${x}px ${y}px,`,
-          `  rgba(4,120,87, 0.11) 0%,`,
-          `  rgba(2,78,58, 0.06) 50%,`,
-          `  transparent 75%),`,
-          `radial-gradient(1400px circle at ${x}px ${y}px,`,
-          `  rgba(6,95,70, 0.07) 0%,`,
+          `radial-gradient(900px circle at ${x}px ${y}px,`,
+          `  rgba(4,120,87, 0.12) 0%,`,
           `  transparent 65%),`,
-          `#000000`,
+          `#021a11`,
         ].join('');
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -108,7 +96,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       window.removeEventListener('mousemove', onMove);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [darkMode]);
+  }, []);
 
 
   // ── Social loading ──
@@ -303,16 +291,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     <main
       ref={bgRef}
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-none"
-      style={{ background: darkMode ? '#000000' : '#f8fafc', fontFamily: "'Inter', 'DM Sans', system-ui, -apple-system, sans-serif" }}
+      style={{ background: '#021a11', fontFamily: "'Inter', 'DM Sans', system-ui, -apple-system, sans-serif" }}
     >
       {/* Static faint grid overlay for depth */}
       <div
         aria-hidden
         className="pointer-events-none select-none absolute inset-0 z-0"
         style={{
-          backgroundImage: darkMode
-            ? 'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)'
-            : 'linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
           backgroundSize: '48px 48px',
         }}
       />
@@ -323,7 +309,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <div className="relative z-10 w-full max-w-md md:max-w-5xl flex flex-col-reverse md:flex-row items-center justify-center gap-8 md:gap-16">
         
         {/* Left Center Panel: Marketing & Clients */}
-        <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-slate-800 dark:text-white space-y-6">
+        <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-white space-y-6">
           <div className="space-y-4">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 backdrop-blur-sm">
@@ -337,9 +323,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 fontWeight: 700,
                 lineHeight: 1.15,
                 letterSpacing: '-0.02em',
-                background: darkMode
-                  ? 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 45%, #94a3b8 100%)'
-                  : 'linear-gradient(135deg, #0f172a 0%, #334155 55%, #64748b 100%)',
+                background: 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 45%, #a7f3d0 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -352,7 +336,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 fontFamily: "'Inter', system-ui, sans-serif",
                 fontSize: '14px',
                 lineHeight: '1.7',
-                color: darkMode ? '#94a3b8' : '#475569',
+                color: '#cbd5e1',
                 maxWidth: '360px',
                 fontWeight: 400,
               }}
@@ -368,9 +352,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     fontFamily: "'Inter', sans-serif",
                     fontSize: '11px',
                     fontWeight: 500,
-                    color: darkMode ? '#cbd5e1' : '#334155',
-                    background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-                    border: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                    color: '#cbd5e1',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: '6px',
                     padding: '4px 10px',
                     backdropFilter: 'blur(4px)'
@@ -389,9 +373,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <div 
             className="glass-card rounded-3xl shadow-2xl border border-slate-200/50 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-300"
             style={{
-              background: darkMode
-                ? 'linear-gradient(135deg, rgba(10,10,10,0.95) 0%, rgba(3,3,3,0.92) 50%, rgba(8,8,8,0.95) 100%)'
-                : 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, hsla(var(--primary-h, 160), var(--primary-s, 84%), 98%, 0.55) 50%, rgba(255,255,255,0.94) 100%)',
+              background: 'linear-gradient(135deg, rgba(10,10,10,0.85) 0%, rgba(3,3,3,0.75) 50%, rgba(8,8,8,0.85) 100%)',
+              backdropFilter: 'blur(16px)',
             }}
           >
           
