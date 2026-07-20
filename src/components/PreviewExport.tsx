@@ -859,8 +859,8 @@ const PreviewExport: React.FC = () => {
               {cardDataList.filter((_, idx) => selectedIndices.has(idx)).length} of {cardDataList.length} selected
             </span>
           </div>
-          <div className="mt-3 flex items-center justify-between gap-1.5 border-t border-gray-100 pt-2 text-[10px]">
-            <div className="flex items-center gap-1 flex-1">
+          <div className="mt-3 border-t border-gray-100 pt-2 space-y-2 text-[10px]">
+            <div className="flex items-center gap-1.5">
               <span className="text-gray-400 font-medium">From:</span>
               <input
                 type="number"
@@ -871,7 +871,7 @@ const PreviewExport: React.FC = () => {
                   const val = e.target.value === '' ? '' : parseInt(e.target.value);
                   handleRangeChange(val, rangeTo);
                 }}
-                className="w-10 px-1 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
+                className="w-12 px-1.5 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
               />
               <span className="text-gray-400 font-medium">Till:</span>
               <input
@@ -884,16 +884,16 @@ const PreviewExport: React.FC = () => {
                   handleRangeChange(rangeFrom, val);
                 }}
                 placeholder={String(cardDataList.length)}
-                className="w-10 px-1 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
+                className="w-12 px-1.5 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
               />
-              <span className="text-gray-400 font-medium">(Last: {cardDataList.length})</span>
+              <span className="text-gray-400 font-medium text-right flex-1">(Last: {cardDataList.length})</span>
             </div>
             <button
               onClick={removeSelectedCards}
-              className="px-1.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-200 font-medium transition-colors whitespace-nowrap"
+              className="w-full py-1 text-center bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-200 font-medium transition-colors text-[10px]"
               title="Remove selected cards"
             >
-              Remove Selected
+              Remove Selected Records
             </button>
           </div>
         </div>
