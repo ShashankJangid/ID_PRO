@@ -344,7 +344,7 @@ const PreviewExport: React.FC = () => {
             organization,
             side: cardSide,
             scale: 1,
-            style: { boxShadow: 'none', borderRadius: 0, transform: 'none' },
+            style: { boxShadow: 'none', borderRadius: 0, transform: 'none', transformOrigin: 'top left' },
           })
         );
         
@@ -384,7 +384,8 @@ const PreviewExport: React.FC = () => {
         )
       );
 
-      // Extra paint frame
+      // Two paint frames: first for layout, second for paint — ensures shapes are fully composited
+      await new Promise((r) => requestAnimationFrame(r));
       await new Promise((r) => requestAnimationFrame(r));
 
       let canvas: HTMLCanvasElement | undefined;
@@ -414,14 +415,57 @@ const PreviewExport: React.FC = () => {
               clonedDoc.documentElement.style.cssText = 'margin:0;padding:0;overflow:hidden';
             }
 
-            // Resolve line-heights to px to prevent the ~15px vertical shift on text elements
+            // Neutralize any scale() transform on the card wrapper itself — it confuses
+            // html2canvas when computing absolute child offsets.
+            const cardWrapper = clonedDoc.querySelector('.id-card-render') as HTMLElement | null;
+            if (cardWrapper) {
+              cardWrapper.style.transform = 'none';
+              cardWrapper.style.transformOrigin = 'top left';
+              cardWrapper.style.margin = '0';
+              cardWrapper.style.padding = '0';
+            }
+
             const dv = clonedDoc.defaultView || window;
+
+            // Normalize ALL absolutely-positioned direct children of the card.
+            // This covers shapes, images, QR codes, and text — not just text elements.
+            // Without this, subpixel rounding differences between the live DOM and the
+            // html2canvas clone can shift elements by 1-3px during capture.
+            clonedDoc.querySelectorAll('.id-card-render > *').forEach((node) => {
+              const h = node as HTMLElement;
+              const cs = dv.getComputedStyle(h);
+              if (cs.position !== 'absolute') return;
+
+              // Lock integer pixel values to eliminate subpixel drift
+              const left = Math.round(parseFloat(cs.left) || 0);
+              const top = Math.round(parseFloat(cs.top) || 0);
+              const width = Math.round(parseFloat(cs.width) || 0);
+              const height = Math.round(parseFloat(cs.height) || 0);
+
+              h.style.left = `${left}px`;
+              h.style.top = `${top}px`;
+              h.style.width = `${width}px`;
+              // Don't force height on text (auto-height) — only on non-text elements
+              if (!h.hasAttribute('data-element-type') || h.getAttribute('data-element-type') !== 'text') {
+                h.style.height = `${height}px`;
+              }
+              h.style.margin = '0';
+              h.style.padding = h.style.padding || '0';
+              h.style.boxSizing = 'border-box';
+              // Remove any inherited or compound transforms that shift the element
+              const existingTransform = h.style.transform;
+              if (existingTransform && existingTransform !== 'none') {
+                // Preserve rotation but strip any translate/scale leftover
+                const rotateMatch = existingTransform.match(/rotate\([^)]+\)/);
+                h.style.transform = rotateMatch ? rotateMatch[0] : 'none';
+              }
+            });
+
+            // Resolve line-heights to px for text elements to prevent vertical shift
             clonedDoc.querySelectorAll('[data-element-type="text"]').forEach((el) => {
               const h = el as HTMLElement;
               const cs = dv.getComputedStyle(h);
               if (cs.position !== 'absolute') return;
-              h.style.margin = '0';
-              h.style.boxSizing = 'border-box';
               h.style.verticalAlign = 'top';
               h.style.overflow = 'visible';
               const lh = h.style.lineHeight;
