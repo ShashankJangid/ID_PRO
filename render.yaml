@@ -6,6 +6,3 @@ services:
     region: oregon
     plan: free
     healthCheckPath: /
-    envVars:
-      - key: PORT
-        value: 80
