@@ -7,8 +7,8 @@ ENV NODE_ENV=development
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 COPY package*.json ./
-# Use npm ci for clean, memory-efficient, reproducible installs in Docker
-RUN npm ci
+# Install all dependencies (Vite is now in dependencies, so it always installs)
+RUN npm install --no-audit --no-fund
 
 COPY . .
 RUN npm run build
