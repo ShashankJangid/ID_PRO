@@ -2,16 +2,15 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Increase Node.js heap to prevent OOM on limited build machines
+# Force development environment during build stage to guarantee all devDependencies are installed
+ENV NODE_ENV=development
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
-# Install dependencies (including devDependencies for tsc + vite)
 COPY package*.json ./
-RUN npm ci --include=dev
+# Use npm install to reliably download all devDependencies (Vite, TypeScript, etc.)
+RUN npm install
 
-# Copy source and build
 COPY . .
-# Build the production application using local dependencies
 RUN npm run build
 
 # Stage 2: Serve with Nginx (only the compiled static files)
