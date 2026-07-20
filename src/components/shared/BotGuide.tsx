@@ -359,8 +359,7 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
           className="absolute z-[9999] pointer-events-none"
           style={{
             bottom: 'calc(100% + 12px)',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            right: '-16px',
             animation: 'bgBotTipIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards',
             minWidth: 220,
           }}
@@ -408,7 +407,6 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
           </div>
           {/* Arrow */}
           <div
-            className="mx-auto"
             style={{
               width: 10,
               height: 10,
@@ -418,7 +416,8 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
               borderLeft: 'none',
               transform: 'rotate(45deg)',
               marginTop: -6,
-              marginLeft: 'calc(50% - 5px)',
+              marginRight: '80px',
+              marginLeft: 'auto',
             }}
           />
         </div>
@@ -430,8 +429,8 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
           50% { transform: scale(1.22); opacity: 0.1; }
         }
         @keyframes bgBotTipIn {
-          0% { opacity: 0; transform: translateX(-50%) scale(0.88) translateY(10px); }
-          100% { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); }
+          0% { opacity: 0; transform: scale(0.88) translateY(10px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes botBounce {
           0%,100% { transform: translateY(0); }

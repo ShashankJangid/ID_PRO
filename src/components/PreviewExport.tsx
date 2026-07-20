@@ -134,10 +134,33 @@ const PreviewExport: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
 
+  const [rangeFrom, setRangeFrom] = useState<number | ''>(1);
+  const [rangeTo, setRangeTo] = useState<number | ''>('');
+
   // Initialize selected indices to include all cards by default when the card list loads
   useEffect(() => {
     setSelectedIndices(new Set(cardDataList.map((_, i) => i)));
+    setRangeFrom(cardDataList.length > 0 ? 1 : '');
+    setRangeTo(cardDataList.length);
   }, [cardDataList]);
+
+  const handleRangeChange = (fromVal: number | '', toVal: number | '') => {
+    setRangeFrom(fromVal);
+    setRangeTo(toVal);
+
+    if (fromVal === '' || toVal === '') return;
+    const start = Math.min(fromVal, toVal);
+    const end = Math.max(fromVal, toVal);
+
+    const next = new Set<number>();
+    const startIdx = Math.max(1, start) - 1;
+    const endIdx = Math.min(cardDataList.length, end) - 1;
+
+    for (let i = startIdx; i <= endIdx; i++) {
+      next.add(i);
+    }
+    setSelectedIndices(next);
+  };
 
   // Background self-healing loop: download raw URLs and save them as base64 in the store
   const failedUrlsRef = React.useRef<Set<string>>(new Set());
@@ -345,6 +368,7 @@ const PreviewExport: React.FC = () => {
             side: cardSide,
             scale: 1,
             style: { boxShadow: 'none', borderRadius: 0, transform: 'none', transformOrigin: 'top left' },
+            isExport: true,
           })
         );
         
@@ -426,40 +450,6 @@ const PreviewExport: React.FC = () => {
             }
 
             const dv = clonedDoc.defaultView || window;
-
-            // Normalize ALL absolutely-positioned direct children of the card.
-            // This covers shapes, images, QR codes, and text — not just text elements.
-            // Without this, subpixel rounding differences between the live DOM and the
-            // html2canvas clone can shift elements by 1-3px during capture.
-            clonedDoc.querySelectorAll('.id-card-render > *').forEach((node) => {
-              const h = node as HTMLElement;
-              const cs = dv.getComputedStyle(h);
-              if (cs.position !== 'absolute') return;
-
-              // Lock integer pixel values to eliminate subpixel drift
-              const left = Math.round(parseFloat(cs.left) || 0);
-              const top = Math.round(parseFloat(cs.top) || 0);
-              const width = Math.round(parseFloat(cs.width) || 0);
-              const height = Math.round(parseFloat(cs.height) || 0);
-
-              h.style.left = `${left}px`;
-              h.style.top = `${top}px`;
-              h.style.width = `${width}px`;
-              // Don't force height on text (auto-height) — only on non-text elements
-              if (!h.hasAttribute('data-element-type') || h.getAttribute('data-element-type') !== 'text') {
-                h.style.height = `${height}px`;
-              }
-              h.style.margin = '0';
-              h.style.padding = h.style.padding || '0';
-              h.style.boxSizing = 'border-box';
-              // Remove any inherited or compound transforms that shift the element
-              const existingTransform = h.style.transform;
-              if (existingTransform && existingTransform !== 'none') {
-                // Preserve rotation but strip any translate/scale leftover
-                const rotateMatch = existingTransform.match(/rotate\([^)]+\)/);
-                h.style.transform = rotateMatch ? rotateMatch[0] : 'none';
-              }
-            });
 
             // Resolve line-heights to px for text elements to prevent vertical shift
             clonedDoc.querySelectorAll('[data-element-type="text"]').forEach((el) => {
@@ -870,42 +860,37 @@ const PreviewExport: React.FC = () => {
             </span>
           </div>
           <div className="mt-3 flex items-center justify-between gap-1.5 border-t border-gray-100 pt-2 text-[10px]">
-            <button
-              onClick={() => {
-                const halfCount = Math.ceil(cardDataList.length / 2);
-                const next = new Set<number>();
-                for (let i = 0; i < halfCount; i++) {
-                  next.add(i);
-                }
-                setSelectedIndices(next);
-              }}
-              className="px-1.5 py-1 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 rounded border border-gray-200 dark:border-gray-800 font-medium transition-colors"
-            >
-              Select Half ({Math.ceil(cardDataList.length / 2)})
-            </button>
-            <div className="flex items-center gap-1">
-              <span className="text-gray-400">First:</span>
+            <div className="flex items-center gap-1 flex-1">
+              <span className="text-gray-400 font-medium">From:</span>
               <input
                 type="number"
-                min={0}
+                min={1}
                 max={cardDataList.length}
+                value={rangeFrom}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  if (isNaN(val) || val < 0) return;
-                  const next = new Set<number>();
-                  const limit = Math.min(val, cardDataList.length);
-                  for (let i = 0; i < limit; i++) {
-                    next.add(i);
-                  }
-                  setSelectedIndices(next);
+                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                  handleRangeChange(val, rangeTo);
                 }}
-                placeholder="N"
                 className="w-10 px-1 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
               />
+              <span className="text-gray-400 font-medium">Till:</span>
+              <input
+                type="number"
+                min={1}
+                max={cardDataList.length}
+                value={rangeTo}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? '' : parseInt(e.target.value);
+                  handleRangeChange(rangeFrom, val);
+                }}
+                placeholder={String(cardDataList.length)}
+                className="w-10 px-1 py-0.5 border border-gray-300 rounded text-center text-[10px] focus:ring-1 focus:ring-emerald-500 outline-none"
+              />
+              <span className="text-gray-400 font-medium">(Last: {cardDataList.length})</span>
             </div>
             <button
               onClick={removeSelectedCards}
-              className="px-1.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-200 font-medium transition-colors"
+              className="px-1.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded border border-red-200 font-medium transition-colors whitespace-nowrap"
               title="Remove selected cards"
             >
               Remove Selected

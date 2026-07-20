@@ -43,6 +43,7 @@ interface CardRendererProps {
   scale?: number;
   className?: string;
   style?: React.CSSProperties;
+  isExport?: boolean;
 }
 
 
@@ -328,6 +329,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({
   scale = 1,
   className = '',
   style = {},
+  isExport = false,
 }) => {
   const elements = side === 'front' ? template.frontElements : template.backElements;
 
@@ -360,7 +362,7 @@ const CardRenderer: React.FC<CardRendererProps> = ({
   );
 
   const renderBackground = () => {
-    if (canvaEmbedUrl) {
+    if (canvaEmbedUrl && !isExport) {
       return (
         <iframe
           src={canvaEmbedUrl}
