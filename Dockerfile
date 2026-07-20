@@ -11,9 +11,8 @@ RUN npm ci --include=dev
 
 # Copy source and build
 COPY . .
-# Skip tsc type-check in CI (vite handles transpilation) — use vite build directly
-# This avoids OOM from tsc on free-tier build servers while still compiling correctly
-RUN npx vite build
+# Build the production application using local dependencies
+RUN npm run build
 
 # Stage 2: Serve with Nginx (only the compiled static files)
 FROM nginx:alpine
