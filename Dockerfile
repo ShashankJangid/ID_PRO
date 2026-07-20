@@ -7,8 +7,8 @@ ENV NODE_ENV=development
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 COPY package*.json ./
-# Use npm install to reliably download all devDependencies (Vite, TypeScript, etc.)
-RUN npm install
+# Use npm ci for clean, memory-efficient, reproducible installs in Docker
+RUN npm ci
 
 COPY . .
 RUN npm run build
