@@ -359,7 +359,7 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
           className="absolute z-[9999] pointer-events-none"
           style={{
             bottom: 'calc(100% + 12px)',
-            right: '-16px',
+            right: '64px',
             animation: 'bgBotTipIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards',
             minWidth: 220,
           }}
@@ -416,7 +416,7 @@ export const BotGuide: React.FC<BotGuideProps> = ({ hasSetup, hasTemplate, hasDa
               borderLeft: 'none',
               transform: 'rotate(45deg)',
               marginTop: -6,
-              marginRight: '80px',
+              marginRight: '30px',
               marginLeft: 'auto',
             }}
           />
