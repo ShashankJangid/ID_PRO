@@ -54,6 +54,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const cursorPos = useRef({ x: 0, y: 0 });
   const smoothPos = useRef({ x: 0, y: 0 });
   const bgRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
@@ -74,20 +75,36 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const tick = () => {
       smoothPos.current.x = lerpFn(smoothPos.current.x, cursorPos.current.x, 0.07);
       smoothPos.current.y = lerpFn(smoothPos.current.y, cursorPos.current.y, 0.07);
+
+      const sX = smoothPos.current.x;
+      const sY = smoothPos.current.y;
+      const cX = cursorPos.current.x;
+      const cY = cursorPos.current.y;
+
       if (bgRef.current) {
-        const { x, y } = smoothPos.current;
-        // Dark green background with light green cursor spotlight:
+        // We create a dual-layered liquid drop that stretches slightly as the mouse moves
+        // The outer soft glow lags (smoothPos), while the inner drop pulls forward (cursorPos)
         bgRef.current.style.background = [
-          `radial-gradient(400px circle at ${x}px ${y}px,`,
-          `  rgba(52,211,153, 0.18) 0%,`,
-          `  rgba(16,185,129, 0.09) 45%,`,
-          `  transparent 70%),`,
-          `radial-gradient(900px circle at ${x}px ${y}px,`,
-          `  rgba(4,120,87, 0.12) 0%,`,
-          `  transparent 65%),`,
+          // Head / Inner concentrated drop (pointed towards cursor)
+          `radial-gradient(130px 100px at ${cX}px ${cY}px,`,
+          `  rgba(52,211,153, 0.22) 0%,`,
+          `  rgba(16,185,129, 0.08) 50%,`,
+          `  transparent 100%),`,
+          // Tail / Outer soft glow (trailing behind at smoothPos)
+          `radial-gradient(280px 220px at ${sX}px ${sY}px,`,
+          `  rgba(16,185,129, 0.07) 0%,`,
+          `  transparent 75%),`,
           `#021a11`,
         ].join('');
       }
+
+      if (gridRef.current) {
+        // Shift grid positions slightly (parallax) and distort in opposite direction to mouse
+        const shiftX = cX * -0.05;
+        const shiftY = cY * -0.05;
+        gridRef.current.style.backgroundPosition = `${shiftX}px ${shiftY}px`;
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -295,6 +312,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     >
       {/* Static faint grid overlay for depth */}
       <div
+        ref={gridRef}
         aria-hidden
         className="pointer-events-none select-none absolute inset-0 z-0"
         style={{
