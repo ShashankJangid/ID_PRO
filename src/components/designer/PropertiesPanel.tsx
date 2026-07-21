@@ -772,85 +772,111 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   return (
                     <>
                       <div>
-                        <label className="block text-[10px] text-gray-500 mb-1">Background Color</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="color"
-                            value={bg}
-                            onChange={(e) => {
-                              const newColor = e.target.value;
-                              updateGradient(grad.isGradient, grad.direction, newColor, grad.isGradient ? grad.endColor : newColor);
-                            }}
-                            className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={bg}
-                            onChange={(e) => {
-                              const newColor = e.target.value;
-                              updateGradient(grad.isGradient, grad.direction, newColor, grad.isGradient ? grad.endColor : newColor);
-                            }}
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs outline-none"
-                          />
-                        </div>
+                        <label className="block text-[10px] text-gray-500 mb-1">Fill Type</label>
+                        <select
+                          value={grad.isGradient ? 'gradient' : 'solid'}
+                          onChange={(e) => {
+                            const type = e.target.value;
+                            if (type === 'gradient') {
+                              // Initialize end color with same color! "make it of same colour"
+                              updateGradient(true, grad.direction, bg, bg);
+                            } else {
+                              updateGradient(false, grad.direction, bg, bg);
+                            }
+                          }}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs outline-none bg-white mb-2"
+                        >
+                          <option value="solid">Solid Color</option>
+                          <option value="gradient">Gradient Color</option>
+                        </select>
                       </div>
 
-                      {/* Gradient toggle and options */}
-                      <div className="space-y-2 border-t border-gray-150 pt-2">
-                        <label className="flex items-center gap-2 cursor-pointer select-none text-[10px] text-gray-500 font-semibold">
-                          <input
-                            type="checkbox"
-                            checked={grad.isGradient}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              // By default, initialize end color with same color! "make it of same colour"
-                              updateGradient(checked, grad.direction, bg, bg);
-                            }}
-                            className="w-3.5 h-3.5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-                          />
-                          <span>Use Gradient Background</span>
-                        </label>
-
-                        {grad.isGradient && (
-                          <div className="pl-4 space-y-2 border-l-2 border-emerald-500/30">
-                            <div>
-                              <label className="block text-[9px] text-gray-400 mb-1">Gradient End Color</label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="color"
-                                  value={grad.endColor}
-                                  onChange={(e) => {
-                                    updateGradient(true, grad.direction, grad.startColor, e.target.value);
-                                  }}
-                                  className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
-                                />
-                                <input
-                                  type="text"
-                                  value={grad.endColor}
-                                  onChange={(e) => {
-                                    updateGradient(true, grad.direction, grad.startColor, e.target.value);
-                                  }}
-                                  className="flex-1 px-2 py-0.5 border border-gray-300 rounded text-[10px] outline-none"
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-[9px] text-gray-400 mb-1">Direction</label>
-                              <select
-                                value={grad.direction}
+                      {grad.isGradient ? (
+                        <div className="space-y-2 border-t border-gray-100 pt-2 pl-2 border-l-2 border-emerald-500/30">
+                          <div>
+                            <label className="block text-[9px] text-gray-400 mb-1">Start Color</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="color"
+                                value={bg}
                                 onChange={(e) => {
-                                    updateGradient(true, e.target.value, grad.startColor, grad.endColor);
+                                  const newColor = e.target.value;
+                                  updateGradient(true, grad.direction, newColor, grad.endColor);
                                 }}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] outline-none bg-white"
-                              >
-                                <option value="to right">Horizontal (Left to Right)</option>
-                                <option value="to bottom">Vertical (Top to Bottom)</option>
-                                <option value="to bottom right">Diagonal (Top-Left to Bottom-Right)</option>
-                              </select>
+                                className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={bg}
+                                onChange={(e) => {
+                                  const newColor = e.target.value;
+                                  updateGradient(true, grad.direction, newColor, grad.endColor);
+                                }}
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs outline-none"
+                              />
                             </div>
                           </div>
-                        )}
-                      </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 mb-1">End Color</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="color"
+                                value={grad.endColor}
+                                onChange={(e) => {
+                                  updateGradient(true, grad.direction, grad.startColor, e.target.value);
+                                }}
+                                className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={grad.endColor}
+                                onChange={(e) => {
+                                  updateGradient(true, grad.direction, grad.startColor, e.target.value);
+                                }}
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] text-gray-400 mb-1">Direction</label>
+                            <select
+                              value={grad.direction}
+                              onChange={(e) => {
+                                  updateGradient(true, e.target.value, grad.startColor, grad.endColor);
+                              }}
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-[10px] outline-none bg-white"
+                            >
+                              <option value="to right">Horizontal (Left to Right)</option>
+                              <option value="to bottom">Vertical (Top to Bottom)</option>
+                              <option value="to bottom right">Diagonal (Top-Left to Bottom-Right)</option>
+                            </select>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-1">Color</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={bg}
+                              onChange={(e) => {
+                                const newColor = e.target.value;
+                                updateGradient(false, grad.direction, newColor, newColor);
+                              }}
+                              className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={bg}
+                              onChange={(e) => {
+                                const newColor = e.target.value;
+                                updateGradient(false, grad.direction, newColor, newColor);
+                              }}
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-[10px] text-gray-500 mb-1">Opacity</label>

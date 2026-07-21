@@ -540,7 +540,24 @@ export async function syncStoreWithFirestore(userId: string | null) {
   }
 }
 
+const resetStoreToDefaults = () => {
+  useAppStore.setState({
+    organization: defaultOrg,
+    hasSetup: false,
+    templates: [],
+    activeTemplateId: null,
+    cardDataList: [defaultCardData],
+    activeCardIndex: 0,
+    columnMappings: [],
+    selectedElementId: null,
+    activeTab: 'dashboard',
+  });
+};
+
 export async function switchStoreUser(userId: string | null) {
+  // Reset memory state to defaults first to prevent data leakage between sessions
+  resetStoreToDefaults();
+
   if (userId) {
     // 1. Fetch guest data to migrate
     let guestData: any = null;

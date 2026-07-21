@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
-import BotGuide from './shared/BotGuide';
 
 const Dashboard: React.FC = () => {
   const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates } = useAppStore(
@@ -107,13 +106,7 @@ const Dashboard: React.FC = () => {
               Create professional ID cards for any organization — schools, offices, hospitals, events, and more.
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <BotGuide
-              hasSetup={hasSetup}
-              hasTemplate={!!activeTemplateId}
-              hasData={cardDataList.length > 1}
-            />
-          </div>
+
         </div>
       </div>
 
