@@ -304,30 +304,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       {/* Invisible reCAPTCHA anchor */}
       <div id="recaptcha-container" />
 
-      {/* Top Right Theme Color Selector */}
-      <div className="absolute top-5 right-5 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 p-1.5 rounded-xl shadow-lg">
-        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider pl-1 mr-0.5 select-none">Theme</span>
-        {[
-          { hex: '#10b981', label: 'Emerald' },
-          { hex: '#4285f4', label: 'Google Blue' },
-          { hex: '#ea4335', label: 'Google Red' },
-          { hex: '#a142f4', label: 'Google Purple' },
-          { hex: '#0f172a', label: 'Midnight' },
-        ].map((c) => (
-          <button
-            key={c.hex}
-            type="button"
-            title={c.label}
-            onClick={() => {
-              const useAppStore = (window as any).useAppStore;
-              if (useAppStore) useAppStore.getState().setThemeColor(c.hex);
-            }}
-            className="w-4 h-4 rounded-full transition-all duration-200 hover:scale-125 cursor-pointer border border-white/20 hover:border-white"
-            style={{ backgroundColor: c.hex }}
-          />
-        ))}
-      </div>
-
       <div className="relative z-10 w-full max-w-md md:max-w-5xl flex flex-col-reverse md:flex-row items-center justify-center gap-8 md:gap-16">
         
         {/* Left Center Panel: Marketing & Clients */}
