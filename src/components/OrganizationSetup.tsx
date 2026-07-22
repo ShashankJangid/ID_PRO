@@ -2,7 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   Building2, Plus, Trash2, Image, PenTool,
-  Layers, QrCode, ChevronDown, ChevronUp, Tag, Save
+  Layers, QrCode, ChevronDown, ChevronUp, Tag, Save,
+  Download, Upload, FolderArchive, RefreshCw
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { CustomFieldDef, OrgAsset, OrgSignature, OrgLogo, QRFieldKey } from '@/types';
@@ -11,12 +12,14 @@ import ImageCollectionSection from './shared/ImageCollectionSection';
 import { useImageCollection } from '@/hooks/useImageCollection';
 
 const OrganizationSetup: React.FC = () => {
-  const { organization, updateOrganization, setHasSetup, showToast } = useAppStore(
+  const { organization, updateOrganization, setHasSetup, showToast, exportFullProjectBackup, importFullProjectBackup } = useAppStore(
     useShallow((s) => ({
       organization: s.organization,
       updateOrganization: s.updateOrganization,
       setHasSetup: s.setHasSetup,
       showToast: s.showToast,
+      exportFullProjectBackup: s.exportFullProjectBackup,
+      importFullProjectBackup: s.importFullProjectBackup,
     }))
   );
 
@@ -381,6 +384,62 @@ const OrganizationSetup: React.FC = () => {
               )}
             </div>
           )}
+        </div>
+
+        {/* ── PROJECT BACKUP & RESTORE SECTION ── */}
+        <div className="glass-card rounded-2xl border border-slate-200/60 dark:border-white/10 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center">
+                <FolderArchive className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Project Backup & 1-Click Restore</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Export all templates, card records, logos, signatures, and settings into a single backup file. Import anytime to recreate your setup in 1 click.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              onClick={exportFullProjectBackup}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Export Full Project Backup (.json)
+            </button>
+
+            <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-gray-900 dark:text-white border border-slate-300 dark:border-white/10 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer">
+              <Upload className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Import Project Backup (.json)</span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const text = event.target?.result as string;
+                    if (text) {
+                      const ok = importFullProjectBackup(text);
+                      if (ok) {
+                        const st = useAppStore.getState();
+                        setLocalOrg({ ...st.organization });
+                        setCustomFields(st.organization.customFields || []);
+                        setQrFields(st.organization.defaultQRFields || ['name', 'role', 'code']);
+                      }
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
 
         <div className="flex justify-end pt-2 pb-8">

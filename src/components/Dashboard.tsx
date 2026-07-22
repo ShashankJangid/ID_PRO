@@ -11,12 +11,15 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Download,
+  Upload,
+  FolderArchive
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
 
 const Dashboard: React.FC = () => {
-  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates } = useAppStore(
+  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates, exportFullProjectBackup, importFullProjectBackup } = useAppStore(
     useShallow((s) => ({
       hasSetup: s.hasSetup,
       organization: s.organization,
@@ -24,6 +27,8 @@ const Dashboard: React.FC = () => {
       cardDataList: s.cardDataList,
       setActiveTab: s.setActiveTab,
       templates: s.templates,
+      exportFullProjectBackup: s.exportFullProjectBackup,
+      importFullProjectBackup: s.importFullProjectBackup,
     }))
   );
 
@@ -94,7 +99,7 @@ const Dashboard: React.FC = () => {
           <div className="absolute bottom-0 left-12 w-24 h-24 rounded-full bg-teal-400/20 blur-xl pointer-events-none" />
         </div>
 
-        <div className="relative flex items-center justify-between gap-6">
+        <div className="relative flex items-center justify-between gap-6 flex-wrap">
           <div>
             <div className="flex items-center gap-2.5 mb-2">
               <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
@@ -107,6 +112,38 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
 
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <button
+              onClick={exportFullProjectBackup}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Export all templates, cards & settings into a single backup file"
+            >
+              <Download className="w-3.5 h-3.5 text-white" />
+              <span>Export Backup (.json)</span>
+            </button>
+            <label className="flex items-center gap-1.5 px-3.5 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-sm active:scale-95">
+              <Upload className="w-3.5 h-3.5 text-white" />
+              <span>Import Backup (.json)</span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const text = event.target?.result as string;
+                    if (text) {
+                      importFullProjectBackup(text);
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
       </div>
 

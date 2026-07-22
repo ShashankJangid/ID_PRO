@@ -54,6 +54,8 @@ interface AppState {
   setThemeColor: (color: string) => void;
   themeGradientColor: string;
   setThemeGradientColor: (color: string) => void;
+  exportFullProjectBackup: () => void;
+  importFullProjectBackup: (jsonData: string) => boolean;
 }
 
 const defaultOrg: Organization = {
@@ -352,6 +354,93 @@ export const useAppStore = create<AppState>()(
       setThemeColor: (color) => set({ themeColor: color, themeGradientColor: color }),
       themeGradientColor: '#4165b4',
       setThemeGradientColor: (color) => set({ themeGradientColor: color }),
+      exportFullProjectBackup: () => {
+        const state = get();
+        const backupData = {
+          app: 'CardGenStudio',
+          version: '1.0',
+          exportedAt: new Date().toISOString(),
+          organization: state.organization,
+          hasSetup: state.hasSetup,
+          templates: state.templates,
+          activeTemplateId: state.activeTemplateId,
+          cardDataList: state.cardDataList,
+          activeCardIndex: state.activeCardIndex,
+          columnMappings: state.columnMappings,
+        };
+        const jsonStr = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const orgName = (state.organization?.name || 'cardgen').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.download = `${orgName}_project_backup_${dateStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        get().showToast('Full project backup downloaded successfully!', 'success');
+      },
+      importFullProjectBackup: (jsonData: string) => {
+        try {
+          const data = JSON.parse(jsonData);
+          if (!data || typeof data !== 'object') {
+            get().showToast('Invalid backup file.', 'error');
+            return false;
+          }
+
+          // Single Template import fallback
+          if (data.cardWidth && data.cardHeight && (data.frontElements || data.backElements)) {
+            const template = autoFitTemplate(data as CardTemplate);
+            const exists = get().templates.some((t) => t.id === template.id);
+            if (exists) {
+              get().updateTemplate(template.id, template);
+            } else {
+              get().addTemplate(template);
+            }
+            get().setActiveTemplate(template.id);
+            get().showToast(`Template "${template.name}" imported & set active!`, 'success');
+            return true;
+          }
+
+          // Full Project Backup import
+          const newOrg = data.organization || defaultOrg;
+          const newTemplates = Array.isArray(data.templates) ? data.templates.map((t: any) => autoFitTemplate(t)) : [];
+          const newCards = Array.isArray(data.cardDataList) ? data.cardDataList : [];
+          const activeTId = data.activeTemplateId || (newTemplates[0]?.id || null);
+          const activeCIdx = typeof data.activeCardIndex === 'number' ? data.activeCardIndex : 0;
+          const colMappings = Array.isArray(data.columnMappings) ? data.columnMappings : [];
+          const setup = typeof data.hasSetup === 'boolean' ? data.hasSetup : (!!newOrg.name);
+
+          set({
+            organization: newOrg,
+            templates: newTemplates.length > 0 ? newTemplates : get().templates,
+            cardDataList: newCards.length > 0 ? newCards : [defaultCardData],
+            activeTemplateId: activeTId || get().activeTemplateId,
+            activeCardIndex: activeCIdx,
+            columnMappings: colMappings,
+            hasSetup: setup,
+          });
+
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            newTemplates.forEach((t: CardTemplate) => {
+              if (!t.isBuiltIn) {
+                saveTemplateToFirestore(userId, t);
+              }
+            });
+            saveProfileToFirestore(userId, newOrg, newCards.length > 0 ? newCards : [defaultCardData]);
+          }
+
+          get().showToast('Full project backup restored in 1 click! All templates, settings, and cards loaded.', 'success');
+          return true;
+        } catch (e) {
+          console.error('Error importing project backup:', e);
+          get().showToast('Failed to import backup. File must be valid JSON.', 'error');
+          return false;
+        }
+      },
     }),
     {
       name: 'idcard-studio-storage-guest',
