@@ -38,6 +38,24 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [colorType, setColorType] = useState<'solid' | 'gradient'>(() => {
+    return (localStorage.getItem('cardgen_accent_type') as 'solid' | 'gradient') || 'solid';
+  });
+  const [gradientAccent, setGradientAccent] = useState<string>(() => {
+    return localStorage.getItem('cardgen_gradient_accent') || 'linear-gradient(135deg, #10b981, #14b8a6)';
+  });
+
+  const toggleColorType = (type: 'solid' | 'gradient') => {
+    setColorType(type);
+    localStorage.setItem('cardgen_accent_type', type);
+  };
+
+  const selectGradientAccent = (gradStr: string, primaryHex: string) => {
+    setGradientAccent(gradStr);
+    localStorage.setItem('cardgen_gradient_accent', gradStr);
+    setThemeColor(primaryHex);
+  };
+
   const bgRef = useRef<HTMLDivElement>(null);
 
   const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast, darkMode, setDarkMode, themeColor, setThemeColor } =
@@ -278,48 +296,102 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                 <div
                   className={`transition-all duration-350 ease-in-out overflow-hidden ${
                     showColorPicker
-                      ? 'max-h-24 opacity-100 mt-2 px-1'
+                      ? 'max-h-48 opacity-100 mt-2 px-1'
                       : 'max-h-0 opacity-0 pointer-events-none'
                   }`}
                 >
-                  <div className="px-1.5 py-1">
-                    <div className="flex items-center gap-1.5">
-                      {[
-                        { hex: '#4165b4', label: 'Ocean Blue' },
-                        { hex: '#52308d', label: 'Deep Purple' },
-                        { hex: '#297f3a', label: 'Forest Green' },
-                        { hex: '#8f0a20', label: 'Crimson Red' },
-                        { hex: '#835f21', label: 'Golden Bronze' },
-                      ].map((color) => (
-                        <button
-                          key={color.hex}
-                          onClick={() => setThemeColor(color.hex)}
-                          title={color.label}
-                          className={`w-4 h-4 rounded-full border transition-all duration-150 hover:scale-110 flex-shrink-0 ${
-                            themeColor.toLowerCase() === color.hex.toLowerCase()
+                  <div className="space-y-2 py-1">
+                    {/* Segmented Control Pill: Solid vs Gradient */}
+                    <div className="grid grid-cols-2 gap-1 bg-gray-100 dark:bg-slate-900 p-0.5 rounded-lg border border-slate-200/50 dark:border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => toggleColorType('solid')}
+                        className={`py-1 rounded-md text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          colorType === 'solid'
+                            ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-xs'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                        Solid
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleColorType('gradient')}
+                        className={`py-1 rounded-md text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                          colorType === 'gradient'
+                            ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-xs'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 inline-block" />
+                        Gradient
+                      </button>
+                    </div>
+
+                    {/* Color Swatches */}
+                    {colorType === 'solid' ? (
+                      <div className="flex items-center justify-between px-1 pt-1">
+                        {[
+                          { hex: '#4165b4', label: 'Ocean Blue' },
+                          { hex: '#52308d', label: 'Deep Purple' },
+                          { hex: '#297f3a', label: 'Forest Green' },
+                          { hex: '#8f0a20', label: 'Crimson Red' },
+                          { hex: '#835f21', label: 'Golden Bronze' },
+                        ].map((color) => (
+                          <button
+                            key={color.hex}
+                            onClick={() => setThemeColor(color.hex)}
+                            title={color.label}
+                            className={`w-4 h-4 rounded-full border transition-all duration-150 hover:scale-110 flex-shrink-0 cursor-pointer ${
+                              themeColor.toLowerCase() === color.hex.toLowerCase()
+                                ? 'border-gray-900 dark:border-white ring-2 ring-primary/20 scale-110'
+                                : 'border-gray-200 dark:border-slate-800'
+                            }`}
+                            style={{ backgroundColor: color.hex }}
+                          />
+                        ))}
+                        <div
+                          className={`relative w-4 h-4 rounded-full overflow-hidden border transition-all duration-150 hover:scale-110 flex-shrink-0 cursor-pointer ${
+                            !['#4165b4', '#52308d', '#297f3a', '#8f0a20', '#835f21'].includes(themeColor.toLowerCase())
                               ? 'border-gray-900 dark:border-white ring-2 ring-primary/20 scale-110'
                               : 'border-gray-200 dark:border-slate-800'
                           }`}
-                          style={{ backgroundColor: color.hex }}
-                        />
-                      ))}
-                      <div
-                        className={`relative w-4 h-4 rounded-full overflow-hidden border transition-all duration-150 hover:scale-110 flex-shrink-0 cursor-pointer ${
-                          !['#4165b4', '#52308d', '#297f3a', '#8f0a20', '#835f21'].includes(themeColor.toLowerCase())
-                            ? 'border-gray-900 dark:border-white ring-2 ring-primary/20 scale-110'
-                            : 'border-gray-200 dark:border-slate-800'
-                        }`}
-                        style={{ background: 'conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)' }}
-                        title="Custom primary color spectrum"
-                      >
-                        <input
-                          type="color"
-                          value={themeColor}
-                          onChange={(e) => setThemeColor(e.target.value)}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                        />
+                          style={{ background: 'conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)' }}
+                          title="Custom primary color spectrum"
+                        >
+                          <input
+                            type="color"
+                            value={themeColor}
+                            onChange={(e) => setThemeColor(e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex items-center justify-between px-1 pt-1">
+                        {[
+                          { name: 'Emerald Teal', grad: 'linear-gradient(135deg, #10b981, #14b8a6)', primary: '#10b981' },
+                          { name: 'Indigo Cyan', grad: 'linear-gradient(135deg, #6366f1, #06b6d4)', primary: '#6366f1' },
+                          { name: 'Sunset Fire', grad: 'linear-gradient(135deg, #f59e0b, #ef4444)', primary: '#f59e0b' },
+                          { name: 'Violet Rose', grad: 'linear-gradient(135deg, #8b5cf6, #ec4899)', primary: '#8b5cf6' },
+                          { name: 'Midnight Neon', grad: 'linear-gradient(135deg, #1e293b, #0284c7)', primary: '#0284c7' },
+                        ].map((g) => (
+                          <button
+                            key={g.name}
+                            type="button"
+                            title={g.name}
+                            onClick={() => selectGradientAccent(g.grad, g.primary)}
+                            className={`w-4 h-4 rounded-full border transition-all duration-150 hover:scale-110 flex-shrink-0 cursor-pointer ${
+                              gradientAccent === g.grad
+                                ? 'border-gray-900 dark:border-white ring-2 ring-primary/20 scale-110'
+                                : 'border-gray-200 dark:border-slate-800'
+                            }`}
+                            style={{ background: g.grad }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
