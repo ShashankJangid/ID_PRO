@@ -21,7 +21,7 @@ import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
 
 const Dashboard: React.FC = () => {
-  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates, exportFullProjectBackup, importFullProjectBackup } = useAppStore(
+  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates, exportFullProjectBackup, importFullProjectBackup, themeColor } = useAppStore(
     useShallow((s) => ({
       hasSetup: s.hasSetup,
       organization: s.organization,
@@ -31,6 +31,7 @@ const Dashboard: React.FC = () => {
       templates: s.templates,
       exportFullProjectBackup: s.exportFullProjectBackup,
       importFullProjectBackup: s.importFullProjectBackup,
+      themeColor: s.themeColor,
     }))
   );
 
@@ -118,7 +119,8 @@ const Dashboard: React.FC = () => {
   ];
 
   const doneCount = steps.filter((s) => s.done).length;
-  const progressPct = (doneCount / steps.length) * 100;
+  const allPrereqsDone = hasSetup && !!activeTemplateId && cardDataList.length > 0;
+  const progressPct = allPrereqsDone ? 100 : (doneCount / steps.length) * 100;
 
   const colorMap: Record<string, { bg: string; icon: string; ring: string; bar: string }> = {
     purple:  { bg: 'bg-purple-500/10 dark:bg-purple-500/15', icon: 'text-purple-600 dark:text-purple-400', ring: 'ring-purple-500/20', bar: 'bg-purple-500' },
