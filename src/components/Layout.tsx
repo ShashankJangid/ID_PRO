@@ -146,7 +146,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
     <div ref={bgRef} className="flex h-screen w-screen bg-slate-50 dark:bg-black overflow-hidden transition-colors duration-300 relative">
 
       {/* Sidebar Wrapper */}
-      <div className="relative flex-shrink-0 z-10 flex">
+      <div className="relative flex-shrink-0 z-40 flex">
         <aside
           className={`
             ${collapsed ? 'w-16' : 'w-64'}
@@ -333,11 +333,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                     {colorType === 'solid' ? (
                       <div className="flex items-center justify-between px-1 pt-1">
                         {[
-                          { hex: '#4165b4', label: 'Ocean Blue' },
-                          { hex: '#52308d', label: 'Deep Purple' },
-                          { hex: '#297f3a', label: 'Forest Green' },
-                          { hex: '#8f0a20', label: 'Crimson Red' },
-                          { hex: '#835f21', label: 'Golden Bronze' },
+                          { hex: '#4285f4', label: 'Google Blue' },
+                          { hex: '#0f9d58', label: 'Google Green' },
+                          { hex: '#ea4335', label: 'Google Red' },
+                          { hex: '#f4b400', label: 'Google Yellow' },
+                          { hex: '#a142f4', label: 'Google Purple' },
                         ].map((color) => (
                           <button
                             key={color.hex}
@@ -353,7 +353,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                         ))}
                         <div
                           className={`relative w-4 h-4 rounded-full overflow-hidden border transition-all duration-150 hover:scale-110 flex-shrink-0 cursor-pointer ${
-                            !['#4165b4', '#52308d', '#297f3a', '#8f0a20', '#835f21'].includes(themeColor.toLowerCase())
+                            !['#4285f4', '#0f9d58', '#ea4335', '#f4b400', '#a142f4'].includes(themeColor.toLowerCase())
                               ? 'border-gray-900 dark:border-white ring-2 ring-primary/20 scale-110'
                               : 'border-gray-200 dark:border-slate-800'
                           }`}
@@ -371,11 +371,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                     ) : (
                       <div className="flex items-center justify-between px-1 pt-1">
                         {[
-                          { name: 'Emerald Teal', grad: 'linear-gradient(135deg, #10b981, #14b8a6)', primary: '#10b981' },
-                          { name: 'Indigo Cyan', grad: 'linear-gradient(135deg, #6366f1, #06b6d4)', primary: '#6366f1' },
-                          { name: 'Sunset Fire', grad: 'linear-gradient(135deg, #f59e0b, #ef4444)', primary: '#f59e0b' },
-                          { name: 'Violet Rose', grad: 'linear-gradient(135deg, #8b5cf6, #ec4899)', primary: '#8b5cf6' },
-                          { name: 'Midnight Neon', grad: 'linear-gradient(135deg, #1e293b, #0284c7)', primary: '#0284c7' },
+                          { name: 'Google Quantum Blue-Purple', grad: 'linear-gradient(135deg, #4285f4, #9b51e0)', primary: '#4285f4' },
+                          { name: 'Google Emerald Mint', grad: 'linear-gradient(135deg, #0f9d58, #00c853)', primary: '#0f9d58' },
+                          { name: 'Google Sunset Flame', grad: 'linear-gradient(135deg, #ea4335, #ff6d00)', primary: '#ea4335' },
+                          { name: 'Google Ocean Cyan', grad: 'linear-gradient(135deg, #00b0ff, #00e5ff)', primary: '#00b0ff' },
+                          { name: 'Google Cosmic Violet', grad: 'linear-gradient(135deg, #a142f4, #e040fb)', primary: '#a142f4' },
                         ].map((g) => (
                           <button
                             key={g.name}
@@ -401,26 +401,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                   onClick={() => toggleTheme(!darkMode)}
                   title={darkMode ? 'Switch to Light mode' : 'Switch to Dark mode'}
                   aria-label={darkMode ? 'Switch to Light mode' : 'Switch to Dark mode'}
-                  className="w-full flex items-center justify-center py-2 rounded-lg text-gray-500 dark:text-[hsl(215,16%,50%)] hover:bg-slate-500/5 dark:hover:bg-white/5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="w-9 h-9 rounded-xl glass-btn flex items-center justify-center text-gray-500 dark:text-[hsl(213,31%,70%)] hover:text-gray-900 dark:hover:text-white transition-all shadow-xs"
                 >
-                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
                 </button>
-
-                {/* Collapsed color selection indicator/shortcut picker */}
-                <div className="flex flex-col gap-2">
-                  <div
-                    className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 dark:border-slate-800 hover:scale-110 transition-transform cursor-pointer"
-                    style={{ background: 'conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)' }}
-                    title="Change accent color"
-                  >
-                    <input
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
@@ -436,7 +420,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
             </button>
 
             {/* User row */}
-            <div className={`flex items-center gap-2 px-2 py-2 rounded-lg bg-slate-500/5 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 ${collapsed ? 'justify-center' : ''}`}>
+            <div className={`pt-2 border-t border-slate-200/50 dark:border-white/5 flex items-center ${collapsed ? 'justify-center' : 'justify-between px-1'}`}>
               {user.photoURL ? (
                 <img src={user.photoURL} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
               ) : (
@@ -446,7 +430,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
               )}
               {!collapsed && (
                 <>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 mx-2">
                     <p className="text-xs font-semibold text-gray-700 dark:text-[hsl(213,31%,80%)] truncate">{user.displayName || 'User'}</p>
                     <p className="text-[10px] text-gray-400 dark:text-[hsl(215,16%,45%)] truncate">{user.email}</p>
                   </div>
@@ -464,25 +448,25 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
           </div>
         </aside>
 
-        {/* Toggle button */}
+        {/* Toggle button ─ Fully functioning hit box z-50 */}
         <button
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="
-            absolute top-6 -right-3 z-20
-            w-6 h-6 rounded-full
-            glass-panel
-            border border-slate-200/80 dark:border-white/10
-            shadow-md
+            absolute top-6 -right-3.5 z-50
+            w-7 h-7 rounded-full
+            bg-white dark:bg-[hsl(222,47%,12%)]
+            border border-slate-300 dark:border-slate-700
+            shadow-lg
             flex items-center justify-center
-            text-gray-500 dark:text-[hsl(213,31%,60%)]
+            text-gray-700 dark:text-gray-200
             hover:text-emerald-600 dark:hover:text-emerald-400
-            hover:scale-110
+            hover:scale-110 active:scale-95
             transition-all duration-200
+            cursor-pointer pointer-events-auto
           "
-          style={{ background: darkMode ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.85)' }}
         >
-          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
 

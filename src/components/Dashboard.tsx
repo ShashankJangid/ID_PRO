@@ -131,7 +131,7 @@ const Dashboard: React.FC = () => {
     <div className="p-8 max-w-5xl mx-auto">
 
       {/* ── Hero Header ── */}
-      <div className={`relative mb-8 rounded-2xl ${getBannerBgClass()} p-6 shadow-lg transition-all duration-500`}>
+      <div className="relative mb-8 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 p-6 shadow-lg">
         {/* Decorative blobs wrapped in overflow-hidden container */}
         <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
@@ -152,88 +152,6 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
-            {/* Banner Theme & Fill Switcher Toggle */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowThemeMenu(!showThemeMenu)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-xl text-xs font-bold backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-xs active:scale-95"
-                title="Customize banner background style (Gradient vs Solid color)"
-              >
-                <Paintbrush className="w-3.5 h-3.5 text-white" />
-                <span>{bannerStyle === 'gradient' ? 'Gradient' : 'Solid Color'}</span>
-              </button>
-
-              {/* Theme Switcher Popover Menu */}
-              {showThemeMenu && (
-                <div className="absolute right-0 top-11 z-30 bg-white dark:bg-[hsl(222,47%,11%)] rounded-2xl p-4 shadow-2xl border border-gray-200 dark:border-gray-800 w-64 space-y-3 animate-in fade-in zoom-in-95 duration-150">
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Fill Style</span>
-                    <div className="grid grid-cols-2 gap-1 bg-gray-100 dark:bg-slate-900 p-1 rounded-xl border border-gray-200 dark:border-gray-800">
-                      <button
-                        type="button"
-                        onClick={() => toggleBannerStyle('solid')}
-                        className={`py-1 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                          bannerStyle === 'solid'
-                            ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-xs'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                        Solid Color
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleBannerStyle('gradient')}
-                        className={`py-1 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
-                          bannerStyle === 'gradient'
-                            ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-xs'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                      >
-                        <span className="w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 inline-block" />
-                        Gradient
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Color Palette</span>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {[
-                        { id: 'indigo', label: 'Indigo Cyan', grad: 'from-indigo-600 via-purple-600 to-cyan-500', solid: 'bg-indigo-700' },
-                        { id: 'emerald', label: 'Emerald Teal', grad: 'from-emerald-600 via-teal-600 to-cyan-500', solid: 'bg-emerald-700' },
-                        { id: 'sunset', label: 'Sunset Spark', grad: 'from-amber-600 via-orange-600 to-rose-600', solid: 'bg-rose-700' },
-                        { id: 'midnight', label: 'Midnight Obsidian', grad: 'from-slate-900 via-indigo-950 to-slate-900', solid: 'bg-slate-900' },
-                      ].map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => changeBannerTheme(p.id as any)}
-                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                            bannerTheme === p.id
-                              ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                              : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
-                          }`}
-                        >
-                          <span className={`w-3 h-3 rounded-full bg-gradient-to-r ${p.grad} inline-block flex-shrink-0`} />
-                          <span className="truncate">{p.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowThemeMenu(false)}
-                    className="w-full py-1 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 rounded-lg text-[10px] font-bold hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
-              )}
-            </div>
-
             <button
               onClick={exportFullProjectBackup}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold backdrop-blur-md border border-white/25 transition-all cursor-pointer shadow-sm active:scale-95"
@@ -303,7 +221,13 @@ const Dashboard: React.FC = () => {
       {/* ── Quick Start Steps ── */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-bold text-gray-900 dark:text-white">Quick Start Guide</h2>
-        <span className="text-xs text-gray-400 dark:text-[hsl(215,16%,40%)] font-medium">{doneCount} of {steps.length} completed</span>
+        {hasSetup && !!activeTemplateId && cardDataList.length > 0 ? (
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full flex items-center gap-1 shadow-2xs border border-emerald-200 dark:border-emerald-800">
+            🎉 Setup Complete — Ready to Export!
+          </span>
+        ) : (
+          <span className="text-xs text-gray-400 dark:text-[hsl(215,16%,40%)] font-medium">{doneCount} of {steps.length} completed</span>
+        )}
       </div>
 
       {/* Progress bar */}
