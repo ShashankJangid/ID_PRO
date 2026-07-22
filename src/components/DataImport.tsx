@@ -14,6 +14,9 @@ import {
   CheckCircle2,
   Terminal,
   Globe,
+  Link2,
+  DownloadCloud,
+  Sparkles,
 } from 'lucide-react';
 import { useAppStore, suggestMappings } from '@/store';
 import { readFileAsBase64 } from '@/lib/file-utils';
@@ -1101,6 +1104,61 @@ const DataImport: React.FC = () => {
     e.target.value = '';
   };
 
+  // ── ERP Photo Fetch via cURL / URL Link ──
+  const [showErpPhotoModal, setShowErpPhotoModal] = useState(false);
+  const [erpFetchMode, setErpFetchMode] = useState<'existing_urls' | 'url_pattern'>('existing_urls');
+  const [erpPhotoUrlPattern, setErpPhotoUrlPattern] = useState('https://aws-sfs.s3.ap-south-1.amazonaws.com/dpsindp/{code}.jpeg');
+  const [erpPhotoProgress, setErpPhotoProgress] = useState<{ current: number; total: number; matched: number } | null>(null);
+  const [erpPhotoLoading, setErpPhotoLoading] = useState(false);
+
+  const handleFetchERPPhotos = async () => {
+    if (cardDataList.length === 0) {
+      showToast('Import card data first before fetching photos.', 'error');
+      return;
+    }
+
+    setErpPhotoLoading(true);
+    let matchedCount = 0;
+    const updatedList = [...cardDataList];
+    const total = updatedList.length;
+
+    setErpPhotoProgress({ current: 0, total, matched: 0 });
+
+    for (let i = 0; i < updatedList.length; i++) {
+      const card = { ...updatedList[i] };
+      let photoUrl = '';
+
+      if (erpFetchMode === 'url_pattern' && erpPhotoUrlPattern.trim()) {
+        const codeVal = card.code || card.id || card.name || '';
+        photoUrl = erpPhotoUrlPattern
+          .replace(/{code}/gi, encodeURIComponent(codeVal))
+          .replace(/{id}/gi, encodeURIComponent(codeVal))
+          .replace(/{name}/gi, encodeURIComponent(card.name || ''));
+      } else {
+        photoUrl = card.photo || '';
+      }
+
+      if (photoUrl && (photoUrl.startsWith('http://') || photoUrl.startsWith('https://'))) {
+        try {
+          const base64 = await imageUrlToBase64(photoUrl);
+          card.photo = base64;
+          matchedCount++;
+        } catch (err) {
+          console.warn(`Failed to fetch photo for ${card.name} (${photoUrl}):`, err);
+        }
+      }
+
+      updatedList[i] = card;
+      setErpPhotoProgress({ current: i + 1, total, matched: matchedCount });
+    }
+
+    setCardDataList(updatedList);
+    setErpPhotoLoading(false);
+    setShowErpPhotoModal(false);
+    setErpPhotoProgress(null);
+    showToast(`Successfully fetched & embedded ${matchedCount} photo(s) from ERP!`, matchedCount > 0 ? 'success' : 'info');
+  };
+
   React.useEffect(() => {
     if (editingIndex === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1516,26 +1574,41 @@ const DataImport: React.FC = () => {
                 <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">Smart</span>
               </div>
               <div className="px-5 py-4">
-                <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                  Name your photo files exactly as the <strong className="text-gray-700">Employee ID / Roll No. / Admission No.</strong> of each person (e.g. <code className="bg-gray-100 px-1 rounded">DEMO-001.jpg</code>, <code className="bg-gray-100 px-1 rounded">STU-042.png</code>). Upload them all at once and photos will be assigned automatically.
+                <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                  Assign photos using local folder files OR fetch them directly from your ERP cURL link/image URLs.
                 </p>
-                <div
-                  onClick={() => bulkPhotoRef.current?.click()}
-                  className="border-2 border-dashed border-emerald-200 rounded-xl p-5 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all"
-                >
-                  {bulkPhotoLoading ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-xs text-emerald-600 font-medium">Matching photos…</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      <FolderOpen className="w-8 h-8 text-emerald-400" />
-                      <p className="text-sm font-semibold text-gray-700">Click to select photos folder</p>
-                      <p className="text-[10px] text-gray-400">Supports JPG, PNG, WEBP — multiple files</p>
-                    </div>
-                  )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  {/* Local Folder Upload */}
+                  <div
+                    onClick={() => bulkPhotoRef.current?.click()}
+                    className="border-2 border-dashed border-emerald-200 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/40 transition-all flex flex-col items-center justify-center gap-2"
+                  >
+                    {bulkPhotoLoading ? (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-xs text-emerald-600 font-medium">Matching photos…</p>
+                      </div>
+                    ) : (
+                      <>
+                        <FolderOpen className="w-6 h-6 text-emerald-500" />
+                        <p className="text-xs font-bold text-gray-800">Select Local Photos Folder</p>
+                        <p className="text-[10px] text-gray-400">Filename must match ID / Roll No.</p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* ERP cURL / URL Link Fetch Button */}
+                  <div
+                    onClick={() => setShowErpPhotoModal(true)}
+                    className="border-2 border-dashed border-cyan-200 bg-cyan-50/20 rounded-xl p-4 text-center cursor-pointer hover:border-cyan-400 hover:bg-cyan-50/60 transition-all flex flex-col items-center justify-center gap-2"
+                  >
+                    <Globe className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                    <p className="text-xs font-bold text-gray-800">Fetch Photos via ERP cURL / Link</p>
+                    <p className="text-[10px] text-cyan-600 font-medium">Auto-fetch from cURL image URLs</p>
+                  </div>
                 </div>
+
                 <input
                   ref={bulkPhotoRef}
                   type="file"
@@ -2033,6 +2106,134 @@ const DataImport: React.FC = () => {
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700"
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── ERP PHOTO FETCH MODAL ── */}
+      {showErpPhotoModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[hsl(222,47%,11%)] rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center">
+                  <Globe className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">Fetch Photos from ERP cURL / Link</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Batch fetch student/employee photos directly from your ERP URL link</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowErpPhotoModal(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block">Select Fetch Source Mode:</label>
+
+                {/* Option 1: Existing URLs */}
+                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${erpFetchMode === 'existing_urls' ? 'border-cyan-500 bg-cyan-50/30 dark:bg-cyan-500/10' : 'border-gray-200 dark:border-gray-800'}`}>
+                  <input
+                    type="radio"
+                    name="erp_mode"
+                    checked={erpFetchMode === 'existing_urls'}
+                    onChange={() => setErpFetchMode('existing_urls')}
+                    className="mt-0.5 text-cyan-600"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-gray-900 dark:text-white block">Auto-Convert Photo URLs in Imported cURL Records</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 block mt-0.5">
+                      Batch downloads and converts image URLs present in your {cardDataList.length} card records into high-res Base64 photos.
+                    </span>
+                  </div>
+                </label>
+
+                {/* Option 2: ERP URL Pattern */}
+                <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${erpFetchMode === 'url_pattern' ? 'border-cyan-500 bg-cyan-50/30 dark:bg-cyan-500/10' : 'border-gray-200 dark:border-gray-800'}`}>
+                  <input
+                    type="radio"
+                    name="erp_mode"
+                    checked={erpFetchMode === 'url_pattern'}
+                    onChange={() => setErpFetchMode('url_pattern')}
+                    className="mt-0.5 text-cyan-600"
+                  />
+                  <div className="flex-1">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white block">Fetch from ERP URL Pattern Link</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 block mt-0.5">
+                      Constructs photo URLs dynamically for each person using their Employee ID / Roll No.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {erpFetchMode === 'url_pattern' && (
+                <div className="space-y-1.5 pl-7">
+                  <label className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">ERP Photo URL Pattern:</label>
+                  <input
+                    type="text"
+                    value={erpPhotoUrlPattern}
+                    onChange={(e) => setErpPhotoUrlPattern(e.target.value)}
+                    placeholder="https://aws-sfs.s3.ap-south-1.amazonaws.com/dpsindp/{code}.jpeg"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-cyan-500 text-gray-900 dark:text-white"
+                  />
+                  <p className="text-[10px] text-gray-400">
+                    Use <code className="text-cyan-600 bg-cyan-50 dark:bg-cyan-950 px-1 rounded">{'{code}'}</code>, <code className="text-cyan-600 bg-cyan-50 dark:bg-cyan-950 px-1 rounded">{'{id}'}</code>, or <code className="text-cyan-600 bg-cyan-50 dark:bg-cyan-950 px-1 rounded">{'{name}'}</code> as placeholders.
+                  </p>
+                </div>
+              )}
+
+              {/* Progress bar during fetch */}
+              {erpPhotoLoading && erpPhotoProgress && (
+                <div className="space-y-2 bg-cyan-50 dark:bg-cyan-950/40 p-3.5 rounded-xl border border-cyan-200 dark:border-cyan-800">
+                  <div className="flex justify-between items-center text-xs font-bold text-cyan-800 dark:text-cyan-200">
+                    <span>Fetching ERP Photos…</span>
+                    <span>{erpPhotoProgress.current} / {erpPhotoProgress.total} ({Math.round((erpPhotoProgress.current / erpPhotoProgress.total) * 100)}%)</span>
+                  </div>
+                  <div className="h-2 bg-cyan-200 dark:bg-cyan-900 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-600 transition-all duration-200 rounded-full"
+                      style={{ width: `${(erpPhotoProgress.current / erpPhotoProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-cyan-700 dark:text-cyan-300 font-medium">
+                    {erpPhotoProgress.matched} photo(s) successfully attached so far.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowErpPhotoModal(false)}
+                disabled={erpPhotoLoading}
+                className="px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold hover:bg-gray-200 dark:hover:bg-white/20 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleFetchERPPhotos}
+                disabled={erpPhotoLoading || (erpFetchMode === 'url_pattern' && !erpPhotoUrlPattern.trim())}
+                className="flex items-center gap-2 px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold shadow-md transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {erpPhotoLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Fetching Photos…</span>
+                  </>
+                ) : (
+                  <>
+                    <DownloadCloud className="w-3.5 h-3.5" />
+                    <span>Start ERP Photo Fetch</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
