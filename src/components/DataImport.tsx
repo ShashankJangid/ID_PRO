@@ -162,6 +162,8 @@ export function flattenObject(obj: any, prefix = ''): Record<string, any> {
   return result;
 }
 
+const userApprovedDomains = new Set<string>();
+
 // Sanitize and validate target URL for SSRF protection
 export function validateTargetUrl(urlString: string) {
   let parsed: URL;
@@ -194,25 +196,53 @@ export function validateTargetUrl(urlString: string) {
     hostname.startsWith('169.254.');
 
   if (isLocal) {
-    const proceed = window.confirm(
-      `Security Warning: The target URL "${urlString}" points to a local or private address. Making requests to internal network resources can be unsafe (SSRF). Do you want to proceed?`
-    );
-    if (!proceed) {
-      throw new Error('Request cancelled by user due to private IP warning.');
+    if (!userApprovedDomains.has(hostname)) {
+      const proceed = window.confirm(
+        `Security Notice: The target URL "${urlString}" points to a local or private address. Do you want to trust "${hostname}" for this session?`
+      );
+      if (proceed) {
+        userApprovedDomains.add(hostname);
+      } else {
+        throw new Error('Request cancelled by user due to private IP warning.');
+      }
     }
   } else {
-    // Known trusted public endpoints
+    // Known trusted public endpoints & Cloud Storage / ERP CDNs
     const trustedDomains = [
       'jsonplaceholder.typicode.com',
       'reqres.in',
       'api.github.com',
+      'amazonaws.com',
+      's3.amazonaws.com',
+      'cloudfront.net',
+      'googleapis.com',
+      'googleusercontent.com',
+      'windows.net',
+      'azureedge.net',
+      'cloudinary.com',
+      'imgix.net',
+      'supabase.co',
+      'onrender.com',
+      'vercel.app',
     ];
-    const isTrusted = trustedDomains.some(d => hostname === d || hostname.endsWith('.' + d));
+
+    const isTrusted =
+      trustedDomains.some((d) => hostname === d || hostname.endsWith('.' + d)) ||
+      userApprovedDomains.has(hostname) ||
+      Array.from(userApprovedDomains).some((d) => hostname.endsWith('.' + d));
+
     if (!isTrusted) {
       const proceed = window.confirm(
-        `Security Warning: You are making a request to an arbitrary external URL "${urlString}". Please verify that this endpoint is trusted and secure. Do you want to proceed?`
+        `Security Notice: Do you trust external domain "${hostname}" for this session?\n\nClick OK to allow and trust all requests to "${hostname}" for all records in this batch.`
       );
-      if (!proceed) {
+      if (proceed) {
+        userApprovedDomains.add(hostname);
+        const parts = hostname.split('.');
+        if (parts.length >= 2) {
+          const rootDomain = parts.slice(-2).join('.');
+          userApprovedDomains.add(rootDomain);
+        }
+      } else {
         throw new Error('Request cancelled by user due to untrusted domain warning.');
       }
     }
