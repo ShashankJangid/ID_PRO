@@ -192,14 +192,23 @@ function App() {
   useEffect(() => {
     const unsubscribe = onAuthChange(async (u) => {
       if (u) {
-        await switchStoreUser(u.uid);
+        // Switch local storage key immediately (fast, IndexedDB rehydrate)
+        const name = `idcard-studio-storage-${u.uid}`;
+        const { useAppStore } = await import('@/store');
+        useAppStore.persist.setOptions({ name });
+        await useAppStore.persist.rehydrate();
+
+        // Show app right away — no waiting for Firestore
         sessionStorage.removeItem('logging_in');
         setUser(u);
         setAuthLoading(false);
+
+        // Sync Firestore in background silently
+        switchStoreUser(u.uid);
       } else {
-        await switchStoreUser(null);
         setUser(null);
         setAuthLoading(false);
+        switchStoreUser(null);
       }
     });
     return unsubscribe;
