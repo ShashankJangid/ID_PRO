@@ -384,7 +384,7 @@ export const useAppStore = create<AppState>()(
       zoom: 0.65,
       setZoom: (z) => set({ zoom: Math.max(0.2, Math.min(2, z)) }),
       showHelp: false,
-      setShowHelp: (v) => set({ setShowHelp: v }),
+      setShowHelp: (v) => set({ showHelp: v }),
       toast: null,
       showToast: (message, type = 'info') => set({ toast: { message, type } }),
       clearToast: () => set({ toast: null }),
@@ -414,7 +414,7 @@ export const useAppStore = create<AppState>()(
             saveFullStateToFirestore(userId, { themeGradientColor: color });
           }
           return { themeGradientColor: color };
-        }),ThemeGradientColor: (color) => set({ themeGradientColor: color }),
+        }),
       exportFullProjectBackup: () => {
         const state = get();
         const backupData = {
