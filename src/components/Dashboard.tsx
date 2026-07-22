@@ -133,7 +133,10 @@ const Dashboard: React.FC = () => {
     <div className="p-8 max-w-5xl mx-auto">
 
       {/* ── Hero Header ── */}
-      <div className="relative mb-8 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 p-6 shadow-lg">
+      <div 
+        className="relative mb-8 rounded-2xl p-6 shadow-lg transition-all duration-300"
+        style={{ background: 'var(--theme-accent-bg, linear-gradient(to right, #4f46e5, #9333ea, #06b6d4))' }}
+      >
         {/* Decorative blobs wrapped in overflow-hidden container */}
         <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
@@ -342,8 +345,11 @@ const Dashboard: React.FC = () => {
       {/* ── Setup Summary ── */}
       {(hasSetup || activeTemplateId) && (
         <div className="mt-8 relative rounded-2xl overflow-hidden shadow-lg border border-white/20">
-          {/* Glassmorphism bg */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-sm" />
+          {/* Theme-synced background */}
+          <div 
+            className="absolute inset-0 backdrop-blur-sm transition-all duration-300" 
+            style={{ background: 'var(--theme-accent-bg, linear-gradient(to right, #059669, #0d9488))' }}
+          />
 
           {/* Decorative */}
           <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/10 blur-2xl pointer-events-none" />

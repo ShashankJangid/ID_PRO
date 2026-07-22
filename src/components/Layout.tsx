@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
 
   const bgRef = useRef<HTMLDivElement>(null);
 
-  const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast, darkMode, setDarkMode, themeColor, setThemeColor } =
+  const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast, darkMode, setDarkMode, themeColor, setThemeColor, themeGradientColor, setThemeGradientColor } =
     useAppStore(
       useShallow((s) => ({
         activeTab:             s.activeTab,
@@ -71,8 +71,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         setDarkMode:           s.setDarkMode,
         themeColor:            s.themeColor,
         setThemeColor:         s.setThemeColor,
+        themeGradientColor:    s.themeGradientColor,
+        setThemeGradientColor: s.setThemeGradientColor,
       }))
     );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const activeBg = colorType === 'gradient' ? (gradientAccent || themeGradientColor || 'linear-gradient(135deg, #10b981, #059669)') : themeColor;
+    root.style.setProperty('--theme-accent-bg', activeBg);
+  }, [themeColor, gradientAccent, colorType, themeGradientColor]);
 
   useEffect(() => {
     if (!darkMode) {
