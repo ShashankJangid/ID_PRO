@@ -198,12 +198,15 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                     ${collapsed ? 'justify-center px-0' : 'px-3'}
                     ${
                       isActive
-                        ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border-l-4 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-semibold shadow-sm backdrop-blur-sm'
+                        ? colorType === 'gradient'
+                          ? 'border-l-4 text-white font-semibold shadow-sm backdrop-blur-sm'
+                          : 'bg-emerald-500/10 dark:bg-emerald-500/20 border-l-4 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-semibold shadow-xs'
                         : isDisabled
                           ? 'text-gray-300 dark:text-[hsl(224,71%,20%)] cursor-not-allowed border-l-4 border-transparent'
                           : 'text-gray-600 dark:text-[hsl(213,31%,65%)] hover:bg-slate-500/5 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white border-l-4 border-transparent'
                     }
                   `}
+                  style={isActive && colorType === 'gradient' ? { background: gradientAccent, borderLeftColor: themeColor } : undefined}
                 >
                   <Icon
                     className={`flex-shrink-0 w-[18px] h-[18px] ${
@@ -336,8 +339,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                           { hex: '#4285f4', label: 'Google Blue' },
                           { hex: '#0f9d58', label: 'Google Green' },
                           { hex: '#ea4335', label: 'Google Red' },
-                          { hex: '#f4b400', label: 'Google Yellow' },
                           { hex: '#a142f4', label: 'Google Purple' },
+                          { hex: '#0f172a', label: 'Midnight Obsidian' },
                         ].map((color) => (
                           <button
                             key={color.hex}
@@ -353,7 +356,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                         ))}
                         <div
                           className={`relative w-4 h-4 rounded-full overflow-hidden border transition-all duration-150 hover:scale-110 flex-shrink-0 cursor-pointer ${
-                            !['#4285f4', '#0f9d58', '#ea4335', '#f4b400', '#a142f4'].includes(themeColor.toLowerCase())
+                            !['#4285f4', '#0f9d58', '#ea4335', '#a142f4', '#0f172a'].includes(themeColor.toLowerCase())
                               ? 'border-gray-900 dark:border-white ring-2 ring-primary/20 scale-110'
                               : 'border-gray-200 dark:border-slate-800'
                           }`}
@@ -374,8 +377,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                           { name: 'Google Quantum Blue-Purple', grad: 'linear-gradient(135deg, #4285f4, #9b51e0)', primary: '#4285f4' },
                           { name: 'Google Emerald Mint', grad: 'linear-gradient(135deg, #0f9d58, #00c853)', primary: '#0f9d58' },
                           { name: 'Google Sunset Flame', grad: 'linear-gradient(135deg, #ea4335, #ff6d00)', primary: '#ea4335' },
-                          { name: 'Google Ocean Cyan', grad: 'linear-gradient(135deg, #00b0ff, #00e5ff)', primary: '#00b0ff' },
                           { name: 'Google Cosmic Violet', grad: 'linear-gradient(135deg, #a142f4, #e040fb)', primary: '#a142f4' },
+                          { name: 'Midnight Obsidian', grad: 'linear-gradient(135deg, #0f172a, #1e293b)', primary: '#0f172a' },
                         ].map((g) => (
                           <button
                             key={g.name}
