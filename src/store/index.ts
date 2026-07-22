@@ -217,22 +217,31 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (.
   };
 }
 
-const saveProfileToFirestore = async (userId: string, org: Organization, cards: CardData[]) => {
+const saveFullStateToFirestore = async (userId: string, partialOverrides?: any) => {
   if (!userId) return;
   try {
+    const currentState = useAppStore.getState();
+    const state = { ...currentState, ...partialOverrides };
     const docRef = doc(db, 'users', userId);
     const dataToSave = sanitizeForFirestore({
-      organization: org,
-      cardDataList: cards,
+      organization: state.organization,
+      hasSetup: state.hasSetup,
+      cardDataList: state.cardDataList,
+      activeTemplateId: state.activeTemplateId,
+      columnMappings: state.columnMappings,
+      exportFormat: state.exportFormat,
+      darkMode: state.darkMode,
+      themeColor: state.themeColor,
+      themeGradientColor: state.themeGradientColor,
       updatedAt: new Date().toISOString(),
     });
     await setDoc(docRef, dataToSave, { merge: true });
   } catch (e) {
-    console.error('Error saving profile to Firestore:', e);
+    console.error('Error saving user state to Firestore:', e);
   }
 };
 
-const debouncedSaveProfileToFirestore = debounce(saveProfileToFirestore, 1000);
+const debouncedSaveFullStateToFirestore = debounce(saveFullStateToFirestore, 800);
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -245,12 +254,19 @@ export const useAppStore = create<AppState>()(
           const newOrg = { ...state.organization, ...org };
           const userId = auth.currentUser?.uid;
           if (userId) {
-            debouncedSaveProfileToFirestore(userId, newOrg, state.cardDataList);
+            debouncedSaveFullStateToFirestore(userId, { organization: newOrg });
           }
           return { organization: newOrg };
         }),
       hasSetup: false,
-      setHasSetup: (v) => set({ hasSetup: v }),
+      setHasSetup: (v) =>
+        set(() => {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { hasSetup: v });
+          }
+          return { hasSetup: v };
+        }),
       templates: [],
       activeTemplateId: null,
       addTemplate: (t) =>
@@ -259,8 +275,9 @@ export const useAppStore = create<AppState>()(
           const userId = auth.currentUser?.uid;
           if (userId) {
             saveTemplateToFirestore(userId, fitted);
+            saveFullStateToFirestore(userId, { templates: [...state.templates, fitted], activeTemplateId: fitted.id });
           }
-          return { templates: [...state.templates, fitted] };
+          return { templates: [...state.templates, fitted], activeTemplateId: fitted.id };
         }),
       updateTemplate: (id, updates) =>
         set((state) => {
@@ -275,6 +292,10 @@ export const useAppStore = create<AppState>()(
             }
             return t;
           });
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { templates: newTemplates });
+          }
           return { templates: newTemplates };
         }),
       deleteTemplate: (id) =>
@@ -283,12 +304,24 @@ export const useAppStore = create<AppState>()(
           if (userId) {
             deleteTemplateFromFirestore(userId, id);
           }
+          const nextActiveId = state.activeTemplateId === id ? null : state.activeTemplateId;
+          const nextTemplates = state.templates.filter((t) => t.id !== id);
+          if (userId) {
+            saveFullStateToFirestore(userId, { templates: nextTemplates, activeTemplateId: nextActiveId });
+          }
           return {
-            templates: state.templates.filter((t) => t.id !== id),
-            activeTemplateId: state.activeTemplateId === id ? null : state.activeTemplateId,
+            templates: nextTemplates,
+            activeTemplateId: nextActiveId,
           };
         }),
-      setActiveTemplate: (id) => set({ activeTemplateId: id }),
+      setActiveTemplate: (id) =>
+        set(() => {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { activeTemplateId: id });
+          }
+          return { activeTemplateId: id };
+        }),
       getActiveTemplate: () => {
         const { templates, activeTemplateId } = get();
         return templates.find((t) => t.id === activeTemplateId);
@@ -299,7 +332,7 @@ export const useAppStore = create<AppState>()(
         set((state) => {
           const userId = auth.currentUser?.uid;
           if (userId) {
-            debouncedSaveProfileToFirestore(userId, state.organization, list);
+            debouncedSaveFullStateToFirestore(userId, { cardDataList: list });
           }
           return { cardDataList: list, activeCardIndex: 0 };
         }),
@@ -308,7 +341,7 @@ export const useAppStore = create<AppState>()(
           const newList = [...state.cardDataList, data];
           const userId = auth.currentUser?.uid;
           if (userId) {
-            debouncedSaveProfileToFirestore(userId, state.organization, newList);
+            debouncedSaveFullStateToFirestore(userId, { cardDataList: newList });
           }
           return { cardDataList: newList };
         }),
@@ -320,7 +353,7 @@ export const useAppStore = create<AppState>()(
           }
           const userId = auth.currentUser?.uid;
           if (userId) {
-            debouncedSaveProfileToFirestore(userId, state.organization, list);
+            debouncedSaveFullStateToFirestore(userId, { cardDataList: list });
           }
           return { cardDataList: list };
         }),
@@ -330,7 +363,14 @@ export const useAppStore = create<AppState>()(
         return cardDataList[activeCardIndex];
       },
       columnMappings: [],
-      setColumnMappings: (m) => set({ columnMappings: m }),
+      setColumnMappings: (m) =>
+        set(() => {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { columnMappings: m });
+          }
+          return { columnMappings: m };
+        }),
       exportFormat: 'pdf',
       setExportFormat: (f) => set({ exportFormat: f }),
       isExporting: false,
@@ -344,16 +384,37 @@ export const useAppStore = create<AppState>()(
       zoom: 0.65,
       setZoom: (z) => set({ zoom: Math.max(0.2, Math.min(2, z)) }),
       showHelp: false,
-      setShowHelp: (v) => set({ showHelp: v }),
+      setShowHelp: (v) => set({ setShowHelp: v }),
       toast: null,
       showToast: (message, type = 'info') => set({ toast: { message, type } }),
       clearToast: () => set({ toast: null }),
       darkMode: false,
-      setDarkMode: (v) => set({ darkMode: v }),
+      setDarkMode: (v) =>
+        set(() => {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { darkMode: v });
+          }
+          return { darkMode: v };
+        }),
       themeColor: '#4165b4',
-      setThemeColor: (color) => set({ themeColor: color, themeGradientColor: color }),
+      setThemeColor: (color) =>
+        set(() => {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { themeColor: color, themeGradientColor: color });
+          }
+          return { themeColor: color, themeGradientColor: color };
+        }),
       themeGradientColor: '#4165b4',
-      setThemeGradientColor: (color) => set({ themeGradientColor: color }),
+      setThemeGradientColor: (color) =>
+        set(() => {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            saveFullStateToFirestore(userId, { themeGradientColor: color });
+          }
+          return { themeGradientColor: color };
+        }),ThemeGradientColor: (color) => set({ themeGradientColor: color }),
       exportFullProjectBackup: () => {
         const state = get();
         const backupData = {
@@ -552,22 +613,16 @@ export async function syncStoreWithFirestore(userId: string | null) {
   if (!userId) return;
 
   try {
-    // 1. Fetch remote user profile (organization and cards)
+    // 1. Fetch remote user profile document
     const userDocRef = doc(db, 'users', userId);
     const userDocSnap = await getDoc(userDocRef);
-    
-    let remoteOrg: Organization | null = null;
-    let remoteCards: CardData[] | null = null;
-    let remoteProfileUpdatedAt: string | null = null;
+    let remoteData: any = null;
 
     if (userDocSnap.exists()) {
-      const data = userDocSnap.data();
-      remoteOrg = data.organization || null;
-      remoteCards = data.cardDataList || null;
-      remoteProfileUpdatedAt = data.updatedAt || null;
+      remoteData = userDocSnap.data();
     }
 
-    // 2. Fetch remote templates
+    // 2. Fetch remote custom templates
     const templatesColRef = collection(db, 'users', userId, 'templates');
     const templatesSnap = await getDocs(templatesColRef);
     const remoteTemplates: CardTemplate[] = [];
@@ -577,63 +632,67 @@ export async function syncStoreWithFirestore(userId: string | null) {
 
     // 3. Get current local state
     const localState = useAppStore.getState();
-    const localTemplates = localState.templates;
-    const localOrg = localState.organization;
-    const localCards = localState.cardDataList;
 
-    // 4. Merge profile (organization & cards)
-    let mergedOrg = localOrg;
-    let mergedCards = localCards;
-    
-    const isLocalOrgDefault = !localOrg.name && !localOrg.tagline;
-    if (remoteOrg && (isLocalOrgDefault || !remoteProfileUpdatedAt)) {
-      mergedOrg = remoteOrg;
-      mergedCards = remoteCards || localCards;
-    } else if (remoteOrg) {
-      mergedOrg = remoteOrg;
-      mergedCards = remoteCards || localCards;
-    } else {
-      // Remote does not exist: upload local profile to Firestore
-      await saveProfileToFirestore(userId, localOrg, localCards);
-    }
+    // 4. Merge templates (built-in + local custom + remote custom)
+    const { getBuiltInTemplates } = await import('@/templates/built-in');
+    const builtIns = getBuiltInTemplates();
 
-    // 5. Merge templates
-    const mergedTemplates = [...localTemplates].map((t) => autoFitTemplate(t));
+    const mergedTemplatesMap = new Map<string, CardTemplate>();
+    builtIns.forEach((t) => mergedTemplatesMap.set(t.id, autoFitTemplate(t)));
+    localState.templates.forEach((t) => mergedTemplatesMap.set(t.id, autoFitTemplate(t)));
+    remoteTemplates.forEach((t) => mergedTemplatesMap.set(t.id, autoFitTemplate(t)));
 
-    // Upload local custom templates that don't exist in remote
-    for (const localT of localTemplates) {
-      if (localT.isBuiltIn) continue; // Built-in templates are not uploaded
+    const mergedTemplates = Array.from(mergedTemplatesMap.values());
+
+    // Sync any local custom templates to remote if not yet uploaded
+    for (const localT of localState.templates) {
+      if (localT.isBuiltIn) continue;
       const remoteT = remoteTemplates.find((t) => t.id === localT.id);
       if (!remoteT) {
         await saveTemplateToFirestore(userId, autoFitTemplate(localT));
       }
     }
 
-    // Download remote templates that don't exist locally or are newer
-    for (const remoteT of remoteTemplates) {
-      const fittedRemoteT = autoFitTemplate(remoteT);
-      const localTIdx = mergedTemplates.findIndex((t) => t.id === fittedRemoteT.id);
-      if (localTIdx === -1) {
-        mergedTemplates.push(fittedRemoteT);
-      } else {
-        const localT = mergedTemplates[localTIdx];
-        const localTime = new Date(localT.createdAt || 0).getTime();
-        const remoteTime = new Date(fittedRemoteT.updatedAt || fittedRemoteT.createdAt || 0).getTime();
-        if (remoteTime > localTime) {
-          mergedTemplates[localTIdx] = fittedRemoteT;
+    // 5. Merge profile state
+    if (remoteData) {
+      const mergedOrg = remoteData.organization || localState.organization;
+      const mergedCards = (remoteData.cardDataList && remoteData.cardDataList.length > 0) ? remoteData.cardDataList : localState.cardDataList;
+      const mergedActiveTemplateId = remoteData.activeTemplateId || localState.activeTemplateId || mergedTemplates[0]?.id || null;
+      const mergedHasSetup = typeof remoteData.hasSetup === 'boolean' ? remoteData.hasSetup : (!!mergedOrg.name || localState.hasSetup);
+      const mergedColumnMappings = remoteData.columnMappings || localState.columnMappings;
+      const mergedThemeColor = remoteData.themeColor || localState.themeColor;
+      const mergedThemeGrad = remoteData.themeGradientColor || localState.themeGradientColor;
+      const mergedDarkMode = typeof remoteData.darkMode === 'boolean' ? remoteData.darkMode : localState.darkMode;
+
+      useAppStore.setState({
+        organization: mergedOrg,
+        cardDataList: mergedCards,
+        templates: mergedTemplates,
+        activeTemplateId: mergedActiveTemplateId,
+        hasSetup: mergedHasSetup,
+        columnMappings: mergedColumnMappings,
+        themeColor: mergedThemeColor,
+        themeGradientColor: mergedThemeGrad,
+        darkMode: mergedDarkMode,
+      });
+
+      // Save merged state back to cloud to keep everything synchronized
+      await saveFullStateToFirestore(userId);
+    } else {
+      // First time login on this account: upload local state to cloud
+      await saveFullStateToFirestore(userId);
+      for (const t of mergedTemplates) {
+        if (!t.isBuiltIn) {
+          await saveTemplateToFirestore(userId, t);
         }
       }
     }
 
-    // 6. Update Zustand store
-    useAppStore.setState({
-      organization: mergedOrg,
-      cardDataList: mergedCards,
-      templates: mergedTemplates,
-      hasSetup: mergedOrg.name ? true : localState.hasSetup,
-    });
-
-    // Sync completed successfully
+    // Ensure active template is set
+    const currentActiveId = useAppStore.getState().activeTemplateId;
+    if (!currentActiveId && mergedTemplates.length > 0) {
+      useAppStore.setState({ activeTemplateId: mergedTemplates[0].id });
+    }
   } catch (e) {
     console.error('Error syncing store with Firestore:', e);
   }
@@ -654,11 +713,17 @@ const resetStoreToDefaults = () => {
 };
 
 export async function switchStoreUser(userId: string | null) {
-  // Reset memory state to defaults first to prevent data leakage between sessions
+  // If signing out from a previous user, ensure their state is saved to Firestore before clearing memory
+  const currentUserId = auth.currentUser?.uid;
+  if (currentUserId && !userId) {
+    await saveFullStateToFirestore(currentUserId);
+  }
+
+  // Reset memory state to defaults first to prevent data leakage between different users
   resetStoreToDefaults();
 
   if (userId) {
-    // 1. Fetch guest data to migrate
+    // 1. Fetch guest data if any to migrate
     let guestData: any = null;
     try {
       const guestDataStr = await idbStorage.getItem('idcard-studio-storage-guest');
@@ -669,12 +734,12 @@ export async function switchStoreUser(userId: string | null) {
       console.warn('Failed to read guest storage for migration:', err);
     }
 
-    // 2. Switch to user storage
+    // 2. Switch to user storage key in IndexedDB
     const name = `idcard-studio-storage-${userId}`;
     useAppStore.persist.setOptions({ name });
     await useAppStore.persist.rehydrate();
 
-    // 3. Migrate guest state into user state
+    // 3. Migrate guest state into user state if user state was empty
     if (guestData && guestData.state) {
       const localState = useAppStore.getState();
       const guestTemplates = guestData.state.templates || [];
@@ -713,6 +778,7 @@ export async function switchStoreUser(userId: string | null) {
           templates: newTemplates,
           organization: newOrg,
           cardDataList: newCards,
+          hasSetup: newOrg.name ? true : localState.hasSetup,
         });
 
         // Save migrated data to Firestore
@@ -721,15 +787,15 @@ export async function switchStoreUser(userId: string | null) {
             saveTemplateToFirestore(userId, t);
           }
         });
-        saveProfileToFirestore(userId, newOrg, newCards);
+        saveFullStateToFirestore(userId, { organization: newOrg, cardDataList: newCards, templates: newTemplates });
       }
 
-      // Clear guest storage after migration so it doesn't merge again next time
+      // Clear guest storage after migration
       await idbStorage.removeItem('idcard-studio-storage-guest');
     }
 
-    // 4. Sync with Firestore
-    syncStoreWithFirestore(userId);
+    // 4. Sync with Firestore cloud storage bound to this user ID
+    await syncStoreWithFirestore(userId);
   } else {
     const name = 'idcard-studio-storage-guest';
     useAppStore.persist.setOptions({ name });
