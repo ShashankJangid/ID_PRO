@@ -257,6 +257,8 @@ function renderElement(
     case 'shape': {
       const shapeStyle: React.CSSProperties = {
         ...baseStyle,
+        fontSize: 0,
+        lineHeight: 0,
         background: s.gradient || s.backgroundColor || '#ccc',
         opacity: s.opacity,
         borderRadius:

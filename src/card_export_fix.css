@@ -3,6 +3,11 @@
    ============================================================ */
 
 /* Ensure card container resets all inherited text metrics */
+.id-card-render {
+  font-size: 0;
+  line-height: 0;
+}
+
 .id-card-render,
 .id-card-render * {
   box-sizing: border-box;

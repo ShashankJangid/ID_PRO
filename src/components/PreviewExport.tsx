@@ -318,28 +318,39 @@ const PreviewExport: React.FC = () => {
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
           <style>
             html, body {
-              margin: 0;
-              padding: 0;
-              overflow: hidden;
-              background: transparent;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: hidden !important;
+              background: transparent !important;
+              font-size: 0 !important;
+              line-height: 0 !important;
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+            }
+            #export-capture-container, .id-card-render {
+              margin: 0 !important;
+              padding: 0 !important;
+              border: none !important;
+              font-size: 0 !important;
+              line-height: 0 !important;
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
             }
             .id-card-render, .id-card-render * {
               box-sizing: border-box !important;
             }
             .id-card-render > div, .id-card-render > img {
               margin: 0 !important;
-              padding: 0;
-            }
-            .card-export-root {
-              font-family: Inter, sans-serif;
-              font-size: 16px;
-              line-height: normal;
-              color: #000;
+              padding: 0 !important;
             }
           </style>
         </head>
         <body>
-          <div id="export-capture-container" style="width: ${template.cardWidth}px; height: ${template.cardHeight}px; position: relative; overflow: hidden; background: #ffffff;"></div>
+          <div id="export-capture-container" style="width: ${template.cardWidth}px; height: ${template.cardHeight}px; position: absolute; top: 0; left: 0; overflow: hidden; background: #ffffff;"></div>
         </body>
         </html>
       `);
@@ -433,23 +444,32 @@ const PreviewExport: React.FC = () => {
           onclone: (clonedDoc) => {
             // Body/html resets inside cloned iframe
             if (clonedDoc.body) {
-              clonedDoc.body.style.cssText = 'margin:0;padding:0;overflow:hidden;position:relative';
+              clonedDoc.body.style.cssText = 'margin:0;padding:0;overflow:hidden;position:absolute;top:0;left:0;font-size:0;line-height:0';
             }
             if (clonedDoc.documentElement) {
-              clonedDoc.documentElement.style.cssText = 'margin:0;padding:0;overflow:hidden';
+              clonedDoc.documentElement.style.cssText = 'margin:0;padding:0;overflow:hidden;position:absolute;top:0;left:0;font-size:0;line-height:0';
             }
 
-            // Neutralize any scale() transform on the card wrapper itself — it confuses
-            // html2canvas when computing absolute child offsets.
+            const containerEl = clonedDoc.getElementById('export-capture-container');
+            if (containerEl) {
+              containerEl.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;font-size:0;line-height:0;overflow:hidden;background:#ffffff`;
+            }
+
             const cardWrapper = clonedDoc.querySelector('.id-card-render') as HTMLElement | null;
             if (cardWrapper) {
-              cardWrapper.style.transform = 'none';
-              cardWrapper.style.transformOrigin = 'top left';
-              cardWrapper.style.margin = '0';
-              cardWrapper.style.padding = '0';
+              cardWrapper.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;font-size:0;line-height:0;transform:none;transform-origin:top left;overflow:hidden;background:#ffffff`;
             }
 
             const dv = clonedDoc.defaultView || window;
+
+            // Normalize shapes & non-text elements to zero font metrics to prevent baseline drift
+            clonedDoc.querySelectorAll('.id-card-render > div:not([data-element-type="text"])').forEach((node) => {
+              const h = node as HTMLElement;
+              h.style.fontSize = '0px';
+              h.style.lineHeight = '0px';
+              h.style.margin = '0px';
+              h.style.padding = '0px';
+            });
 
             // Resolve line-heights to px for text elements to prevent vertical shift
             clonedDoc.querySelectorAll('[data-element-type="text"]').forEach((el) => {
