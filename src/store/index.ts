@@ -176,19 +176,27 @@ const idbStorage: StateStorage = {
 };
 
 // ─── Firestore Cloud Sync Helpers ─────────────────────────────
+const sanitizeForFirestore = (obj: any): any => {
+  if (!obj) return obj;
+  return JSON.parse(JSON.stringify(obj));
+};
+
 const saveTemplateToFirestore = async (userId: string, template: CardTemplate) => {
+  if (!userId || !template || template.isBuiltIn) return;
   try {
     const docRef = doc(db, 'users', userId, 'templates', template.id);
-    await setDoc(docRef, {
+    const dataToSave = sanitizeForFirestore({
       ...template,
       updatedAt: new Date().toISOString(),
     });
+    await setDoc(docRef, dataToSave);
   } catch (e) {
     console.error('Error saving template to Firestore:', e);
   }
 };
 
 const deleteTemplateFromFirestore = async (userId: string, templateId: string) => {
+  if (!userId || !templateId) return;
   try {
     const docRef = doc(db, 'users', userId, 'templates', templateId);
     await deleteDoc(docRef);
@@ -208,13 +216,15 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (.
 }
 
 const saveProfileToFirestore = async (userId: string, org: Organization, cards: CardData[]) => {
+  if (!userId) return;
   try {
     const docRef = doc(db, 'users', userId);
-    await setDoc(docRef, {
+    const dataToSave = sanitizeForFirestore({
       organization: org,
       cardDataList: cards,
       updatedAt: new Date().toISOString(),
-    }, { merge: true });
+    });
+    await setDoc(docRef, dataToSave, { merge: true });
   } catch (e) {
     console.error('Error saving profile to Firestore:', e);
   }

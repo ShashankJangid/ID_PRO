@@ -221,16 +221,18 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); step.action(); }}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all glass-btn
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border shadow-sm cursor-pointer
                       ${step.done
-                        ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 dark:hover:bg-emerald-500/40 border-emerald-500/30'
+                        ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-500/40 border-emerald-300 dark:border-emerald-500/30'
                         : isCurrent
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:opacity-90 shadow-sm border-transparent'
-                          : 'bg-slate-500/5 dark:bg-white/5 text-gray-500 dark:text-[hsl(215,16%,50%)] hover:bg-slate-500/10 dark:hover:bg-white/10'
+                          ? 'bg-emerald-600 dark:bg-emerald-600 text-white hover:bg-emerald-700 shadow-md border-transparent'
+                          : 'bg-white dark:bg-white/10 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/20 border-gray-300 dark:border-white/10'
                       }`}
                   >
-                    {step.done ? 'Edit' : 'Start'}
-                    <ArrowRight className="w-3 h-3" />
+                    <span className={step.done ? 'text-emerald-900 dark:text-emerald-300 font-bold' : isCurrent ? 'text-white font-bold' : 'text-gray-900 dark:text-white font-bold'}>
+                      {step.done ? 'Edit' : 'Start'}
+                    </span>
+                    <ArrowRight className={`w-3 h-3 ${step.done ? 'text-emerald-900 dark:text-emerald-300' : isCurrent ? 'text-white' : 'text-gray-900 dark:text-white'}`} />
                   </button>
                   {isExpanded
                     ? <ChevronUp className="w-4 h-4 text-gray-400 dark:text-[hsl(215,16%,40%)]" />

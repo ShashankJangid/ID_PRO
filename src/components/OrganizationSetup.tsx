@@ -383,14 +383,13 @@ const OrganizationSetup: React.FC = () => {
           )}
         </div>
 
-        {/* ── SAVE ── */}
         <div className="flex justify-end pt-2 pb-8">
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-3 glass-btn bg-emerald-600/90 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 hover:scale-[1.01] border-transparent shadow-lg shadow-emerald-500/20 transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition-all cursor-pointer active:scale-95"
           >
-            <Save className="w-4 h-4" />
-            Save Organization
+            <Save className="w-4 h-4 text-white" />
+            <span className="text-white font-bold">Save Organization</span>
           </button>
         </div>
       </div>
