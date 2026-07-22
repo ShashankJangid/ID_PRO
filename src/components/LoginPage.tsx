@@ -3,7 +3,6 @@ import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
 import {
   signInWithGoogle,
-  signInWithGithub,
   signInWithEmail,
   signUpWithEmail,
   resetPassword,
@@ -12,7 +11,6 @@ import {
   type ConfirmationResult,
 } from '@/lib/firebase';
 import {
-  Github,
   AlertCircle,
   Loader2,
   Mail,
@@ -117,7 +115,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
 
   // ── Social loading ──
-  const [socialLoading, setSocialLoading] = useState<'google' | 'github' | null>(null);
+  const [socialLoading, setSocialLoading] = useState<'google' | null>(null);
 
   // ── Email state ──
   const [emailMode, setEmailMode] = useState<'signin' | 'signup' | 'reset'>('signin');
@@ -163,25 +161,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError('Google sign-in failed. Please try again.');
-      }
-    } finally {
-      setSocialLoading(null);
-    }
-  };
-
-  const handleGithub = async () => {
-    setSocialLoading('github');
-    setError('');
-    try {
-      await signInWithGithub();
-      setIsSuccess(true);
-      sessionStorage.setItem('logging_in', 'true');
-      setTimeout(() => {
-        onLogin();
-      }, 1200);
-    } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('GitHub sign-in failed. Please try again.');
       }
     } finally {
       setSocialLoading(null);
@@ -299,9 +278,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       'auth/too-many-requests': 'Too many attempts. Please wait a moment.',
       'auth/invalid-credential': 'Invalid credentials. Please check and retry.',
       'auth/invalid-verification-code': 'Wrong OTP code.',
-      'auth/invalid-phone-number': 'Invalid phone number format.',
+      'auth/invalid-phone-number': 'Invalid phone format. Include country code, e.g. +91 98765 43210',
+      'auth/unauthorized-domain': 'Domain not authorized in Firebase. Add your domain under Firebase Console -> Auth -> Settings -> Authorized domains.',
+      'auth/operation-not-allowed': 'Phone Sign-In disabled in Firebase. Enable Phone under Firebase Console -> Auth -> Sign-in method.',
+      'auth/captcha-check-failed': 'reCAPTCHA verification failed. Please try again.',
+      'auth/invalid-app-credential': 'Invalid Firebase app credentials for SMS verification.',
     };
-    return map[code] || 'Something went wrong. Please try again.';
+    return map[code] || 'Something went wrong. Please check your details and try again.';
   };
 
   return (
@@ -670,16 +653,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               >
                 {socialLoading === 'google' ? <Loader2 className="w-4 h-4 animate-spin text-slate-800 dark:text-white" /> : <GoogleIcon />}
                 Sign In with Google
-              </button>
-
-              <button
-                type="button"
-                onClick={handleGithub}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 glass-btn bg-slate-900/80 hover:bg-slate-900 text-white rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed hover:scale-[1.01]"
-              >
-                {socialLoading === 'github' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
-                Sign In with GitHub
               </button>
             </div>
 

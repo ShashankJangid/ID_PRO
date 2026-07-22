@@ -17,7 +17,6 @@ import { getFirestore } from 'firebase/firestore';
 import {
   getAuth,
   GoogleAuthProvider,
-  GithubAuthProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
@@ -48,10 +47,7 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-export const githubProvider = new GithubAuthProvider();
-
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
-export const signInWithGithub = () => signInWithPopup(auth, githubProvider);
 
 // ── Email / Password ─────────────────────────────────────────
 export const signUpWithEmail = (email: string, password: string) =>
