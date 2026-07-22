@@ -80,17 +80,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       const cY = cursorPos.current.y;
 
       if (bgRef.current) {
-        // We create a dual-layered liquid drop that stretches slightly as the mouse moves
-        // The outer soft glow lags (smoothPos), while the inner drop pulls forward (cursorPos)
+        // Larger, softer, subtle liquid spotlight matching cursor movement
         bgRef.current.style.background = [
-          // Head / Inner concentrated drop (pointed towards cursor)
-          `radial-gradient(130px 100px at ${cX}px ${cY}px,`,
-          `  rgba(52,211,153, 0.22) 0%,`,
-          `  rgba(16,185,129, 0.08) 50%,`,
-          `  transparent 100%),`,
-          // Tail / Outer soft glow (trailing behind at smoothPos)
-          `radial-gradient(280px 220px at ${sX}px ${sY}px,`,
-          `  rgba(16,185,129, 0.07) 0%,`,
+          `radial-gradient(400px circle at ${cX}px ${cY}px,`,
+          `  rgba(16,185,129, 0.12) 0%,`,
+          `  rgba(52,211,153, 0.04) 40%,`,
+          `  transparent 75%),`,
+          `radial-gradient(750px circle at ${sX}px ${sY}px,`,
+          `  rgba(16,185,129, 0.04) 0%,`,
           `  transparent 75%),`,
           `#021a11`,
         ].join('');
@@ -307,14 +304,37 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       {/* Invisible reCAPTCHA anchor */}
       <div id="recaptcha-container" />
 
+      {/* Top Right Theme Color Selector */}
+      <div className="absolute top-5 right-5 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/10 p-1.5 rounded-xl shadow-lg">
+        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider pl-1 mr-0.5 select-none">Theme</span>
+        {[
+          { hex: '#10b981', label: 'Emerald' },
+          { hex: '#4285f4', label: 'Google Blue' },
+          { hex: '#ea4335', label: 'Google Red' },
+          { hex: '#a142f4', label: 'Google Purple' },
+          { hex: '#0f172a', label: 'Midnight' },
+        ].map((c) => (
+          <button
+            key={c.hex}
+            type="button"
+            title={c.label}
+            onClick={() => {
+              const useAppStore = (window as any).useAppStore;
+              if (useAppStore) useAppStore.getState().setThemeColor(c.hex);
+            }}
+            className="w-4 h-4 rounded-full transition-all duration-200 hover:scale-125 cursor-pointer border border-white/20 hover:border-white"
+            style={{ backgroundColor: c.hex }}
+          />
+        ))}
+      </div>
+
       <div className="relative z-10 w-full max-w-md md:max-w-5xl flex flex-col-reverse md:flex-row items-center justify-center gap-8 md:gap-16">
         
         {/* Left Center Panel: Marketing & Clients */}
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-white space-y-6">
           <div className="space-y-4">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+            {/* Rectangle Badge without dot */}
+            <div className="inline-flex items-center px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm shadow-xs">
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#34d399' }}>Enterprise Identity Suite</span>
             </div>
             <h2
@@ -404,7 +424,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               </div>
   
               <div className="flex items-center justify-center gap-2 mt-2 relative z-10">
-                <Logo className="w-6 h-6" />
                 <h1 className="text-xl font-bold text-white tracking-wide">Card Gen</h1>
               </div>
               <p className="text-slate-400 dark:text-emerald-400 text-[10px] mt-0.5 font-semibold uppercase tracking-wider relative z-10">by JS AlphaSoft</p>
