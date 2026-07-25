@@ -325,7 +325,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-md w-full">
                 {/* IIT Jodhpur Card */}
                 <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.05] border border-white/15 hover:border-emerald-400/50 hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-md group shadow-lg">
-                  <div className="w-14 h-14 rounded-xl bg-white p-1.5 flex items-center justify-center flex-shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                  <div className="w-16 h-16 rounded-2xl bg-white p-2 flex items-center justify-center flex-shrink-0 shadow-md border-2 border-white group-hover:scale-105 transition-transform">
                     <img src={iitJodhpurLogo} alt="IIT Jodhpur" className="w-full h-full object-contain" />
                   </div>
                   <div className="text-left overflow-hidden">
@@ -340,7 +340,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
                 {/* DPS Indirapuram Card */}
                 <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.05] border border-white/15 hover:border-emerald-400/50 hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-md group shadow-lg">
-                  <div className="w-14 h-14 rounded-xl bg-white p-1.5 flex items-center justify-center flex-shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                  <div className="w-16 h-16 rounded-2xl bg-white p-2 flex items-center justify-center flex-shrink-0 shadow-md border-2 border-white group-hover:scale-105 transition-transform">
                     <img src={dpsLogo} alt="DPS Indirapuram" className="w-full h-full object-contain" />
                   </div>
                   <div className="text-left overflow-hidden">
