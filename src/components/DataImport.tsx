@@ -14,9 +14,8 @@ import {
   CheckCircle2,
   Terminal,
   Globe,
-  Link2,
   DownloadCloud,
-  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { useAppStore, suggestMappings } from '@/store';
 import { readFileAsBase64 } from '@/lib/file-utils';

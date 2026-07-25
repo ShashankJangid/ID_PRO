@@ -329,7 +329,7 @@ export const useAppStore = create<AppState>()(
       cardDataList: [defaultCardData],
       activeCardIndex: 0,
       setCardDataList: (list) =>
-        set((state) => {
+        set(() => {
           const userId = auth.currentUser?.uid;
           if (userId) {
             debouncedSaveFullStateToFirestore(userId, { cardDataList: list });
@@ -491,7 +491,7 @@ export const useAppStore = create<AppState>()(
                 saveTemplateToFirestore(userId, t);
               }
             });
-            saveProfileToFirestore(userId, newOrg, newCards.length > 0 ? newCards : [defaultCardData]);
+            saveFullStateToFirestore(userId, { organization: newOrg, cardDataList: newCards.length > 0 ? newCards : [defaultCardData] });
           }
 
           get().showToast('Full project backup restored in 1 click! All templates, settings, and cards loaded.', 'success');

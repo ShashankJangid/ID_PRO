@@ -13,15 +13,12 @@ import {
   ChevronUp,
   Download,
   Upload,
-  FolderArchive,
-  Paintbrush,
-  Settings2,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
 
 const Dashboard: React.FC = () => {
-  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates, exportFullProjectBackup, importFullProjectBackup, themeColor } = useAppStore(
+  const { hasSetup, organization, activeTemplateId, cardDataList, setActiveTab, templates, exportFullProjectBackup, importFullProjectBackup } = useAppStore(
     useShallow((s) => ({
       hasSetup: s.hasSetup,
       organization: s.organization,
@@ -31,48 +28,10 @@ const Dashboard: React.FC = () => {
       templates: s.templates,
       exportFullProjectBackup: s.exportFullProjectBackup,
       importFullProjectBackup: s.importFullProjectBackup,
-      themeColor: s.themeColor,
     }))
   );
 
   const [expandedStep, setExpandedStep] = useState<string | null>('setup');
-
-  // ── Welcome Banner Style State ──
-  const [bannerStyle, setBannerStyle] = useState<'gradient' | 'solid'>(() => {
-    return (localStorage.getItem('cardgen_banner_style') as 'gradient' | 'solid') || 'gradient';
-  });
-  const [bannerTheme, setBannerTheme] = useState<'emerald' | 'indigo' | 'sunset' | 'midnight'>(() => {
-    return (localStorage.getItem('cardgen_banner_theme') as any) || 'indigo';
-  });
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
-
-  const toggleBannerStyle = (style: 'gradient' | 'solid') => {
-    setBannerStyle(style);
-    localStorage.setItem('cardgen_banner_style', style);
-  };
-
-  const changeBannerTheme = (theme: 'emerald' | 'indigo' | 'sunset' | 'midnight') => {
-    setBannerTheme(theme);
-    localStorage.setItem('cardgen_banner_theme', theme);
-  };
-
-  const getBannerBgClass = () => {
-    if (bannerStyle === 'gradient') {
-      switch (bannerTheme) {
-        case 'emerald': return 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-500';
-        case 'indigo': return 'bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500';
-        case 'sunset': return 'bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600';
-        case 'midnight': return 'bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900';
-      }
-    } else {
-      switch (bannerTheme) {
-        case 'emerald': return 'bg-emerald-700';
-        case 'indigo': return 'bg-indigo-700';
-        case 'sunset': return 'bg-rose-700';
-        case 'midnight': return 'bg-slate-900';
-      }
-    }
-  };
 
   const activeTemplate = useMemo(
     () => templates.find((t) => t.id === activeTemplateId),

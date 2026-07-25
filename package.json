@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "typecheck": "tsc -b",
     "lint": "eslint .",
+    "typecheck": "tsc -b",
+    "test": "node --test scripts/test-export.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

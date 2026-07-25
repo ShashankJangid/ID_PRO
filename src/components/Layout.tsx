@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
 
   const bgRef = useRef<HTMLDivElement>(null);
 
-  const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast, darkMode, setDarkMode, themeColor, setThemeColor, themeGradientColor, setThemeGradientColor } =
+  const { activeTab, setActiveTab, hasSetup, activeTemplateId, organization, showToast, darkMode, setDarkMode, themeColor, setThemeColor, themeGradientColor } =
     useAppStore(
       useShallow((s) => ({
         activeTab:             s.activeTab,
@@ -72,7 +72,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
         themeColor:            s.themeColor,
         setThemeColor:         s.setThemeColor,
         themeGradientColor:    s.themeGradientColor,
-        setThemeGradientColor: s.setThemeGradientColor,
       }))
     );
 

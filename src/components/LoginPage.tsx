@@ -22,7 +22,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import RobotAvatar from './shared/RobotAvatar';
-import Logo from './shared/Logo';
 
 // ── Google Icon ──────────────────────────────────────────────
 const GoogleIcon = () => (

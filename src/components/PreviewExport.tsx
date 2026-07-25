@@ -367,6 +367,12 @@ const PreviewExport: React.FC = () => {
 
       const container = iframeDoc.getElementById('export-capture-container')!;
 
+      // Reset default margins/paddings that cause offset
+      iframeDoc.body.style.margin = '0';
+      iframeDoc.body.style.padding = '0';
+      iframeDoc.documentElement.style.margin = '0';
+      iframeDoc.documentElement.style.padding = '0';
+
       // Render CardRenderer inside the iframe container
       let root: any = null;
       await new Promise<void>((resolve) => {

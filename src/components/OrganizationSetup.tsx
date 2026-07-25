@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import {
   Building2, Plus, Trash2, Image, PenTool,
   Layers, QrCode, ChevronDown, ChevronUp, Tag, Save,
-  Download, Upload, FolderArchive, RefreshCw
+  Download, Upload, FolderArchive
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { CustomFieldDef, OrgAsset, OrgSignature, OrgLogo, QRFieldKey } from '@/types';
