@@ -226,17 +226,8 @@ function App() {
     }
   }, [user, hasSetup, showToast]);
 
-  // ─── Loading state ───
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(222,47%,6%)]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-          <p className="text-sm text-gray-500">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // ─── Loading state (splash screen in index.html handles this visually) ───
+  if (authLoading) return null;
 
   // ─── Not signed in ───
   if (!user) {
