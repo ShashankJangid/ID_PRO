@@ -344,9 +344,7 @@ const CardDesigner: React.FC = () => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedElementId) {
           e.preventDefault();
-          if (confirm('Delete this element?')) {
-            deleteElement(selectedElementId);
-          }
+          deleteElement(selectedElementId);
         }
         return;
       }
