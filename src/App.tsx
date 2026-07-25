@@ -257,7 +257,9 @@ function App() {
       <Layout user={user} onSignOut={signOutUser}>
         <ErrorBoundary>
           <Suspense fallback={<LoadingFallback />}>
-            {renderContent()}
+            <div key={activeTab} className="w-full h-full tab-content-enter">
+              {renderContent()}
+            </div>
           </Suspense>
         </ErrorBoundary>
       </Layout>
