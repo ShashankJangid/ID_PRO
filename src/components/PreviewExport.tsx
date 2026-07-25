@@ -285,7 +285,7 @@ const PreviewExport: React.FC = () => {
       // preventing the parser from crashing with "unexpected EOF" and resolving all race conditions.
       const iframe = document.createElement('iframe');
       iframe.style.cssText = [
-        'position:absolute',
+        'position:fixed',
         'left:0',
         'top:0',
         `width:${template.cardWidth}px`,
@@ -296,7 +296,6 @@ const PreviewExport: React.FC = () => {
         'z-index:-9999',
         'pointer-events:none',
         'opacity:0',
-        'visibility:hidden',
       ].join(';');
       document.body.appendChild(iframe);
 
@@ -317,40 +316,31 @@ const PreviewExport: React.FC = () => {
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
           <style>
+            * { box-sizing: border-box !important; }
             html, body {
               margin: 0 !important;
               padding: 0 !important;
               overflow: hidden !important;
-              background: transparent !important;
-              font-size: 0 !important;
-              line-height: 0 !important;
-              position: absolute !important;
-              top: 0 !important;
-              left: 0 !important;
-              width: 100% !important;
-              height: 100% !important;
+              background: #ffffff !important;
+              width: ${template.cardWidth}px !important;
+              height: ${template.cardHeight}px !important;
             }
-            #export-capture-container, .id-card-render {
+            #export-capture-container {
               margin: 0 !important;
               padding: 0 !important;
               border: none !important;
-              font-size: 0 !important;
-              line-height: 0 !important;
               position: absolute !important;
               top: 0 !important;
               left: 0 !important;
-            }
-            .id-card-render, .id-card-render * {
-              box-sizing: border-box !important;
-            }
-            .id-card-render > div, .id-card-render > img {
-              margin: 0 !important;
-              padding: 0 !important;
+              width: ${template.cardWidth}px !important;
+              height: ${template.cardHeight}px !important;
+              overflow: hidden !important;
+              background: #ffffff !important;
             }
           </style>
         </head>
         <body>
-          <div id="export-capture-container" style="width: ${template.cardWidth}px; height: ${template.cardHeight}px; position: absolute; top: 0; left: 0; overflow: hidden; background: #ffffff;"></div>
+          <div id="export-capture-container"></div>
         </body>
         </html>
       `);
@@ -440,63 +430,24 @@ const PreviewExport: React.FC = () => {
           width: template.cardWidth,
           height: template.cardHeight,
           logging: false,
-          x: 0,
-          y: 0,
-          scrollX: 0,
-          scrollY: 0,
-          foreignObjectRendering: false,
-          proxy: undefined,
           imageTimeout: 15000,
           onclone: (clonedDoc) => {
-            // Body/html resets inside cloned iframe
             if (clonedDoc.body) {
-              clonedDoc.body.style.cssText = 'margin:0;padding:0;overflow:hidden;position:absolute;top:0;left:0;font-size:0;line-height:0';
+              clonedDoc.body.style.cssText = `margin:0;padding:0;overflow:hidden;background:#ffffff;width:${template.cardWidth}px;height:${template.cardHeight}px;`;
             }
             if (clonedDoc.documentElement) {
-              clonedDoc.documentElement.style.cssText = 'margin:0;padding:0;overflow:hidden;position:absolute;top:0;left:0;font-size:0;line-height:0';
+              clonedDoc.documentElement.style.cssText = `margin:0;padding:0;overflow:hidden;background:#ffffff;width:${template.cardWidth}px;height:${template.cardHeight}px;`;
             }
 
             const containerEl = clonedDoc.getElementById('export-capture-container');
             if (containerEl) {
-              containerEl.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;font-size:0;line-height:0;overflow:hidden;background:#ffffff`;
+              containerEl.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;overflow:hidden;background:#ffffff;`;
             }
 
             const cardWrapper = clonedDoc.querySelector('.id-card-render') as HTMLElement | null;
             if (cardWrapper) {
-              cardWrapper.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;font-size:0;line-height:0;transform:none;transform-origin:top left;overflow:hidden;background:#ffffff`;
+              cardWrapper.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;transform:none;transform-origin:top left;overflow:hidden;background:#ffffff;`;
             }
-
-            const dv = clonedDoc.defaultView || window;
-
-            // Normalize shapes & non-text elements to zero font metrics to prevent baseline drift
-            clonedDoc.querySelectorAll('.id-card-render > div:not([data-element-type="text"])').forEach((node) => {
-              const h = node as HTMLElement;
-              h.style.fontSize = '0px';
-              h.style.lineHeight = '0px';
-              h.style.margin = '0px';
-              h.style.padding = '0px';
-            });
-
-            // Resolve line-heights to px for text elements to prevent vertical shift
-            clonedDoc.querySelectorAll('[data-element-type="text"]').forEach((el) => {
-              const h = el as HTMLElement;
-              const cs = dv.getComputedStyle(h);
-              if (cs.position !== 'absolute') return;
-              h.style.verticalAlign = 'top';
-              h.style.overflow = 'visible';
-              const lh = h.style.lineHeight;
-              const fs = parseFloat(cs.fontSize) || 14;
-              if (!lh || lh === 'normal') {
-                h.style.lineHeight = `${Math.round(fs * 1.4)}px`;
-              } else if (!lh.endsWith('px')) {
-                const n = parseFloat(lh);
-                h.style.lineHeight = isNaN(n)
-                  ? `${Math.round(fs * 1.4)}px`
-                  : `${Math.round(fs * (lh.endsWith('%') ? n / 100 : n))}px`;
-              }
-              h.style.paddingTop = h.style.paddingTop || '0';
-              h.style.paddingBottom = h.style.paddingBottom || '0';
-            });
           },
         });
       } finally {
