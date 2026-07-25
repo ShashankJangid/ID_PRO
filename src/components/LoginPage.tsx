@@ -22,6 +22,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import RobotAvatar from './shared/RobotAvatar';
+import iitJodhpurLogo from '@/assets/iit_jodhpur_logo.png';
+import dpsLogo from '@/assets/dps_logo.png';
 
 // ── Google Icon ──────────────────────────────────────────────
 const GoogleIcon = () => (
@@ -307,11 +309,52 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         
         {/* Left Center Panel: Marketing & Clients */}
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-white space-y-6">
-          <div className="space-y-4">
+          <div className="space-y-5 w-full">
             {/* Rectangle Badge without dot */}
             <div className="inline-flex items-center px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm shadow-xs">
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#34d399' }}>Enterprise Identity Suite</span>
             </div>
+
+            {/* ── Enterprise Clients Showcase (Positioned UPSIDE / TOP with Large Real Logos) ── */}
+            <div className="pt-2 pb-2 w-full">
+              <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center md:justify-start">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]" />
+                TRUSTED &amp; USED BY LEADING INSTITUTIONS
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-md w-full">
+                {/* IIT Jodhpur Card */}
+                <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.05] border border-white/15 hover:border-emerald-400/50 hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-md group shadow-lg">
+                  <div className="w-14 h-14 rounded-xl bg-white p-1.5 flex items-center justify-center flex-shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                    <img src={iitJodhpurLogo} alt="IIT Jodhpur" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <div className="flex items-center gap-1">
+                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">IIT Jodhpur</h4>
+                      <span className="text-[10px] text-emerald-400 font-bold" title="Verified Enterprise Software User">✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-medium leading-tight">Indian Institute of Tech.</p>
+                    <span className="inline-block mt-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">Active Software User</span>
+                  </div>
+                </div>
+
+                {/* DPS Indirapuram Card */}
+                <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.05] border border-white/15 hover:border-emerald-400/50 hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-md group shadow-lg">
+                  <div className="w-14 h-14 rounded-xl bg-white p-1.5 flex items-center justify-center flex-shrink-0 shadow-md border border-white/20 group-hover:scale-105 transition-transform">
+                    <img src={dpsLogo} alt="DPS Indirapuram" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <div className="flex items-center gap-1">
+                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">DPS Indirapuram</h4>
+                      <span className="text-[10px] text-emerald-400 font-bold" title="Verified Enterprise Software User">✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-medium leading-tight">Delhi Public School</p>
+                    <span className="inline-block mt-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">Active Software User</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <h2
               style={{
                 fontFamily: "'DM Sans', 'Inter', system-ui, sans-serif",
@@ -359,56 +402,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   {f}
                 </span>
               ))}
-            </div>
-
-            {/* ── Enterprise Clients Showcase: IIT Jodhpur & DPS Indirapuram ── */}
-            <div className="pt-5 border-t border-white/10 w-full mt-4">
-              <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center md:justify-start">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Trusted &amp; Used By Leading Institutions
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md w-full">
-                {/* IIT Jodhpur Card */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-emerald-500/40 hover:bg-white/[0.07] transition-all backdrop-blur-md group">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 p-1.5 shadow-inner">
-                    <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
-                      <circle cx="50" cy="50" r="45" stroke="#34d399" strokeWidth="4" fill="none"/>
-                      <polygon points="50,15 85,78 15,78" stroke="#34d399" strokeWidth="4" fill="none"/>
-                      <text x="50" y="55" textAnchor="middle" fill="#ffffff" fontSize="18" fontWeight="bold">IIT</text>
-                      <text x="50" y="71" textAnchor="middle" fill="#34d399" fontSize="9" fontWeight="700">JODHPUR</text>
-                    </svg>
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <div className="flex items-center gap-1">
-                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">IIT Jodhpur</h4>
-                      <span className="text-[10px] text-emerald-400" title="Verified Enterprise Software User">✓</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">Indian Institute of Tech.</p>
-                    <span className="inline-block mt-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Active Software User</span>
-                  </div>
-                </div>
-
-                {/* DPS Indirapuram Card */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-emerald-500/40 hover:bg-white/[0.07] transition-all backdrop-blur-md group">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 p-1.5 shadow-inner">
-                    <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
-                      <circle cx="50" cy="50" r="45" stroke="#34d399" strokeWidth="4" fill="none"/>
-                      <path d="M50 20 L80 40 L80 70 L50 85 L20 70 L20 40 Z" stroke="#34d399" strokeWidth="4" fill="none"/>
-                      <text x="50" y="53" textAnchor="middle" fill="#ffffff" fontSize="18" fontWeight="bold">DPS</text>
-                      <text x="50" y="69" textAnchor="middle" fill="#34d399" fontSize="8" fontWeight="700">INDIRAPURAM</text>
-                    </svg>
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <div className="flex items-center gap-1">
-                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">DPS Indirapuram</h4>
-                      <span className="text-[10px] text-emerald-400" title="Verified Enterprise Software User">✓</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">Delhi Public School</p>
-                    <span className="inline-block mt-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Active Software User</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
