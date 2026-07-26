@@ -252,9 +252,16 @@ function App() {
     }
   };
 
+  const handleSignOut = async () => {
+    const { switchStoreUser, useAppStore } = await import('@/store');
+    useAppStore.getState().showToast('Project backup saved to device! Signing out...', 'info');
+    await switchStoreUser(null);
+    await signOutUser();
+  };
+
   return (
     <>
-      <Layout user={user} onSignOut={signOutUser}>
+      <Layout user={user} onSignOut={handleSignOut}>
         <ErrorBoundary>
           <Suspense fallback={<LoadingFallback />}>
             <div key={activeTab} className="w-full h-full tab-content-enter">

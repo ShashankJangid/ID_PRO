@@ -626,43 +626,31 @@ export async function syncStoreWithFirestore(userId: string | null) {
     const templatesColRef = collection(db, 'users', userId, 'templates');
     const templatesSnap = await getDocs(templatesColRef);
     const remoteTemplates: CardTemplate[] = [];
-    templatesSnap.forEach((doc) => {
-      remoteTemplates.push(doc.data() as CardTemplate);
+    templatesSnap.forEach((docSnap) => {
+      remoteTemplates.push(docSnap.data() as CardTemplate);
     });
 
-    // 3. Get current local state
-    const localState = useAppStore.getState();
-
-    // 4. Merge templates (built-in + local custom + remote custom)
     const { getBuiltInTemplates } = await import('@/templates/built-in');
     const builtIns = getBuiltInTemplates();
 
     const mergedTemplatesMap = new Map<string, CardTemplate>();
     builtIns.forEach((t) => mergedTemplatesMap.set(t.id, autoFitTemplate(t)));
-    localState.templates.forEach((t) => mergedTemplatesMap.set(t.id, autoFitTemplate(t)));
     remoteTemplates.forEach((t) => mergedTemplatesMap.set(t.id, autoFitTemplate(t)));
 
     const mergedTemplates = Array.from(mergedTemplatesMap.values());
 
-    // Sync any local custom templates to remote if not yet uploaded
-    for (const localT of localState.templates) {
-      if (localT.isBuiltIn) continue;
-      const remoteT = remoteTemplates.find((t) => t.id === localT.id);
-      if (!remoteT) {
-        await saveTemplateToFirestore(userId, autoFitTemplate(localT));
-      }
-    }
-
-    // 5. Merge profile state
     if (remoteData) {
-      const mergedOrg = remoteData.organization || localState.organization;
-      const mergedCards = (remoteData.cardDataList && remoteData.cardDataList.length > 0) ? remoteData.cardDataList : localState.cardDataList;
-      const mergedActiveTemplateId = remoteData.activeTemplateId || localState.activeTemplateId || mergedTemplates[0]?.id || null;
-      const mergedHasSetup = typeof remoteData.hasSetup === 'boolean' ? remoteData.hasSetup : (!!mergedOrg.name || localState.hasSetup);
-      const mergedColumnMappings = remoteData.columnMappings || localState.columnMappings;
-      const mergedThemeColor = remoteData.themeColor || localState.themeColor;
-      const mergedThemeGrad = remoteData.themeGradientColor || localState.themeGradientColor;
-      const mergedDarkMode = typeof remoteData.darkMode === 'boolean' ? remoteData.darkMode : localState.darkMode;
+      // User has existing cloud data: Load ONLY this specific user's cloud data
+      const mergedOrg = remoteData.organization || defaultOrg;
+      const mergedCards = (Array.isArray(remoteData.cardDataList) && remoteData.cardDataList.length > 0)
+        ? remoteData.cardDataList
+        : [defaultCardData];
+      const mergedActiveTemplateId = remoteData.activeTemplateId || mergedTemplates[0]?.id || null;
+      const mergedHasSetup = typeof remoteData.hasSetup === 'boolean' ? remoteData.hasSetup : (!!mergedOrg.name);
+      const mergedColumnMappings = Array.isArray(remoteData.columnMappings) ? remoteData.columnMappings : [];
+      const mergedThemeColor = remoteData.themeColor || '#4165b4';
+      const mergedThemeGrad = remoteData.themeGradientColor || '#4165b4';
+      const mergedDarkMode = typeof remoteData.darkMode === 'boolean' ? remoteData.darkMode : false;
 
       useAppStore.setState({
         organization: mergedOrg,
@@ -676,10 +664,30 @@ export async function syncStoreWithFirestore(userId: string | null) {
         darkMode: mergedDarkMode,
       });
 
-      // Save merged state back to cloud to keep everything synchronized
+      // Save sync state back to cloud
       await saveFullStateToFirestore(userId);
     } else {
-      // First time login on this account: upload local state to cloud
+      // First time login on this account: Check if local IndexedDB for this user has custom data
+      const localState = useAppStore.getState();
+      const isLocalCardsCustom = localState.cardDataList.length > 0 && localState.cardDataList[0].code !== 'DEMO-001';
+
+      if (!isLocalCardsCustom && !localState.organization.name) {
+        // Clean initial state for new user
+        useAppStore.setState({
+          organization: defaultOrg,
+          hasSetup: false,
+          templates: mergedTemplates,
+          activeTemplateId: mergedTemplates[0]?.id || null,
+          cardDataList: [defaultCardData],
+          activeCardIndex: 0,
+          columnMappings: [],
+        });
+      } else {
+        useAppStore.setState({
+          templates: mergedTemplates,
+        });
+      }
+
       await saveFullStateToFirestore(userId);
       for (const t of mergedTemplates) {
         if (!t.isBuiltIn) {
@@ -688,7 +696,7 @@ export async function syncStoreWithFirestore(userId: string | null) {
       }
     }
 
-    // Ensure active template is set
+    // Ensure active template is valid
     const currentActiveId = useAppStore.getState().activeTemplateId;
     if (!currentActiveId && mergedTemplates.length > 0) {
       useAppStore.setState({ activeTemplateId: mergedTemplates[0].id });
@@ -712,91 +720,67 @@ const resetStoreToDefaults = () => {
   });
 };
 
+export async function exportAutoProjectBackup(userId: string, email?: string) {
+  try {
+    const state = useAppStore.getState();
+    const backupData = {
+      app: 'CardGenStudio',
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      userEmail: email || auth.currentUser?.email || '',
+      userId: userId,
+      organization: state.organization,
+      hasSetup: state.hasSetup,
+      templates: state.templates,
+      activeTemplateId: state.activeTemplateId,
+      cardDataList: state.cardDataList,
+      activeCardIndex: state.activeCardIndex,
+      columnMappings: state.columnMappings,
+      darkMode: state.darkMode,
+      themeColor: state.themeColor,
+      themeGradientColor: state.themeGradientColor,
+    };
+
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const orgOrEmail = (state.organization?.name || email || 'cardgen').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const dateStr = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `CardGen_ProjectBackup_${orgOrEmail}_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Error generating automatic backup on logout:', e);
+  }
+}
+
 export async function switchStoreUser(userId: string | null) {
-  // If signing out from a previous user, ensure their state is saved to Firestore before clearing memory
+  // If signing out from a previous user, save state and export automatic JSON backup
   const currentUserId = auth.currentUser?.uid;
+  const currentEmail = auth.currentUser?.email || undefined;
+  
   if (currentUserId && !userId) {
     await saveFullStateToFirestore(currentUserId);
+    await exportAutoProjectBackup(currentUserId, currentEmail);
   }
 
-  // Reset memory state to defaults first to prevent data leakage between different users
+  // Reset memory state to defaults first to guarantee zero data leakage between accounts
   resetStoreToDefaults();
 
   if (userId) {
-    // 1. Fetch guest data if any to migrate
-    let guestData: any = null;
-    try {
-      const guestDataStr = await idbStorage.getItem('idcard-studio-storage-guest');
-      if (guestDataStr) {
-        guestData = JSON.parse(guestDataStr);
-      }
-    } catch (err) {
-      console.warn('Failed to read guest storage for migration:', err);
-    }
-
-    // 2. Switch to user storage key in IndexedDB
+    // Switch to isolated user storage key in IndexedDB
     const name = `idcard-studio-storage-${userId}`;
     useAppStore.persist.setOptions({ name });
     await useAppStore.persist.rehydrate();
 
-    // 3. Migrate guest state into user state if user state was empty
-    if (guestData && guestData.state) {
-      const localState = useAppStore.getState();
-      const guestTemplates = guestData.state.templates || [];
-      const guestOrg = guestData.state.organization;
-      const guestCards = guestData.state.cardDataList || [];
-
-      let needsSave = false;
-      const newTemplates = [...localState.templates];
-
-      guestTemplates.forEach((gt: CardTemplate) => {
-        if (!gt.isBuiltIn && !newTemplates.some((t) => t.id === gt.id)) {
-          newTemplates.push(gt);
-          needsSave = true;
-        }
-      });
-
-      let newOrg = localState.organization;
-      if (!localState.organization.name && guestOrg && guestOrg.name) {
-        newOrg = guestOrg;
-        needsSave = true;
-      }
-
-      let newCards = localState.cardDataList;
-      const isLocalCardsDefault =
-        localState.cardDataList.length === 0 ||
-        (localState.cardDataList.length === 1 && localState.cardDataList[0].code === 'DEMO-001');
-      const isGuestCardsCustom = guestCards.length > 0 && guestCards[0].code !== 'DEMO-001';
-
-      if (isLocalCardsDefault && isGuestCardsCustom) {
-        newCards = guestCards;
-        needsSave = true;
-      }
-
-      if (needsSave) {
-        useAppStore.setState({
-          templates: newTemplates,
-          organization: newOrg,
-          cardDataList: newCards,
-          hasSetup: newOrg.name ? true : localState.hasSetup,
-        });
-
-        // Save migrated data to Firestore
-        newTemplates.forEach((t) => {
-          if (!t.isBuiltIn) {
-            saveTemplateToFirestore(userId, t);
-          }
-        });
-        saveFullStateToFirestore(userId, { organization: newOrg, cardDataList: newCards, templates: newTemplates });
-      }
-
-      // Clear guest storage after migration
-      await idbStorage.removeItem('idcard-studio-storage-guest');
-    }
-
-    // 4. Sync with Firestore cloud storage bound to this user ID
+    // Sync with Firestore cloud storage bound strictly to this user ID
     await syncStoreWithFirestore(userId);
   } else {
+    // Switch to guest storage key
     const name = 'idcard-studio-storage-guest';
     useAppStore.persist.setOptions({ name });
     await useAppStore.persist.rehydrate();
