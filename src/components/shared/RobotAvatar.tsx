@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 
 interface RobotAvatarProps {
   isPasswordFocused: boolean;
+  showPassword?: boolean;
   isSuccess: boolean;
   isLoading: boolean;
 }
@@ -12,10 +13,14 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export const RobotAvatar: React.FC<RobotAvatarProps> = ({
   isPasswordFocused,
+  showPassword = false,
   isSuccess,
   isLoading,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Only cover eyes / look down when password input is focused AND password is hidden (dots)
+  const isHidingPassword = isPasswordFocused && !showPassword;
 
   // Target values (updated instantly on mousemove)
   const target = useRef({ headX: 0, headY: 0, eyeX: 0, eyeY: 0 });
@@ -31,15 +36,15 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
   const rightPupilRef = useRef<SVGGElement>(null);
 
   // Prop refs so the RAF loop can read them without stale closure
-  const isPasswordFocusedRef = useRef(isPasswordFocused);
+  const isPasswordFocusedRef = useRef(isHidingPassword);
   const isSuccessRef = useRef(isSuccess);
-  isPasswordFocusedRef.current = isPasswordFocused;
+  isPasswordFocusedRef.current = isHidingPassword;
   isSuccessRef.current = isSuccess;
 
   const getSpeechText = () => {
     if (isSuccess) return "Enjoy Card Gen! 🎉";
     if (isLoading) return "Signing you in... ⚡";
-    if (isPasswordFocused) return "I'm looking away! 🙈";
+    if (isHidingPassword) return "I'm looking away! 🙈";
     return "Welcome! Let's sign in 👋";
   };
 
@@ -222,7 +227,7 @@ export const RobotAvatar: React.FC<RobotAvatarProps> = ({
           <rect x="42" y="38" width="76" height="42" fill="#040c1a" rx="18" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
 
           {/* Eyes & Mouth */}
-          {isPasswordFocused ? (
+          {isHidingPassword ? (
             <>
               {/* Closed Eyes */}
               <path d="M 50 60 Q 58 68 66 60" stroke="#38bdf8" strokeWidth="3" fill="none" strokeLinecap="round" filter="url(#glow)" />
