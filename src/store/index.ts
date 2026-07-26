@@ -759,13 +759,13 @@ export async function exportAutoProjectBackup(userId: string, email?: string) {
 }
 
 export async function switchStoreUser(userId: string | null) {
-  // If signing out from a previous user, save state and export automatic JSON backup
+  // If signing out from a previous user, save state and export automatic JSON backup (non-blocking)
   const currentUserId = auth.currentUser?.uid;
   const currentEmail = auth.currentUser?.email || undefined;
   
   if (currentUserId && !userId) {
-    await saveFullStateToFirestore(currentUserId);
-    await exportAutoProjectBackup(currentUserId, currentEmail);
+    saveFullStateToFirestore(currentUserId).catch(() => {});
+    exportAutoProjectBackup(currentUserId, currentEmail).catch(() => {});
   }
 
   // Reset memory state to defaults first to guarantee zero data leakage between accounts
