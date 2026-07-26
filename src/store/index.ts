@@ -529,12 +529,15 @@ export const useAppStore = create<AppState>()(
           if (uniqueTemplates.length === 0) {
             import('@/templates/built-in').then(({ getBuiltInTemplates }) => {
               const builtIns = getBuiltInTemplates();
-              builtIns.forEach((t) => {
-                if (!useAppStore.getState().templates.some(x => x.id === t.id)) {
-                  useAppStore.getState().addTemplate(t);
-                }
-              });
+              const currentT = useAppStore.getState().templates;
+              const missing = builtIns.filter((t) => !currentT.some((x) => x.id === t.id));
+              if (missing.length > 0) {
+                useAppStore.setState({ templates: [...currentT, ...missing] });
+              }
+              sessionIsDirty = false;
             });
+          } else {
+            sessionIsDirty = false;
           }
         }
       },
@@ -795,10 +798,12 @@ export async function switchStoreUser(userId: string | null) {
 
     // Sync with Firestore cloud storage bound strictly to this user ID
     await syncStoreWithFirestore(userId);
+    sessionIsDirty = false;
   } else {
     // Switch to guest storage key
     const name = 'idcard-studio-storage-guest';
     useAppStore.persist.setOptions({ name });
     await useAppStore.persist.rehydrate();
+    sessionIsDirty = false;
   }
 }
