@@ -553,7 +553,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <div className="flex items-center justify-center gap-2 mt-2 relative z-10">
                 <h1 className="text-xl font-bold text-white tracking-wide">Card Gen</h1>
               </div>
-              <p className="text-slate-400 dark:text-emerald-400 text-[10px] mt-0.5 font-semibold uppercase tracking-wider relative z-10">by JS AlphaSoft</p>
+              <a 
+                href="https://orangefuturetech.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-400 hover:text-emerald-300 text-[10px] mt-1 font-semibold uppercase tracking-widest relative z-10 inline-flex items-center gap-1 transition-colors group cursor-pointer"
+              >
+                BY ORANGE FUTURE TECH
+                <span className="text-[9px] opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform">↗</span>
+              </a>
             </div>
   
             {/* ── Body ── */}

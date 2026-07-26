@@ -176,10 +176,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onSignOut }) => {
                 <Logo className="w-full h-full" />
               </div>
               {!collapsed && (
-                <div className="overflow-hidden">
-                  <h1 className="text-sm font-bold text-gray-900 dark:text-white leading-tight whitespace-nowrap">Card Gen</h1>
-                  <p className="text-[10px] text-gray-400 dark:text-[hsl(215,16%,45%)] font-medium whitespace-nowrap">Card Generator</p>
-                </div>
+                <a
+                  href="https://orangefuturetech.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="overflow-hidden text-left block group"
+                  title="Visit Orange Future Tech"
+                >
+                  <h1 className="text-sm font-bold text-gray-900 dark:text-white leading-tight whitespace-nowrap group-hover:text-emerald-500 transition-colors">Card Gen</h1>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap flex items-center gap-0.5 group-hover:underline">
+                    by Orange Future Tech ↗
+                  </p>
+                </a>
               )}
             </div>
           </div>
