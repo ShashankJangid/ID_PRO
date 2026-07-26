@@ -2369,6 +2369,588 @@ export const horizontalCorporateTemplate: CardTemplate = {
   ],
 };
 
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE 11: IIT JODHPUR OFFICIAL CAMPUS PASS
+// ═══════════════════════════════════════════════════════════
+export const iitJodhpurSpecialTemplate: CardTemplate = {
+  id: 'builtin_iit_jodhpur_special',
+  name: 'IIT Jodhpur Official Campus Pass',
+  description: 'Official academic identity card layout designed for IIT Jodhpur students & faculty with QR verification.',
+  category: 'school',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, {
+      backgroundColor: '#ffffff',
+    }),
+    // Top Navy Header
+    shape('Header Navy Strip', 'rectangle', 0, 0, 638, 220, {
+      gradient: 'linear-gradient(135deg, #091e3a 0%, #153b68 100%)',
+    }),
+    // Gold Accent Line
+    shape('Gold Line', 'rectangle', 0, 220, 638, 6, {
+      backgroundColor: '#f59e0b',
+    }),
+    // Org / Institution Name
+    txt('Institution Name', 'orgName', 20, 45, 598, 35, {
+      fontSize: 22,
+      color: '#ffffff',
+      fontWeight: '800',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      staticText: 'IIT JODHPUR',
+    }),
+    txt('Institution Subtitle', undefined, 20, 85, 598, 25, {
+      fontSize: 12,
+      color: '#93c5fd',
+      fontWeight: '600',
+      textAlign: 'center',
+      letterSpacing: 1,
+      staticText: 'INDIAN INSTITUTE OF TECHNOLOGY JODHPUR',
+    }),
+    txt('Tagline', undefined, 20, 115, 598, 20, {
+      fontSize: 10,
+      color: '#fbbf24',
+      fontWeight: '500',
+      textAlign: 'center',
+      staticText: '|| त्वं ज्ञानमयो विज्ञानमयोऽसि ||',
+    }),
+    // Student Photo Container with Gold Border
+    shape('Photo Border', 'rectangle', 209, 179, 220, 260, {
+      backgroundColor: '#ffffff',
+      borderRadius: 16,
+      shadow: '0 8px 24px rgba(0,0,0,0.15)',
+      borderWidth: 3,
+      borderColor: '#f59e0b',
+    }),
+    img('Student Photo', 'photo', 214, 184, 210, 250, {
+      borderRadius: 12,
+      objectFit: 'cover',
+    }),
+    // Student Name & Role
+    txt('Student Name', 'name', 20, 465, 598, 40, {
+      fontSize: 26,
+      color: '#0f172a',
+      fontWeight: '800',
+      textAlign: 'center',
+    }),
+    txt('Department / Branch', undefined, 20, 508, 598, 26, {
+      fontSize: 14,
+      color: '#0284c7',
+      fontWeight: '700',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      staticText: 'COMPUTER SCIENCE & ENGINEERING',
+    }),
+    // Details Grid Panel
+    shape('Details Card', 'rectangle', 40, 550, 558, 260, {
+      backgroundColor: '#f8fafc',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+    }),
+    // Details fields
+    txt('Roll No Label', undefined, 70, 575, 200, 20, { fontSize: 11, color: '#64748b', fontWeight: '600', staticText: 'ROLL NO / ID:' }),
+    txt('Roll No Value', 'code', 70, 595, 220, 28, { fontSize: 16, color: '#0f172a', fontWeight: '700' }),
+
+    txt('Program Label', undefined, 330, 575, 200, 20, { fontSize: 11, color: '#64748b', fontWeight: '600', staticText: 'PROGRAM:' }),
+    txt('Program Value', 'role', 330, 595, 220, 28, { fontSize: 16, color: '#0f172a', fontWeight: '700', staticText: 'B.TECH (4TH YEAR)' }),
+
+    txt('DOB Label', undefined, 70, 640, 200, 20, { fontSize: 11, color: '#64748b', fontWeight: '600', staticText: 'DATE OF BIRTH:' }),
+    txt('DOB Value', 'dob', 70, 660, 220, 28, { fontSize: 15, color: '#0f172a', fontWeight: '700' }),
+
+    txt('Blood Label', undefined, 330, 640, 200, 20, { fontSize: 11, color: '#64748b', fontWeight: '600', staticText: 'BLOOD GROUP:' }),
+    txt('Blood Value', 'blood', 330, 660, 220, 28, { fontSize: 15, color: '#dc2626', fontWeight: '800' }),
+
+    txt('Validity Label', undefined, 70, 705, 200, 20, { fontSize: 11, color: '#64748b', fontWeight: '600', staticText: 'VALID UPTO:' }),
+    txt('Validity Value', 'valid', 70, 725, 220, 28, { fontSize: 15, color: '#059669', fontWeight: '700' }),
+
+    txt('Emergency Label', undefined, 330, 705, 200, 20, { fontSize: 11, color: '#64748b', fontWeight: '600', staticText: 'CONTACT NO:' }),
+    txt('Emergency Value', 'contact', 330, 725, 220, 28, { fontSize: 15, color: '#0f172a', fontWeight: '700' }),
+
+    // QR Verification
+    qr('QR Code', 'code', 269, 830, 100),
+    txt('QR Helper Text', undefined, 20, 940, 598, 20, {
+      fontSize: 10,
+      color: '#64748b',
+      fontWeight: '600',
+      textAlign: 'center',
+      staticText: 'Scan for official campus digital verification',
+    }),
+    // Bottom Navy Strip
+    shape('Bottom Strip', 'rectangle', 0, 980, 638, 30, {
+      backgroundColor: '#091e3a',
+    }),
+  ],
+  backElements: [
+    shape('Back BG', 'rectangle', 0, 0, 638, 1010, { backgroundColor: '#ffffff' }),
+    shape('Back Header', 'rectangle', 0, 0, 638, 80, { backgroundColor: '#091e3a' }),
+    txt('Back Title', undefined, 20, 25, 598, 30, {
+      fontSize: 16,
+      color: '#ffffff',
+      fontWeight: '700',
+      textAlign: 'center',
+      staticText: 'TERMS & CAMPUS GUIDELINES',
+    }),
+    txt('Rules Line 1', undefined, 40, 110, 558, 24, { fontSize: 12, color: '#334155', fontWeight: '500', staticText: '1. This card is non-transferable and must be displayed on campus.' }),
+    txt('Rules Line 2', undefined, 40, 140, 558, 24, { fontSize: 12, color: '#334155', fontWeight: '500', staticText: '2. Loss of card must be reported immediately to the Academic Section.' }),
+    txt('Rules Line 3', undefined, 40, 170, 558, 24, { fontSize: 12, color: '#334155', fontWeight: '500', staticText: '3. Found cards should be returned to security at Gate No. 1.' }),
+    
+    // Address Box
+    shape('Address Card', 'rectangle', 40, 220, 558, 150, { backgroundColor: '#f1f5f9', borderRadius: 12 }),
+    txt('Address Heading', undefined, 60, 240, 518, 24, { fontSize: 13, color: '#0f172a', fontWeight: '700', staticText: 'CAMPUS ADDRESS:' }),
+    txt('Address Body', 'orgAddress', 60, 270, 518, 80, { fontSize: 12, color: '#475569', fontWeight: '500' }),
+    
+    qr('Library QR', 'code', 244, 400, 150),
+    txt('Library Text', undefined, 20, 565, 598, 24, { fontSize: 11, color: '#64748b', fontWeight: '600', textAlign: 'center', staticText: 'Library Barcode / RFID Tag' }),
+    
+    // Signature block
+    shape('Sig Line', 'rectangle', 380, 850, 200, 2, { backgroundColor: '#94a3b8' }),
+    txt('Issuer Sig', undefined, 380, 860, 200, 24, { fontSize: 12, color: '#0f172a', fontWeight: '700', textAlign: 'center', staticText: 'Authorized Signatory' }),
+    shape('Back Footer', 'rectangle', 0, 970, 638, 40, { backgroundColor: '#091e3a' }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE 12: CYBERPUNK SECURITY LEVEL-5 PASS
+// ═══════════════════════════════════════════════════════════
+export const cyberpunkSecurityTemplate: CardTemplate = {
+  id: 'builtin_cyberpunk_security',
+  name: 'Cyber Matrix Level-5 Security Pass',
+  description: 'Futuristic dark cyber-security pass with neon emerald gridlines, hologram badge simulation, and digital authorization matrix.',
+  category: 'corporate',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Dark BG', 'rectangle', 0, 0, 638, 1010, { backgroundColor: '#030712' }),
+    shape('Neon Cyan Line', 'rectangle', 0, 0, 638, 10, {
+      gradient: 'linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #3b82f6 100%)',
+    }),
+    // Cyber Grid Pill
+    shape('Security Badge Header', 'rectangle', 40, 40, 558, 70, {
+      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.4)',
+    }),
+    txt('Cyber Header', undefined, 60, 55, 518, 22, {
+      fontSize: 11,
+      color: '#34d399',
+      fontWeight: '800',
+      letterSpacing: 3,
+      textAlign: 'center',
+      staticText: 'CYBER DEFENSE & DATA SECURITY DIVISION',
+    }),
+    txt('Security Level', undefined, 60, 78, 518, 22, {
+      fontSize: 12,
+      color: '#38bdf8',
+      fontWeight: '700',
+      letterSpacing: 2,
+      textAlign: 'center',
+      staticText: 'SECURITY CLEARANCE: LEVEL-5 ALPHA',
+    }),
+
+    // Hex Photo Box
+    shape('Photo Glow Box', 'rectangle', 199, 139, 240, 280, {
+      backgroundColor: 'rgba(6, 182, 212, 0.1)',
+      borderRadius: 24,
+      borderWidth: 2,
+      borderColor: '#34d399',
+      shadow: '0 0 25px rgba(52, 211, 153, 0.25)',
+    }),
+    img('Agent Photo', 'photo', 209, 149, 220, 260, {
+      borderRadius: 18,
+      objectFit: 'cover',
+    }),
+
+    // Agent Name
+    txt('Agent Name', 'name', 30, 440, 578, 42, {
+      fontSize: 28,
+      color: '#ffffff',
+      fontWeight: '800',
+      textAlign: 'center',
+      letterSpacing: 1,
+    }),
+    txt('Agent Role', 'role', 30, 485, 578, 26, {
+      fontSize: 15,
+      color: '#34d399',
+      fontWeight: '700',
+      textAlign: 'center',
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    }),
+
+    // Matrix Details Box
+    shape('Matrix Box', 'rectangle', 40, 530, 558, 260, {
+      backgroundColor: 'rgba(17, 24, 39, 0.7)',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    }),
+    txt('Code Lbl', undefined, 70, 555, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'AGENT ID' }),
+    txt('Code Val', 'code', 70, 575, 220, 28, { fontSize: 16, color: '#f8fafc', fontWeight: '800' }),
+
+    txt('Dept Lbl', undefined, 330, 555, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'SECTOR' }),
+    txt('Dept Val', undefined, 330, 575, 220, 28, { fontSize: 16, color: '#38bdf8', fontWeight: '700', staticText: 'SECTOR ALPHA' }),
+
+    txt('Issue Lbl', undefined, 70, 625, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'ISSUED ON' }),
+    txt('Issue Val', 'issued', 70, 645, 220, 28, { fontSize: 14, color: '#f8fafc', fontWeight: '600' }),
+
+    txt('Expiry Lbl', undefined, 330, 625, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'EXPIRES' }),
+    txt('Expiry Val', 'valid', 330, 645, 220, 28, { fontSize: 14, color: '#ef4444', fontWeight: '800' }),
+
+    txt('Access Lbl', undefined, 70, 695, 480, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'ENCRYPTED MATRIX SPEC' }),
+    txt('Access Val', undefined, 70, 715, 480, 28, { fontSize: 14, color: '#34d399', fontWeight: '700', staticText: 'BIOMETRIC ENCRYPTION [ACTIVE]' }),
+
+    // QR Cyber Scanner
+    shape('QR Container', 'rectangle', 249, 810, 140, 140, {
+      backgroundColor: '#ffffff',
+      borderRadius: 16,
+      borderWidth: 2,
+      borderColor: '#34d399',
+    }),
+    qr('Cyber QR', 'code', 259, 820, 120),
+    shape('Cyber Footer', 'rectangle', 0, 980, 638, 30, {
+      gradient: 'linear-gradient(90deg, #10b981 0%, #06b6d4 100%)',
+    }),
+  ],
+  backElements: [
+    shape('Back Dark BG', 'rectangle', 0, 0, 638, 1010, { backgroundColor: '#030712' }),
+    shape('Back Neon Top', 'rectangle', 0, 0, 638, 12, { backgroundColor: '#34d399' }),
+    txt('Back Title', undefined, 20, 40, 598, 30, { fontSize: 18, color: '#34d399', fontWeight: '800', textAlign: 'center', staticText: 'SECURITY COMPLIANCE NOTICE' }),
+    txt('Notice Text', undefined, 40, 90, 558, 120, { fontSize: 12, color: '#cbd5e1', fontWeight: '400', staticText: 'This card contains biometric & cryptographic key pairs. Unauthorized usage, forgery, or tampering triggers immediate security override protocols.' }),
+    qr('Back Tech QR', 'code', 244, 400, 150),
+    txt('Footer Info', 'orgWebsite', 20, 930, 598, 25, { fontSize: 12, color: '#94a3b8', fontWeight: '600', textAlign: 'center' }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE 13: DPS INDIRAPURAM PREMIUM CAMPUS PASS
+// ═══════════════════════════════════════════════════════════
+export const dpsIndirapuramProTemplate: CardTemplate = {
+  id: 'builtin_dps_indirapuram_pro',
+  name: 'DPS Indirapuram Premium Student ID',
+  description: 'Professional school identity card layout with forest green accents, student photo badge, transport route & emergency contact panel.',
+  category: 'school',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Background', 'rectangle', 0, 0, 638, 1010, { backgroundColor: '#ffffff' }),
+    // Forest Green Wave Header
+    shape('Green Header', 'rectangle', 0, 0, 638, 230, { backgroundColor: '#065f46' }),
+    shape('Gold Accent Line', 'rectangle', 0, 230, 638, 8, { backgroundColor: '#fbbf24' }),
+    txt('School Header', 'orgName', 20, 45, 598, 35, {
+      fontSize: 22,
+      color: '#ffffff',
+      fontWeight: '800',
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
+      staticText: 'DELHI PUBLIC SCHOOL',
+    }),
+    txt('School Branch', undefined, 20, 85, 598, 25, {
+      fontSize: 15,
+      color: '#fef08a',
+      fontWeight: '700',
+      textAlign: 'center',
+      letterSpacing: 2,
+      staticText: 'INDIRAPURAM',
+    }),
+    txt('Motto', undefined, 20, 115, 598, 20, {
+      fontSize: 11,
+      color: '#a7f3d0',
+      fontWeight: '600',
+      textAlign: 'center',
+      staticText: 'SERVICE BEFORE SELF',
+    }),
+
+    // Student Photo Card
+    shape('Photo Frame', 'rectangle', 209, 170, 220, 260, {
+      backgroundColor: '#ffffff',
+      borderRadius: 20,
+      borderWidth: 4,
+      borderColor: '#fbbf24',
+      shadow: '0 10px 25px rgba(0,0,0,0.15)',
+    }),
+    img('Student Photo', 'photo', 217, 178, 204, 244, {
+      borderRadius: 14,
+      objectFit: 'cover',
+    }),
+
+    // Name & Grade
+    txt('Student Name', 'name', 20, 450, 598, 40, {
+      fontSize: 28,
+      color: '#065f46',
+      fontWeight: '800',
+      textAlign: 'center',
+    }),
+    txt('Class / Grade', 'role', 20, 495, 598, 26, {
+      fontSize: 16,
+      color: '#d97706',
+      fontWeight: '700',
+      textAlign: 'center',
+      staticText: 'CLASS: X - SEC: B',
+    }),
+
+    // Student Details Grid
+    shape('Details Panel', 'rectangle', 40, 540, 558, 260, {
+      backgroundColor: '#f0fdf4',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: '#bbf7d0',
+    }),
+
+    txt('Adm Lbl', undefined, 70, 565, 200, 20, { fontSize: 11, color: '#166534', fontWeight: '600', staticText: 'ADM NO:' }),
+    txt('Adm Val', 'code', 70, 585, 220, 28, { fontSize: 16, color: '#065f46', fontWeight: '800' }),
+
+    txt('Parent Lbl', undefined, 330, 565, 200, 20, { fontSize: 11, color: '#166534', fontWeight: '600', staticText: "FATHER'S NAME:" }),
+    txt('Parent Val', undefined, 330, 585, 220, 28, { fontSize: 15, color: '#0f172a', fontWeight: '700', staticText: 'MR. RAJESH KUMAR' }),
+
+    txt('DOB Lbl', undefined, 70, 630, 200, 20, { fontSize: 11, color: '#166534', fontWeight: '600', staticText: 'DATE OF BIRTH:' }),
+    txt('DOB Val', 'dob', 70, 650, 220, 28, { fontSize: 15, color: '#0f172a', fontWeight: '700' }),
+
+    txt('Blood Lbl', undefined, 330, 630, 200, 20, { fontSize: 11, color: '#166534', fontWeight: '600', staticText: 'BLOOD GROUP:' }),
+    txt('Blood Val', 'blood', 330, 650, 220, 28, { fontSize: 15, color: '#dc2626', fontWeight: '800' }),
+
+    txt('Phone Lbl', undefined, 70, 695, 200, 20, { fontSize: 11, color: '#166534', fontWeight: '600', staticText: 'EMERGENCY PH:' }),
+    txt('Phone Val', 'contact', 70, 715, 220, 28, { fontSize: 15, color: '#0f172a', fontWeight: '700' }),
+
+    txt('Route Lbl', undefined, 330, 695, 200, 20, { fontSize: 11, color: '#166534', fontWeight: '600', staticText: 'BUS ROUTE:' }),
+    txt('Route Val', undefined, 330, 715, 220, 28, { fontSize: 15, color: '#059669', fontWeight: '700', staticText: 'ROUTE NO. 14' }),
+
+    // QR Verification
+    qr('Student QR', 'code', 269, 825, 105),
+    txt('Scan Text', undefined, 20, 940, 598, 20, { fontSize: 10, color: '#166534', fontWeight: '600', textAlign: 'center', staticText: 'DPS Digital Attendance & Bus Pass QR' }),
+    shape('Green Footer', 'rectangle', 0, 980, 638, 30, { backgroundColor: '#065f46' }),
+  ],
+  backElements: [
+    shape('Back BG', 'rectangle', 0, 0, 638, 1010, { backgroundColor: '#ffffff' }),
+    shape('Back Header', 'rectangle', 0, 0, 638, 80, { backgroundColor: '#065f46' }),
+    txt('Back Title', undefined, 20, 25, 598, 30, { fontSize: 16, color: '#ffffff', fontWeight: '700', textAlign: 'center', staticText: 'SCHOOL DISCIPLINE & RULES' }),
+    txt('Address Lbl', undefined, 40, 110, 558, 24, { fontSize: 13, color: '#065f46', fontWeight: '700', staticText: 'SCHOOL ADDRESS:' }),
+    txt('Address Val', 'orgAddress', 40, 140, 558, 60, { fontSize: 12, color: '#334155', fontWeight: '500' }),
+    qr('Parent QR', 'code', 244, 400, 150),
+    shape('Back Footer', 'rectangle', 0, 970, 638, 40, { backgroundColor: '#065f46' }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE 14: AURORA GLASS VIP EXECUTIVE
+// ═══════════════════════════════════════════════════════════
+export const glassmorphismVipTemplate: CardTemplate = {
+  id: 'builtin_glassmorphism_vip',
+  name: 'Aurora Glass VIP Executive Pass',
+  description: 'Ultra-modern glassmorphic ID card with translucent white glass panels, liquid aurora mesh gradient background, and glowing borders.',
+  category: 'custom',
+  cardWidth: 638,
+  cardHeight: 1010,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Aurora Background', 'rectangle', 0, 0, 638, 1010, {
+      gradient: 'linear-gradient(135deg, #0f172a 0%, #312e81 40%, #581c87 70%, #030712 100%)',
+    }),
+    shape('Glow Blob 1', 'circle', 300, 50, 400, 400, {
+      gradient: 'radial-gradient(circle, rgba(168,85,247,0.35) 0%, rgba(0,0,0,0) 70%)',
+    }),
+    shape('Glow Blob 2', 'circle', -100, 500, 450, 450, {
+      gradient: 'radial-gradient(circle, rgba(56,189,248,0.3) 0%, rgba(0,0,0,0) 70%)',
+    }),
+
+    // Translucent Main Glass Panel
+    shape('Glass Panel', 'rectangle', 30, 30, 578, 950, {
+      backgroundColor: 'rgba(255, 255, 255, 0.07)',
+      borderRadius: 28,
+      borderWidth: 1.5,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+      shadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+    }),
+
+    txt('VIP Badge Pill', undefined, 200, 60, 238, 30, {
+      fontSize: 11,
+      color: '#f0abfc',
+      fontWeight: '800',
+      textAlign: 'center',
+      letterSpacing: 3,
+      backgroundColor: 'rgba(217, 70, 239, 0.2)',
+      borderRadius: 15,
+      staticText: 'VIP EXECUTIVE ACCESS',
+    }),
+
+    // Photo Box with Glass Glow
+    shape('Photo Glass Frame', 'rectangle', 209, 120, 220, 260, {
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      borderRadius: 24,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.4)',
+      shadow: '0 12px 32px rgba(0,0,0,0.3)',
+    }),
+    img('Executive Photo', 'photo', 219, 130, 200, 240, {
+      borderRadius: 18,
+      objectFit: 'cover',
+    }),
+
+    // Name & Title
+    txt('Executive Name', 'name', 50, 405, 538, 44, {
+      fontSize: 30,
+      color: '#ffffff',
+      fontWeight: '800',
+      textAlign: 'center',
+    }),
+    txt('Executive Role', 'role', 50, 452, 538, 28, {
+      fontSize: 16,
+      color: '#38bdf8',
+      fontWeight: '700',
+      textAlign: 'center',
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    }),
+    txt('Org Label', 'orgName', 50, 482, 538, 24, {
+      fontSize: 13,
+      color: '#cbd5e1',
+      fontWeight: '600',
+      textAlign: 'center',
+    }),
+
+    // Details Glass Card
+    shape('Details Glass', 'rectangle', 60, 525, 518, 250, {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+    }),
+
+    txt('Code Lbl', undefined, 90, 550, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'MEMBER ID' }),
+    txt('Code Val', 'code', 90, 570, 200, 28, { fontSize: 16, color: '#ffffff', fontWeight: '800' }),
+
+    txt('Dept Lbl', undefined, 330, 550, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'DIVISION' }),
+    txt('Dept Val', undefined, 330, 570, 200, 28, { fontSize: 16, color: '#f0abfc', fontWeight: '700', staticText: 'EXECUTIVE SUITE' }),
+
+    txt('Email Lbl', undefined, 90, 620, 400, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'OFFICIAL EMAIL' }),
+    txt('Email Val', 'orgEmail', 90, 640, 400, 28, { fontSize: 14, color: '#e2e8f0', fontWeight: '600' }),
+
+    txt('Valid Lbl', undefined, 90, 690, 200, 20, { fontSize: 10, color: '#94a3b8', fontWeight: '700', staticText: 'EXPIRES' }),
+    txt('Valid Val', 'valid', 90, 710, 200, 28, { fontSize: 15, color: '#34d399', fontWeight: '700' }),
+
+    // QR Glass Scanner
+    shape('QR Glass', 'rectangle', 249, 805, 140, 140, {
+      backgroundColor: '#ffffff',
+      borderRadius: 20,
+      shadow: '0 8px 24px rgba(0,0,0,0.3)',
+    }),
+    qr('Glass QR', 'code', 259, 815, 120),
+  ],
+  backElements: [
+    shape('Aurora Back BG', 'rectangle', 0, 0, 638, 1010, {
+      gradient: 'linear-gradient(135deg, #0f172a 0%, #312e81 100%)',
+    }),
+    shape('Back Glass', 'rectangle', 30, 30, 578, 950, {
+      backgroundColor: 'rgba(255, 255, 255, 0.07)',
+      borderRadius: 28,
+      borderWidth: 1.5,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+    }),
+    txt('Back Title', undefined, 50, 80, 538, 30, { fontSize: 18, color: '#ffffff', fontWeight: '800', textAlign: 'center', staticText: 'EXECUTIVE VIP CREDENTIALS' }),
+    qr('Back QR', 'code', 244, 400, 150),
+    txt('Footer', 'orgWebsite', 50, 910, 538, 25, { fontSize: 12, color: '#94a3b8', fontWeight: '600', textAlign: 'center' }),
+  ],
+};
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATE 15: STUDIO NEON LANDSCAPE PASS
+// ═══════════════════════════════════════════════════════════
+export const creativeAgencyLandscapeTemplate: CardTemplate = {
+  id: 'builtin_creative_agency_landscape',
+  name: 'Studio Neon Landscape Pass',
+  description: 'Bold 1010x638 landscape orientation ID badge for creative studios, tech agencies, and media events.',
+  category: 'event',
+  cardWidth: 1010,
+  cardHeight: 638,
+  isBuiltIn: true,
+  frontElements: [
+    shape('Dark BG', 'rectangle', 0, 0, 1010, 638, { backgroundColor: '#0f172a' }),
+    // Left Accent Strip
+    shape('Left Strip', 'rectangle', 0, 0, 16, 638, {
+      gradient: 'linear-gradient(180deg, #f97316 0%, #e11d48 100%)',
+    }),
+    // Photo on Left Column
+    shape('Photo Box', 'rectangle', 55, 119, 320, 400, {
+      backgroundColor: '#1e293b',
+      borderRadius: 20,
+      borderWidth: 3,
+      borderColor: '#f97316',
+      shadow: '0 12px 30px rgba(0,0,0,0.3)',
+    }),
+    img('Creative Photo', 'photo', 65, 129, 300, 380, {
+      borderRadius: 14,
+      objectFit: 'cover',
+    }),
+
+    // Right Column Layout
+    txt('Org Banner', 'orgName', 420, 70, 540, 35, {
+      fontSize: 22,
+      color: '#f97316',
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 2,
+      staticText: 'CREATIVE MEDIA STUDIO',
+    }),
+    txt('Member Name', 'name', 420, 120, 540, 50, {
+      fontSize: 34,
+      color: '#ffffff',
+      fontWeight: '900',
+    }),
+    txt('Member Title', 'role', 420, 175, 540, 30, {
+      fontSize: 18,
+      color: '#38bdf8',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    }),
+
+    // Divider Line
+    shape('Divider Line', 'rectangle', 420, 220, 540, 2, { backgroundColor: '#334155' }),
+
+    // Metadata Grid
+    txt('Code Lbl', undefined, 420, 245, 240, 20, { fontSize: 11, color: '#94a3b8', fontWeight: '700', staticText: 'PASS CODE' }),
+    txt('Code Val', 'code', 420, 268, 240, 28, { fontSize: 18, color: '#ffffff', fontWeight: '800' }),
+
+    txt('Dept Lbl', undefined, 700, 245, 240, 20, { fontSize: 11, color: '#94a3b8', fontWeight: '700', staticText: 'DEPARTMENT' }),
+    txt('Dept Val', undefined, 700, 268, 240, 28, { fontSize: 18, color: '#f97316', fontWeight: '800', staticText: 'CREATIVE DIRECTION' }),
+
+    txt('Email Lbl', undefined, 420, 320, 520, 20, { fontSize: 11, color: '#94a3b8', fontWeight: '700', staticText: 'CONTACT EMAIL' }),
+    txt('Email Val', 'orgEmail', 420, 343, 520, 28, { fontSize: 15, color: '#e2e8f0', fontWeight: '600' }),
+
+    txt('Phone Lbl', undefined, 420, 395, 240, 20, { fontSize: 11, color: '#94a3b8', fontWeight: '700', staticText: 'PHONE NO' }),
+    txt('Phone Val', 'contact', 420, 418, 240, 28, { fontSize: 15, color: '#ffffff', fontWeight: '700' }),
+
+    txt('Valid Lbl', undefined, 700, 395, 240, 20, { fontSize: 11, color: '#94a3b8', fontWeight: '700', staticText: 'ACCESS STATUS' }),
+    txt('Valid Val', undefined, 700, 418, 240, 28, { fontSize: 15, color: '#22c55e', fontWeight: '800', staticText: 'ALL-ACCESS UNLIMITED' }),
+
+    // QR Code Right Box
+    shape('QR Container', 'rectangle', 810, 465, 150, 150, {
+      backgroundColor: '#ffffff',
+      borderRadius: 16,
+    }),
+    qr('Studio QR', 'code', 820, 475, 130),
+
+    shape('Bottom Orange Bar', 'rectangle', 0, 626, 1010, 12, {
+      gradient: 'linear-gradient(90deg, #f97316 0%, #e11d48 100%)',
+    }),
+  ],
+  backElements: [
+    shape('Dark Back BG', 'rectangle', 0, 0, 1010, 638, { backgroundColor: '#0f172a' }),
+    txt('Back Title', undefined, 40, 60, 930, 40, { fontSize: 24, color: '#ffffff', fontWeight: '900', textAlign: 'center', staticText: 'STUDIO MEDIA PASS REGULATIONS' }),
+    txt('Back Info', 'orgAddress', 40, 130, 930, 80, { fontSize: 14, color: '#94a3b8', fontWeight: '500', textAlign: 'center' }),
+    qr('Back QR', 'code', 430, 260, 150),
+    shape('Back Footer Bar', 'rectangle', 0, 626, 1010, 12, { backgroundColor: '#f97316' }),
+  ],
+};
+
 // ─── Export all built-in templates ───
 export const builtInTemplates: CardTemplate[] = [
   whiteBlankTemplate,
@@ -2381,6 +2963,11 @@ export const builtInTemplates: CardTemplate[] = [
   eventBadgeTemplate,
   modernGradientTemplate,
   horizontalCorporateTemplate,
+  iitJodhpurSpecialTemplate,
+  cyberpunkSecurityTemplate,
+  dpsIndirapuramProTemplate,
+  glassmorphismVipTemplate,
+  creativeAgencyLandscapeTemplate,
 ];
 
 export function getBuiltInTemplates(): CardTemplate[] {
