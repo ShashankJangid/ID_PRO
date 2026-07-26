@@ -40,11 +40,11 @@ const HelpDialog: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/30 dark:bg-black/55 backdrop-blur-md flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
       onClick={() => setShowHelp(false)}
     >
       <div
-        className="glass-card rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-guide-title"

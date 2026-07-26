@@ -19,6 +19,10 @@ import {
   Plus,
   AlertCircle,
   Download,
+  Globe,
+  Link as LinkIcon,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { getBuiltInTemplates } from '@/templates/built-in';
@@ -120,6 +124,9 @@ const TemplateGallery: React.FC = () => {
 
   // ── Upload modal state ──
   const [showUpload, setShowUpload] = useState(false);
+  const [uploadTab, setUploadTab] = useState<'canva' | 'image' | 'json'>('canva');
+  const [fetchUrl, setFetchUrl] = useState('');
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [uploadBg, setUploadBg] = useState<string | null>(null);       // base64 front bg
   const [uploadBgBack, setUploadBgBack] = useState<string | null>(null); // base64 back bg
   const [uploadJson, setUploadJson] = useState('');
@@ -128,6 +135,67 @@ const TemplateGallery: React.FC = () => {
   const bgRef = useRef<HTMLInputElement>(null);
   const bgBackRef = useRef<HTMLInputElement>(null);
   const jsonRef = useRef<HTMLInputElement>(null);
+
+  // ── Canva / Web URL Fetcher ─────────────────────────────────────
+  const handleFetchFromUrl = async () => {
+    const trimmed = fetchUrl.trim();
+    if (!trimmed) {
+      showToast('Please enter an image or design URL', 'error');
+      return;
+    }
+    setIsFetchingUrl(true);
+    try {
+      if (trimmed.includes('canva.com/design/')) {
+        showToast('Canva link detected! For best results, download PNG from Canva and paste image link.', 'info');
+      }
+
+      // Try image element proxy load
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/png');
+          setUploadBg(dataUrl);
+          if (!uploadName) {
+            setUploadName('Canva Imported Template');
+          }
+          showToast('Successfully fetched Canva/URL design background!', 'success');
+        }
+        setIsFetchingUrl(false);
+      };
+      img.onerror = async () => {
+        // Fallback: blob fetch
+        try {
+          const res = await fetch(trimmed);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const blob = await res.blob();
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const b64 = reader.result as string;
+            setUploadBg(b64);
+            if (!uploadName) {
+              setUploadName('Canva Imported Template');
+            }
+            showToast('Successfully loaded design background!', 'success');
+            setIsFetchingUrl(false);
+          };
+          reader.readAsDataURL(blob);
+        } catch (fetchErr) {
+          showToast('Could not load image directly due to CORS. Please download the PNG from Canva and upload it directly below.', 'error');
+          setIsFetchingUrl(false);
+        }
+      };
+      img.src = trimmed;
+    } catch (e) {
+      showToast('Error fetching design URL.', 'error');
+      setIsFetchingUrl(false);
+    }
+  };
 
   // ── Template File Input Ref ──
   const templateFileInputRef = useRef<HTMLInputElement>(null);
@@ -334,23 +402,120 @@ const TemplateGallery: React.FC = () => {
     setUploadJsonError('');
   };
 
-  // ─── Blank template (image-only, no elements) ───────────────────
+  // ─── Create Template from Canva / Image Background ────────────────
   const handleCreateBlank = async () => {
-    if (!uploadBg) { showToast('Please upload a front background image first', 'error'); return; }
+    if (!uploadBg) { showToast('Please upload or fetch a background image first', 'error'); return; }
 
     // Detect real image dimensions so elements placed later align correctly
     const { w, h } = await getImageDimensions(uploadBg);
-    const isPortrait = w < h;
+    const isPortrait = w <= h;
+
+    const cardWidth = isPortrait ? 638 : 1010;
+    const cardHeight = isPortrait ? 1010 : 638;
+
+    const initialFrontElements = isPortrait
+      ? [
+          {
+            id: 'el_photo',
+            type: 'image' as const,
+            label: 'Student Photo',
+            imageSource: 'photo' as const,
+            x: 219,
+            y: 180,
+            width: 200,
+            height: 250,
+            style: { borderRadius: 16, border: '3px solid #10b981' },
+          },
+          {
+            id: 'el_name',
+            type: 'text' as const,
+            label: 'Full Name',
+            field: 'name' as const,
+            x: 50,
+            y: 470,
+            width: 538,
+            height: 40,
+            style: { fontSize: 26, fontWeight: '800', color: '#111827', textAlign: 'center' },
+          },
+          {
+            id: 'el_role',
+            type: 'text' as const,
+            label: 'Role / Designation',
+            field: 'role' as const,
+            x: 50,
+            y: 520,
+            width: 538,
+            height: 28,
+            style: { fontSize: 16, fontWeight: '700', color: '#059669', textAlign: 'center' },
+          },
+          {
+            id: 'el_qr',
+            type: 'qr' as const,
+            label: 'QR Code',
+            field: 'code' as const,
+            x: 259,
+            y: 780,
+            width: 120,
+            height: 120,
+            style: {},
+          },
+        ]
+      : [
+          {
+            id: 'el_photo',
+            type: 'image' as const,
+            label: 'Student Photo',
+            imageSource: 'photo' as const,
+            x: 60,
+            y: 160,
+            width: 180,
+            height: 220,
+            style: { borderRadius: 14, border: '3px solid #10b981' },
+          },
+          {
+            id: 'el_name',
+            type: 'text' as const,
+            label: 'Full Name',
+            field: 'name' as const,
+            x: 270,
+            y: 160,
+            width: 450,
+            height: 40,
+            style: { fontSize: 26, fontWeight: '800', color: '#111827' },
+          },
+          {
+            id: 'el_role',
+            type: 'text' as const,
+            label: 'Role / Designation',
+            field: 'role' as const,
+            x: 270,
+            y: 210,
+            width: 450,
+            height: 28,
+            style: { fontSize: 16, fontWeight: '700', color: '#059669' },
+          },
+          {
+            id: 'el_qr',
+            type: 'qr' as const,
+            label: 'QR Code',
+            field: 'code' as const,
+            x: 770,
+            y: 160,
+            width: 130,
+            height: 130,
+            style: {},
+          },
+        ];
 
     const newTemplate: CardTemplate = {
       id: `custom_${Date.now()}`,
-      name: uploadName || 'Image Template',
-      description: 'Image background — add fields in the Designer',
+      name: uploadName || 'Canva Custom Template',
+      description: 'Imported Canva background design with auto-fitted editable fields',
       category: 'custom',
-      cardWidth: isPortrait ? 638 : 1010,
-      cardHeight: isPortrait ? 1010 : 638,
+      cardWidth,
+      cardHeight,
       dpi: 300,
-      frontElements: [],
+      frontElements: initialFrontElements as any,
       backElements: [],
       isBuiltIn: false,
       createdAt: new Date().toISOString(),
@@ -360,12 +525,13 @@ const TemplateGallery: React.FC = () => {
 
     addTemplate(newTemplate);
     setActiveTemplate(newTemplate.id);
-    showToast('Template created! Open Designer to add fields.', 'success');
+    showToast(`Template "${newTemplate.name}" created! You can now customize fields in Designer.`, 'success');
     setShowUpload(false);
     setUploadBg(null);
     setUploadBgBack(null);
     setUploadJson('');
     setUploadName('');
+    setFetchUrl('');
   };
 
   const handleDownloadTemplate = (template: CardTemplate) => {
@@ -442,6 +608,14 @@ const TemplateGallery: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Template Gallery</h1>
         </div>
         <div className="flex gap-2">
+          {/* ✅ Canva / URL Fetcher button */}
+          <button
+            onClick={() => { setUploadTab('canva'); setShowUpload(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-500/20 active:scale-[0.98] transition-all"
+          >
+            <Sparkles className="w-4 h-4 text-purple-200 animate-pulse" />
+            Fetch from Canva / URL
+          </button>
           {/* ✅ Import Template File button */}
           <button
             onClick={() => templateFileInputRef.current?.click()}
@@ -459,7 +633,7 @@ const TemplateGallery: React.FC = () => {
           />
           {/* ✅ Upload custom template button */}
           <button
-            onClick={() => setShowUpload(true)}
+            onClick={() => { setUploadTab('image'); setShowUpload(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.98] transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -468,7 +642,7 @@ const TemplateGallery: React.FC = () => {
         </div>
       </div>
       <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-        Choose from pre-built templates, upload your own, or duplicate and customize.
+        Choose from pre-built templates, fetch design assets from Canva/web, or upload your own template.
       </p>
 
       {/* Search & Filters */}
@@ -518,35 +692,27 @@ const TemplateGallery: React.FC = () => {
               {/* ✅ FIX: proper scaled preview — no ghost space */}
               <div
                 className="bg-gray-50/40 dark:bg-gray-900/40 border-b border-gray-200/10 dark:border-gray-800/10 flex justify-center items-start cursor-pointer overflow-hidden relative group"
-                style={{ height: template.cardHeight * 0.35 + 24 }}
+                style={{ height: 260, padding: 16 }}
                 onClick={() => setPreviewTemplate(template)}
               >
-                <div style={{ paddingTop: 12 }}>
-                  <ScaledPreview template={template} demoCard={demoCard} organization={organization} side="front" scale={0.35} />
-                </div>
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors flex items-center justify-center">
-                  <span className="opacity-0 group-hover:opacity-100 bg-white/90 dark:bg-gray-900/90 text-gray-800 dark:text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md backdrop-blur-sm transition-all duration-300">
-                    Preview Layout
+                <ScaledPreview template={template} demoCard={demoCard} organization={organization} side="front" scale={0.24} />
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                  <span className="px-3 py-1.5 bg-white/90 text-gray-900 rounded-lg text-xs font-semibold shadow-md flex items-center gap-1.5">
+                    Preview & Details
                   </span>
                 </div>
               </div>
-
-              <div className="px-4 pb-4 pt-3 flex-1 flex flex-col justify-between">
+              <div className="p-4 flex-1 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold capitalize border ${categoryColors[template.category] || categoryColors.custom}`}>
-                      <CatIcon className="w-3 h-3" />{template.category}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${categoryColors[template.category] || categoryColors.custom}`}>
+                      <CatIcon className="w-3 h-3" />
+                      {template.category}
                     </span>
-                    {template.isBuiltIn && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-100/40 text-gray-600 dark:text-gray-300 border border-gray-200/10">Built-in</span>
-                    )}
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
-                      📐 {template.cardWidth} × {template.cardHeight} px
-                    </span>
-                    {template.backgroundImage && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
-                        <ImageIcon className="w-3 h-3" />BG
-                      </span>
+                    {template.isBuiltIn ? (
+                      <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">Built-in</span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-emerald-500">Custom</span>
                     )}
                   </div>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5 truncate">{template.name}</h3>
@@ -602,36 +768,36 @@ const TemplateGallery: React.FC = () => {
 
       {/* ─── Preview Modal ─────────────────────────────────────── */}
       {previewTemplate && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-8" onClick={() => setPreviewTemplate(null)}>
-          <div className="glass-card rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200/10">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-50 p-4 md:p-8 animate-in fade-in duration-200" onClick={() => setPreviewTemplate(null)}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{previewTemplate.name}</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{previewTemplate.name}</h3>
                   <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
                     📐 {previewTemplate.cardWidth} × {previewTemplate.cardHeight} px
                   </span>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{previewTemplate.description}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{previewTemplate.description}</p>
               </div>
-              <button onClick={() => setPreviewTemplate(null)} className="p-2 hover:bg-gray-500/10 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
+              <button onClick={() => setPreviewTemplate(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex gap-8 justify-center items-start py-4">
+            <div className="flex gap-8 justify-center items-start py-4 flex-wrap">
               {(['front', 'back'] as const).map((s) => (
                 <div key={s} className="flex flex-col items-center gap-2">
-                  <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{s}</p>
-                  <div className="p-2 bg-gray-500/5 rounded-xl border border-gray-200/10 shadow-inner">
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{s}</p>
+                  <div className="p-4 bg-slate-900 dark:bg-slate-950 rounded-2xl border border-slate-700/60 dark:border-slate-800 shadow-2xl flex items-center justify-center">
                     <ScaledPreview template={previewTemplate} demoCard={demoCard} organization={organization} side={s} scale={0.5} />
                   </div>
                 </div>
               ))}
             </div>
-            <div className="flex justify-center mt-6 pt-4 border-t border-gray-200/10">
+            <div className="flex justify-center mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
               <button
                 onClick={() => { handleSelect(previewTemplate); setPreviewTemplate(null); }}
-                className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-md shadow-emerald-500/15 active:scale-[0.98] transition-all"
+                className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all"
               >
                 Use This Template
               </button>
@@ -640,166 +806,242 @@ const TemplateGallery: React.FC = () => {
         </div>
       )}
 
-      {/* ─── Upload Custom Template Modal ───────────────────────── */}
+      {/* ─── Import / Fetch Custom Template Modal ───────────────────────── */}
       {showUpload && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setShowUpload(false)}>
-          <div className="glass-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center z-50 p-4 md:p-6 animate-in fade-in duration-200" onClick={() => setShowUpload(false)}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] w-full max-w-2xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/10">
               <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">Upload Custom Template</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Upload a background image + JSON layout, or image-only</p>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  Import & Fetch Custom Template
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Fetch designs from Canva, image URL links, or upload template assets</p>
               </div>
               <button onClick={() => setShowUpload(false)} className="p-1.5 hover:bg-gray-500/10 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Modal Tabs */}
+            <div className="flex border-b border-gray-200/10 px-6 pt-3 gap-2 bg-gray-500/5">
+              <button
+                onClick={() => setUploadTab('canva')}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl border-b-2 transition-all ${
+                  uploadTab === 'canva'
+                    ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-500/10'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                Fetch Canva / Web URL
+              </button>
+              <button
+                onClick={() => setUploadTab('image')}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl border-b-2 transition-all ${
+                  uploadTab === 'image'
+                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
+                Upload Image File
+              </button>
+              <button
+                onClick={() => setUploadTab('json')}
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-xl border-b-2 transition-all ${
+                  uploadTab === 'json'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-500/10'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <FileJson className="w-3.5 h-3.5 text-blue-500" />
+                JSON Layout Code
+              </button>
+            </div>
+
             <div className="px-6 py-5 space-y-5">
-              {/* Template name */}
+              {/* Template Name */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Template Name</label>
                 <input
                   type="text"
                   value={uploadName}
                   onChange={(e) => setUploadName(e.target.value)}
-                  placeholder="e.g. My Company Card"
-                  className="w-full px-3 py-2 glass-input rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                  placeholder="e.g. My Canva Corporate Template"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                 />
               </div>
 
-              {/* Background images */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Front BG */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-                    Front Background Image <span className="text-gray-400 dark:text-gray-500 font-normal">(PNG/JPG)</span>
-                  </label>
-                  <div
-                    onClick={() => bgRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-4 cursor-pointer text-center transition-all ${
-                      uploadBg ? 'border-emerald-500 bg-emerald-500/5' : 'border-gray-300 dark:border-gray-700 hover:border-emerald-500 hover:bg-emerald-500/5'
-                    }`}
-                  >
-                    {uploadBg ? (
-                      <div className="relative">
-                        <img src={uploadBg} className="w-full h-24 object-contain rounded-lg" />
-                        <button onClick={(e) => { e.stopPropagation(); setUploadBg(null); }} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">×</button>
+              {/* ══ TAB 1: CANVA & URL FETCHER ══════════════════════════ */}
+              {uploadTab === 'canva' && (
+                <div className="space-y-4">
+                  {/* Canva Quick Tutorial */}
+                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 text-xs text-purple-900 dark:text-purple-200 space-y-1.5">
+                    <div className="flex items-center justify-between font-bold text-purple-700 dark:text-purple-300">
+                      <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-purple-400" /> How to Fetch from Canva:</span>
+                      <a href="https://canva.com" target="_blank" rel="noreferrer" className="text-[11px] underline flex items-center gap-1 hover:text-purple-400">
+                        Open Canva <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-gray-600 dark:text-purple-300/80 leading-relaxed">
+                      1. In Canva, click <strong>Share ➔ Download ➔ PNG/JPG</strong> (or right-click image to copy image address).<br />
+                      2. Paste the image link or fetch URL below.<br />
+                      3. Card Gen auto-detects resolution & creates editable fields for Name, Photo & QR code!
+                    </p>
+                  </div>
+
+                  {/* URL Input */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Canva Design Image Link or Web URL</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="url"
+                          value={fetchUrl}
+                          onChange={(e) => setFetchUrl(e.target.value)}
+                          placeholder="https://... (Canva image link or web URL)"
+                          className="w-full pl-9 pr-3 py-2 glass-input rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                        />
                       </div>
-                    ) : (
-                      <>
-                        <ImageIcon className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload front BG</p>
-                      </>
-                    )}
+                      <button
+                        type="button"
+                        onClick={handleFetchFromUrl}
+                        disabled={isFetchingUrl}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-md disabled:opacity-60 transition-all active:scale-[0.98]"
+                      >
+                        {isFetchingUrl ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+                        Fetch Design
+                      </button>
+                    </div>
                   </div>
-                  <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                    const f = e.target.files?.[0]; if (!f) return;
-                    if (f.size > 5 * 1024 * 1024) { showToast('Max 5MB', 'error'); return; }
-                    setUploadBg(await readFileAsBase64(f)); e.target.value = '';
-                  }} />
                 </div>
+              )}
 
-                {/* Back BG */}
+              {/* ══ TAB 1 & 2: IMAGE DISPLAY & FILE DROPZONE ═══════════ */}
+              {(uploadTab === 'canva' || uploadTab === 'image') && (
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  {/* Front BG */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
+                      Front Design Background <span className="text-gray-400 dark:text-gray-500 font-normal">(PNG/JPG)</span>
+                    </label>
+                    <div
+                      onClick={() => bgRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-4 cursor-pointer text-center transition-all ${
+                        uploadBg ? 'border-purple-500 bg-purple-500/5' : 'border-gray-300 dark:border-gray-700 hover:border-purple-500 hover:bg-purple-500/5'
+                      }`}
+                    >
+                      {uploadBg ? (
+                        <div className="relative">
+                          <img src={uploadBg} className="w-full h-28 object-contain rounded-lg shadow-sm" alt="Front Preview" />
+                          <button onClick={(e) => { e.stopPropagation(); setUploadBg(null); }} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">×</button>
+                        </div>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-6 h-6 text-purple-400 mx-auto mb-1" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload Canva PNG/JPG</p>
+                        </>
+                      )}
+                    </div>
+                    <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const f = e.target.files?.[0]; if (!f) return;
+                      if (f.size > 10 * 1024 * 1024) { showToast('Max 10MB', 'error'); return; }
+                      setUploadBg(await readFileAsBase64(f)); e.target.value = '';
+                    }} />
+                  </div>
+
+                  {/* Back BG */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
+                      Back Design Background <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
+                    </label>
+                    <div
+                      onClick={() => bgBackRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-4 cursor-pointer text-center transition-all ${
+                        uploadBgBack ? 'border-purple-500 bg-purple-500/5' : 'border-gray-300 dark:border-gray-700 hover:border-purple-500 hover:bg-purple-500/5'
+                      }`}
+                    >
+                      {uploadBgBack ? (
+                        <div className="relative">
+                          <img src={uploadBgBack} className="w-full h-28 object-contain rounded-lg shadow-sm" alt="Back Preview" />
+                          <button onClick={(e) => { e.stopPropagation(); setUploadBgBack(null); }} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">×</button>
+                        </div>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload back BG</p>
+                        </>
+                      )}
+                    </div>
+                    <input ref={bgBackRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const f = e.target.files?.[0]; if (!f) return;
+                      if (f.size > 10 * 1024 * 1024) { showToast('Max 10MB', 'error'); return; }
+                      setUploadBgBack(await readFileAsBase64(f)); e.target.value = '';
+                    }} />
+                  </div>
+                </div>
+              )}
+
+              {/* ══ TAB 3: JSON CODE ══════════════════════════════════ */}
+              {uploadTab === 'json' && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">
-                    Back Background Image <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>
-                  </label>
-                  <div
-                    onClick={() => bgBackRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-4 cursor-pointer text-center transition-all ${
-                      uploadBgBack ? 'border-emerald-500 bg-emerald-500/5' : 'border-gray-300 dark:border-gray-700 hover:border-emerald-500 hover:bg-emerald-500/5'
-                    }`}
-                  >
-                    {uploadBgBack ? (
-                      <div className="relative">
-                        <img src={uploadBgBack} className="w-full h-24 object-contain rounded-lg" />
-                        <button onClick={(e) => { e.stopPropagation(); setUploadBgBack(null); }} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">×</button>
-                      </div>
-                    ) : (
-                      <>
-                        <ImageIcon className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload back BG</p>
-                      </>
-                    )}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">JSON Layout Definition</label>
+                    <button
+                      onClick={() => jsonRef.current?.click()}
+                      className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                    >
+                      <FileJson className="w-3.5 h-3.5" />Upload .json file
+                    </button>
                   </div>
-                  <input ref={bgBackRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                  <textarea
+                    value={uploadJson}
+                    onChange={(e) => { setUploadJson(e.target.value); setUploadJsonError(''); }}
+                    rows={8}
+                    placeholder={JSON_EXAMPLE}
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  />
+                  <input ref={jsonRef} type="file" accept=".json" className="hidden" onChange={async (e) => {
                     const f = e.target.files?.[0]; if (!f) return;
-                    if (f.size > 5 * 1024 * 1024) { showToast('Max 5MB', 'error'); return; }
-                    setUploadBgBack(await readFileAsBase64(f)); e.target.value = '';
+                    const text = await readFileAsText(f);
+                    setUploadJson(text); setUploadJsonError('');
+                    e.target.value = '';
                   }} />
+                  {uploadJsonError && (
+                    <div className="flex items-center gap-1.5 mt-2 text-red-500 text-xs">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{uploadJsonError}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
-                <div className="flex-1 h-px bg-gray-200/10" />
-                <span>JSON Field Layout (optional — needed for auto-fill)</span>
-                <div className="flex-1 h-px bg-gray-200/10" />
-              </div>
-
-              {/* JSON upload or paste */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300">JSON Layout</label>
-                  <button
-                    onClick={() => jsonRef.current?.click()}
-                    className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
-                  >
-                    <FileJson className="w-3.5 h-3.5" />Upload .json file
-                  </button>
-                </div>
-                <textarea
-                  value={uploadJson}
-                  onChange={(e) => { setUploadJson(e.target.value); setUploadJsonError(''); }}
-                  rows={8}
-                  placeholder={JSON_EXAMPLE}
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
-                />
-                <input ref={jsonRef} type="file" accept=".json" className="hidden" onChange={async (e) => {
-                  const f = e.target.files?.[0]; if (!f) return;
-                  const text = await readFileAsText(f);
-                  setUploadJson(text); setUploadJsonError('');
-                  e.target.value = '';
-                }} />
-                {uploadJsonError && (
-                  <div className="flex items-center gap-1.5 mt-2 text-red-500 text-xs">
-                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{uploadJsonError}
-                  </div>
-                )}
-              </div>
-
-              {/* Info box */}
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                <p className="font-semibold">How it works:</p>
-                <p>• <strong>Image only</strong> → Upload your designed card image. Fields are positioned in the Designer afterwards.</p>
-                <p>• <strong>Image + JSON</strong> → Upload image as background and JSON to define where each field goes. The app auto-fills data at export time.</p>
-                <p>• <strong>JSON only</strong> → Programmatic template with no image background.</p>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-200/10 flex gap-3 justify-end">
+            <div className="px-6 py-4 border-t border-gray-200/10 flex gap-3 justify-end items-center bg-gray-500/5">
               <button onClick={() => setShowUpload(false)} className="px-4 py-2 glass-btn rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300">
                 Cancel
               </button>
-              {/* Image-only (no JSON) */}
-              {uploadBg && !uploadJson.trim() && (
+              {uploadTab === 'json' ? (
+                <button
+                  onClick={handleImportTemplate}
+                  className="px-5 py-2 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 flex items-center gap-1.5 shadow-md active:scale-[0.98] transition-all"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Import JSON Layout
+                </button>
+              ) : (
                 <button
                   onClick={handleCreateBlank}
-                  className="px-4 py-2 border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-semibold hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
+                  disabled={!uploadBg}
+                  className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-purple-500/20 disabled:opacity-50 active:scale-[0.98] transition-all"
                 >
-                  Create (Image Only)
+                  <Sparkles className="w-4 h-4 text-purple-200" />
+                  Generate Canva Template
                 </button>
               )}
-              {/* With JSON */}
-              <button
-                onClick={handleImportTemplate}
-                className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 flex items-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                Import Template
-              </button>
             </div>
           </div>
         </div>
