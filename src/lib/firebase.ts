@@ -12,11 +12,16 @@
 //    - Phone
 // ============================================================
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAnalytics, logEvent, isSupported as isAnalyticsSupported } from 'firebase/analytics';
+import { getPerformance } from 'firebase/performance';
+import { getRemoteConfig, fetchAndActivate, getValue } from 'firebase/remote-config';
 import {
   getAuth,
   GoogleAuthProvider,
+  GithubAuthProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
@@ -39,15 +44,66 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-DL9NVBTLX9"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// ── Firebase Analytics & Performance Monitoring ───────────────────
+let analyticsInstance: ReturnType<typeof getAnalytics> | null = null;
+if (typeof window !== 'undefined') {
+  isAnalyticsSupported().then((supported) => {
+    if (supported) {
+      analyticsInstance = getAnalytics(app);
+      try { getPerformance(app); } catch (e) {}
+    }
+  }).catch(() => {});
+}
+
+export const trackAnalyticsEvent = (eventName: string, eventParams?: Record<string, any>) => {
+  if (analyticsInstance) {
+    try { logEvent(analyticsInstance, eventName, eventParams); } catch (e) {}
+  }
+};
+
+// ── Firebase Remote Config ─────────────────────────────────────────
+export const remoteConfig = typeof window !== 'undefined' ? getRemoteConfig(app) : null;
+if (remoteConfig) {
+  remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
+  remoteConfig.defaultConfig = {
+    announcement_banner: '',
+    maintenance_mode: false,
+  };
+  fetchAndActivate(remoteConfig).catch(() => {});
+}
+
+export const getRemoteConfigValue = (key: string): string => {
+  if (!remoteConfig) return '';
+  try {
+    return getValue(remoteConfig, key).asString();
+  } catch (e) {
+    return '';
+  }
+};
+
+// ── Firebase Cloud Storage Helper ──────────────────────────────────
+export const uploadAssetToStorage = async (
+  userId: string,
+  file: File | Blob,
+  path: string
+): Promise<string> => {
+  const storageRef = ref(storage, `users/${userId}/${path}`);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+};
 
 // ── OAuth Providers ──────────────────────────────────────────
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
-
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+
+export const githubProvider = new GithubAuthProvider();
+export const signInWithGithub = () => signInWithPopup(auth, githubProvider);
 
 // ── Email / Password ─────────────────────────────────────────
 export const signUpWithEmail = (email: string, password: string) =>

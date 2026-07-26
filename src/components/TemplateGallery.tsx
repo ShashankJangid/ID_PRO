@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { getBuiltInTemplates } from '@/templates/built-in';
+import { trackAnalyticsEvent } from '@/lib/firebase';
 import CardRenderer from './CardRenderer';
 import type { CardTemplate } from '@/types';
 import { readFileAsBase64, readFileAsText, getImageDimensions } from '@/lib/file-utils';
@@ -245,6 +246,7 @@ const TemplateGallery: React.FC = () => {
       addTemplate(template);
     }
     setActiveTemplate(template.id);
+    trackAnalyticsEvent('select_template', { template_id: template.id, template_name: template.name });
     showToast(`Template "${template.name}" selected!`, 'success');
   };
 

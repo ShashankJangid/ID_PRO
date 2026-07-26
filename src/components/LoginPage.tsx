@@ -3,6 +3,7 @@ import { useAppStore } from '@/store';
 import { useShallow } from 'zustand/react/shallow';
 import {
   signInWithGoogle,
+  signInWithGithub,
   signInWithEmail,
   signUpWithEmail,
   resetPassword,
@@ -32,6 +33,13 @@ const GoogleIcon = () => (
     <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853" />
     <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05" />
     <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335" />
+  </svg>
+);
+
+// ── GitHub Icon ──────────────────────────────────────────────
+const GithubIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 text-slate-800 dark:text-white">
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
   </svg>
 );
 
@@ -113,7 +121,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
 
   // ── Social loading ──
-  const [socialLoading, setSocialLoading] = useState<'google' | null>(null);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'github' | null>(null);
 
   // ── Email state ──
   const [emailMode, setEmailMode] = useState<'signin' | 'signup' | 'reset'>('signin');
@@ -159,6 +167,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError('Google sign-in failed. Please try again.');
+      }
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleGithub = async () => {
+    setSocialLoading('github');
+    setError('');
+    try {
+      await signInWithGithub();
+      setIsSuccess(true);
+      sessionStorage.setItem('logging_in', 'true');
+      setTimeout(() => {
+        onLogin();
+      }, 1200);
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user') {
+        setError('GitHub sign-in failed. Please ensure GitHub is enabled in Firebase Console.');
       }
     } finally {
       setSocialLoading(null);
@@ -751,15 +778,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             </div>
 
             {/* ══ SOCIAL SIGN-IN OPTIONS ══════════════════════ */}
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={handleGoogle}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-2.5 glass-btn rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:scale-[1.01]"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 glass-btn rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:scale-[1.01]"
               >
                 {socialLoading === 'google' ? <Loader2 className="w-4 h-4 animate-spin text-slate-800 dark:text-white" /> : <GoogleIcon />}
-                Sign In with Google
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={handleGithub}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 glass-btn rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:scale-[1.01]"
+              >
+                {socialLoading === 'github' ? <Loader2 className="w-4 h-4 animate-spin text-slate-800 dark:text-white" /> : <GithubIcon />}
+                GitHub
               </button>
             </div>
 
