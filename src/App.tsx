@@ -254,10 +254,8 @@ function App() {
 
   const handleSignOut = async () => {
     try {
-      const { useAppStore, exportAutoProjectBackup, switchStoreUser } = await import('@/store');
+      const { switchStoreUser } = await import('@/store');
       if (user) {
-        useAppStore.getState().showToast('Project backup saved to device! Signing out...', 'info');
-        exportAutoProjectBackup(user.uid, user.email || undefined).catch(() => {});
         switchStoreUser(null).catch(() => {});
       }
     } catch (e) {

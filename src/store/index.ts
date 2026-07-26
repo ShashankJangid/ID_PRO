@@ -243,6 +243,8 @@ const saveFullStateToFirestore = async (userId: string, partialOverrides?: any) 
 
 const debouncedSaveFullStateToFirestore = debounce(saveFullStateToFirestore, 800);
 
+let sessionIsDirty = false;
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -251,6 +253,7 @@ export const useAppStore = create<AppState>()(
       organization: defaultOrg,
       updateOrganization: (org) =>
         set((state) => {
+          sessionIsDirty = true;
           const newOrg = { ...state.organization, ...org };
           const userId = auth.currentUser?.uid;
           if (userId) {
@@ -261,6 +264,7 @@ export const useAppStore = create<AppState>()(
       hasSetup: false,
       setHasSetup: (v) =>
         set(() => {
+          sessionIsDirty = true;
           const userId = auth.currentUser?.uid;
           if (userId) {
             saveFullStateToFirestore(userId, { hasSetup: v });
@@ -271,6 +275,7 @@ export const useAppStore = create<AppState>()(
       activeTemplateId: null,
       addTemplate: (t) =>
         set((state) => {
+          sessionIsDirty = true;
           const fitted = autoFitTemplate(t);
           const userId = auth.currentUser?.uid;
           if (userId) {
@@ -281,6 +286,7 @@ export const useAppStore = create<AppState>()(
         }),
       updateTemplate: (id, updates) =>
         set((state) => {
+          sessionIsDirty = true;
           const newTemplates = state.templates.map((t) => {
             if (t.id === id) {
               const updated = autoFitTemplate({ ...t, ...updates });
@@ -300,6 +306,7 @@ export const useAppStore = create<AppState>()(
         }),
       deleteTemplate: (id) =>
         set((state) => {
+          sessionIsDirty = true;
           const userId = auth.currentUser?.uid;
           if (userId) {
             deleteTemplateFromFirestore(userId, id);
@@ -330,6 +337,7 @@ export const useAppStore = create<AppState>()(
       activeCardIndex: 0,
       setCardDataList: (list) =>
         set(() => {
+          sessionIsDirty = true;
           const userId = auth.currentUser?.uid;
           if (userId) {
             debouncedSaveFullStateToFirestore(userId, { cardDataList: list });
@@ -338,6 +346,7 @@ export const useAppStore = create<AppState>()(
         }),
       addCardData: (data) =>
         set((state) => {
+          sessionIsDirty = true;
           const newList = [...state.cardDataList, data];
           const userId = auth.currentUser?.uid;
           if (userId) {
@@ -347,6 +356,7 @@ export const useAppStore = create<AppState>()(
         }),
       updateActiveCard: (data) =>
         set((state) => {
+          sessionIsDirty = true;
           const list = [...state.cardDataList];
           if (list[state.activeCardIndex]) {
             list[state.activeCardIndex] = { ...list[state.activeCardIndex], ...data };
@@ -365,6 +375,7 @@ export const useAppStore = create<AppState>()(
       columnMappings: [],
       setColumnMappings: (m) =>
         set(() => {
+          sessionIsDirty = true;
           const userId = auth.currentUser?.uid;
           if (userId) {
             saveFullStateToFirestore(userId, { columnMappings: m });
@@ -701,12 +712,14 @@ export async function syncStoreWithFirestore(userId: string | null) {
     if (!currentActiveId && mergedTemplates.length > 0) {
       useAppStore.setState({ activeTemplateId: mergedTemplates[0].id });
     }
+    sessionIsDirty = false;
   } catch (e) {
     console.error('Error syncing store with Firestore:', e);
   }
 }
 
 const resetStoreToDefaults = () => {
+  sessionIsDirty = false;
   useAppStore.setState({
     organization: defaultOrg,
     hasSetup: false,
@@ -759,13 +772,16 @@ export async function exportAutoProjectBackup(userId: string, email?: string) {
 }
 
 export async function switchStoreUser(userId: string | null) {
-  // If signing out from a previous user, save state and export automatic JSON backup (non-blocking)
+  // If signing out from a previous user, save state and export automatic JSON backup ONLY IF data changed
   const currentUserId = auth.currentUser?.uid;
   const currentEmail = auth.currentUser?.email || undefined;
   
   if (currentUserId && !userId) {
     saveFullStateToFirestore(currentUserId).catch(() => {});
-    exportAutoProjectBackup(currentUserId, currentEmail).catch(() => {});
+    if (sessionIsDirty) {
+      exportAutoProjectBackup(currentUserId, currentEmail).catch(() => {});
+      sessionIsDirty = false;
+    }
   }
 
   // Reset memory state to defaults first to guarantee zero data leakage between accounts
