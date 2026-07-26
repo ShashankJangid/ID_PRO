@@ -657,14 +657,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                       placeholder="Password"
                       autoComplete={emailMode === 'signup' ? 'new-password' : 'current-password'}
                       maxLength={255}
-                      className="w-full pl-9 pr-10 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
+                      className="w-full pl-9 pr-12 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
                     />
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/10 rounded-full transition-colors z-10 outline-none"
+                      className="absolute inset-y-0 right-0 pr-2.5 pl-3 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-r-xl transition-colors z-10 outline-none group cursor-pointer"
+                      title={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-slate-200/60 dark:group-hover:bg-white/10 transition-colors">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </span>
                     </button>
                   </div>
                 )}
@@ -682,14 +686,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                       placeholder="Confirm password"
                       autoComplete="new-password"
                       maxLength={255}
-                      className="w-full pl-9 pr-10 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
+                      className="w-full pl-9 pr-12 py-2.5 glass-input rounded-xl text-sm outline-none transition-all"
                     />
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/10 rounded-full transition-colors z-10 outline-none"
+                      className="absolute inset-y-0 right-0 pr-2.5 pl-3 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-r-xl transition-colors z-10 outline-none group cursor-pointer"
+                      title={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center group-hover:bg-slate-200/60 dark:group-hover:bg-white/10 transition-colors">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </span>
                     </button>
                   </div>
                 )}
