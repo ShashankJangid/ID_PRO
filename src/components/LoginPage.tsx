@@ -356,52 +356,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         
         {/* Left Center Panel: Marketing & Clients */}
         <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left text-white space-y-6">
-          <div className="space-y-5 w-full">
-            {/* Rectangle Badge without dot */}
-            <div className="inline-flex items-center px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm shadow-xs">
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#34d399' }}>Enterprise Identity Suite</span>
-            </div>
-
-            {/* ── Enterprise Clients Showcase (Positioned UPSIDE / TOP with Large Real Logos) ── */}
-            <div className="pt-2 pb-2 w-full">
-              <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center md:justify-start">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#34d399]" />
-                TRUSTED &amp; USED BY LEADING INSTITUTIONS
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-md w-full">
-                {/* IIT Jodhpur Card */}
-                <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.05] border border-white/15 hover:border-emerald-400/50 hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-md group shadow-lg">
-                  <div className="w-16 h-16 rounded-2xl bg-white p-2 flex items-center justify-center flex-shrink-0 shadow-md border-2 border-white group-hover:scale-105 transition-transform">
-                    <img src={iitJodhpurLogo} alt="IIT Jodhpur" className="w-full h-full object-contain" />
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <div className="flex items-center gap-1">
-                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">IIT Jodhpur</h4>
-                      <span className="text-[10px] text-emerald-400 font-bold" title="Verified Enterprise Software User">✓</span>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-medium leading-tight">Indian Institute of Tech.</p>
-                    <span className="inline-block mt-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">Active Software User</span>
-                  </div>
-                </div>
-
-                {/* DPS Indirapuram Card */}
-                <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.05] border border-white/15 hover:border-emerald-400/50 hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-md group shadow-lg">
-                  <div className="w-16 h-16 rounded-2xl bg-white p-2 flex items-center justify-center flex-shrink-0 shadow-md border-2 border-white group-hover:scale-105 transition-transform">
-                    <img src={dpsLogo} alt="DPS Indirapuram" className="w-full h-full object-contain" />
-                  </div>
-                  <div className="text-left overflow-hidden">
-                    <div className="flex items-center gap-1">
-                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">DPS Indirapuram</h4>
-                      <span className="text-[10px] text-emerald-400 font-bold" title="Verified Enterprise Software User">✓</span>
-                    </div>
-                    <p className="text-[10px] text-slate-300 font-medium leading-tight">Delhi Public School</p>
-                    <span className="inline-block mt-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">Active Software User</span>
-                  </div>
-                </div>
+          <div className="space-y-4 w-full">
+            {/* 1. Rectangle Badge */}
+            <div>
+              <div className="inline-flex items-center px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm shadow-xs">
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#34d399' }}>Enterprise Identity Suite</span>
               </div>
             </div>
 
+            {/* 2. Main Headline */}
             <h2
               style={{
                 fontFamily: "'DM Sans', 'Inter', system-ui, sans-serif",
@@ -417,101 +380,96 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             >
               Design &amp; Generate<br />Cards Instantly
             </h2>
+
+            {/* 3. Description */}
             <p
               style={{
                 fontFamily: "'Inter', system-ui, sans-serif",
-                fontSize: '14px',
-                lineHeight: '1.7',
+                fontSize: '13.5px',
+                lineHeight: '1.65',
                 color: '#cbd5e1',
-                maxWidth: '360px',
+                maxWidth: '420px',
                 fontWeight: 400,
               }}
             >
               The ultimate enterprise identity card automation suite — minimize manpower, accelerate design speed, and integrate directly with your ERP.
             </p>
-            {/* Feature pills */}
-            <div className="flex flex-wrap gap-2 justify-center md:justify-start pt-1">
-              {[
-                '⚡ Bulk Generation',
-                '🔗 ERP Integration',
-                '☁️ Cloud Sync',
-                '🎨 Custom Templates',
-                '🛡️ 100% Data Breach Safe',
-                '🔒 Zero Data Exposure'
-              ].map(f => (
-                <span
-                  key={f}
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: '#e2e8f0',
-                    background: f.includes('Data Breach') || f.includes('Zero Data')
-                      ? 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(5,150,105,0.15) 100%)'
-                      : 'rgba(255,255,255,0.05)',
-                    border: f.includes('Data Breach') || f.includes('Zero Data')
-                      ? '1px solid rgba(52,211,153,0.4)'
-                      : '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    backdropFilter: 'blur(4px)'
-                  }}
-                >
-                  {f}
-                </span>
-              ))}
-            </div>
 
-            {/* ── Security, Privacy & Value Promises ── */}
-            <div className="pt-3 space-y-3 max-w-md w-full">
-              {/* Data Breach Safe Guarantee Pill */}
-              <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 backdrop-blur-md flex items-start gap-3 shadow-lg text-left">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center flex-shrink-0 text-emerald-400 font-bold text-sm">
-                  🛡️
-                </div>
-                <div className="text-left">
-                  <h5 className="text-xs font-bold text-emerald-300 flex items-center gap-1.5 flex-wrap">
-                    100% Data Breach Safe &amp; Zero Data Mining
-                    <span className="text-[9px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold border border-emerald-400/30">VERIFIED</span>
-                  </h5>
-                  <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                    We <strong className="text-white">never harvest, sell, or expose</strong> your student or employee records. All data stays encrypted locally on your browser and bound strictly to your authenticated UID.
-                  </p>
+            {/* 4. Minimalist 4-Card Feature Grid */}
+            <div className="grid grid-cols-2 gap-2.5 max-w-md w-full pt-1 text-left">
+              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-2.5">
+                <span className="text-sm">⚡</span>
+                <div>
+                  <div className="text-[11px] font-bold text-white leading-tight">1,000+ Cards/Min</div>
+                  <div className="text-[9px] text-slate-400">Ultra Fast Engine</div>
                 </div>
               </div>
 
-              {/* High-value Marketing Highlights Grid */}
-              <div className="grid grid-cols-2 gap-2 text-left pt-1">
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
-                  <span className="text-xs">🔒</span>
-                  <div>
-                    <div className="text-[11px] font-bold text-white leading-tight">AES-256 Encrypted</div>
-                    <div className="text-[9px] text-slate-400">End-to-End Privacy</div>
+              <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/25 transition-all flex items-center gap-2.5">
+                <span className="text-sm">🛡️</span>
+                <div>
+                  <div className="text-[11px] font-bold text-emerald-300 leading-tight">100% Data Breach Safe</div>
+                  <div className="text-[9px] text-emerald-400/80">AES-256 Encrypted</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-2.5">
+                <span className="text-sm">☁️</span>
+                <div>
+                  <div className="text-[11px] font-bold text-white leading-tight">Cloud &amp; ERP Sync</div>
+                  <div className="text-[9px] text-slate-400">Real-Time Integration</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-2.5">
+                <span className="text-sm">🎨</span>
+                <div>
+                  <div className="text-[11px] font-bold text-white leading-tight">Custom Templates</div>
+                  <div className="text-[9px] text-slate-400">Zero Watermarks</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Enterprise Clients Showcase (Positioned cleanly at bottom) */}
+            <div className="pt-3 w-full">
+              <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2.5 flex items-center gap-1.5 justify-center md:justify-start">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                TRUSTED &amp; USED BY LEADING INSTITUTIONS
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md w-full">
+                {/* IIT Jodhpur Card */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/12 hover:border-emerald-400/40 hover:bg-white/[0.08] transition-all backdrop-blur-md group shadow-sm">
+                  <div className="w-12 h-12 rounded-xl bg-white p-1.5 flex items-center justify-center flex-shrink-0 shadow-sm border border-white group-hover:scale-105 transition-transform">
+                    <img src={iitJodhpurLogo} alt="IIT Jodhpur" className="w-full h-full object-contain" />
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <div className="flex items-center gap-1">
+                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">IIT Jodhpur</h4>
+                      <span className="text-[10px] text-emerald-400 font-bold" title="Verified User">✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-medium leading-tight">Indian Inst. of Tech.</p>
+                    <span className="inline-block mt-0.5 text-[8.5px] font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/25">Active User</span>
                   </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
-                  <span className="text-xs">⚡</span>
-                  <div>
-                    <div className="text-[11px] font-bold text-white leading-tight">Zero Watermarks</div>
-                    <div className="text-[9px] text-slate-400">100% Free Exports</div>
+
+                {/* DPS Indirapuram Card */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/12 hover:border-emerald-400/40 hover:bg-white/[0.08] transition-all backdrop-blur-md group shadow-sm">
+                  <div className="w-12 h-12 rounded-xl bg-white p-1.5 flex items-center justify-center flex-shrink-0 shadow-sm border border-white group-hover:scale-105 transition-transform">
+                    <img src={dpsLogo} alt="DPS Indirapuram" className="w-full h-full object-contain" />
                   </div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
-                  <span className="text-xs">💾</span>
-                  <div>
-                    <div className="text-[11px] font-bold text-white leading-tight">Local-First Storage</div>
-                    <div className="text-[9px] text-slate-400">Instant Offline Access</div>
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-2">
-                  <span className="text-xs">🚀</span>
-                  <div>
-                    <div className="text-[11px] font-bold text-white leading-tight">1,000+ Cards/Min</div>
-                    <div className="text-[9px] text-slate-400">Ultra Fast Engine</div>
+                  <div className="text-left overflow-hidden">
+                    <div className="flex items-center gap-1">
+                      <h4 className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors leading-snug">DPS Indirapuram</h4>
+                      <span className="text-[10px] text-emerald-400 font-bold" title="Verified User">✓</span>
+                    </div>
+                    <p className="text-[10px] text-slate-300 font-medium leading-tight">Delhi Public School</p>
+                    <span className="inline-block mt-0.5 text-[8.5px] font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/25">Active User</span>
                   </div>
                 </div>
               </div>
             </div>
+
           </div>
         </div>
 
