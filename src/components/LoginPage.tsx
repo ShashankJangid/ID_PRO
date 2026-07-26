@@ -498,7 +498,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <div className="relative z-10">
                 <RobotAvatar
                   isPasswordFocused={isPasswordFocused}
-                  showPassword={showPassword}
                   isSuccess={isSuccess}
                   isLoading={isLoading}
                 />
@@ -662,10 +661,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     />
                     <button
                       type="button"
-                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-white/10 rounded-full transition-colors z-10 outline-none"
-                      title={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
