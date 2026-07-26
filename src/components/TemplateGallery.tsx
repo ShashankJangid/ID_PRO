@@ -540,6 +540,9 @@ const TemplateGallery: React.FC = () => {
                     {template.isBuiltIn && (
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-100/40 text-gray-600 dark:text-gray-300 border border-gray-200/10">Built-in</span>
                     )}
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                      📐 {template.cardWidth} × {template.cardHeight} px
+                    </span>
                     {template.backgroundImage && (
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
                         <ImageIcon className="w-3 h-3" />BG
@@ -603,8 +606,13 @@ const TemplateGallery: React.FC = () => {
           <div className="glass-card rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200/10">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{previewTemplate.name}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{previewTemplate.description}</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">{previewTemplate.name}</h3>
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                    📐 {previewTemplate.cardWidth} × {previewTemplate.cardHeight} px
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{previewTemplate.description}</p>
               </div>
               <button onClick={() => setPreviewTemplate(null)} className="p-2 hover:bg-gray-500/10 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
                 <X className="w-4 h-4" />

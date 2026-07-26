@@ -179,15 +179,14 @@ function renderElement(
 
       const resolveLineHeight = () => {
         const lh = s.lineHeight;
-        if (!lh) return `${Math.round(fittedFontSize * 1.4)}px`;
+        if (!lh) return '1.15';
         const lhStr = String(lh).trim();
         if (lhStr.endsWith('px')) return lhStr;
-        if (lhStr === 'normal') return `${Math.round(fittedFontSize * 1.4)}px`;
+        if (lhStr === 'normal') return '1.15';
         const val = parseFloat(lhStr);
-        if (isNaN(val)) return `${Math.round(fittedFontSize * 1.4)}px`;
-        // If it's a relative value (like 1.4 or 120%), convert to px
+        if (isNaN(val)) return '1.15';
         const scaleFactor = lhStr.endsWith('%') ? val / 100 : val;
-        return `${Math.round(fittedFontSize * scaleFactor)}px`;
+        return String(scaleFactor);
       };
 
       const textStyle: React.CSSProperties = {

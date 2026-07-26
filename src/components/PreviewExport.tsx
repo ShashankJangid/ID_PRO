@@ -448,6 +448,14 @@ const PreviewExport: React.FC = () => {
             if (cardWrapper) {
               cardWrapper.style.cssText = `width:${template.cardWidth}px;height:${template.cardHeight}px;position:absolute;top:0;left:0;margin:0;padding:0;border:none;transform:none;transform-origin:top left;overflow:hidden;background:#ffffff;`;
             }
+
+            const textElements = clonedDoc.querySelectorAll('[data-element-type="text"]');
+            textElements.forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              htmlEl.style.lineHeight = '1.15';
+              htmlEl.style.marginTop = '0px';
+              htmlEl.style.paddingTop = '0px';
+            });
           },
         });
       } finally {
